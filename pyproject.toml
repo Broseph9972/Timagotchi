@@ -1,0 +1,14 @@
+[project]
+name = "pi-schedule-display"
+version = "0.1.0"
+description = "School schedule display for Raspberry Pi with Waveshare LCD HAT"
+authors = ["Your Name <you@example.com>"]
+requires-python = ">=3.11"
+dependencies = [
+    "st7735>=0.2.0",
+    "pillow>=10.0.0",
+    "numpy>=1.24.0",
+    "spidev>=3.6",
+    "rpi-lgpio>=0.4",
+    "lgpio>=0.2.2.0",
+]
