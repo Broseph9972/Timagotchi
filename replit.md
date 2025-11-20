@@ -1,7 +1,7 @@
 # Pi Schedule Display Project
 
 ## Overview
-This project ports a school schedule display from a Raspberry Pi Pico W to a Raspberry Pi Zero WH with a Waveshare 1.44" LCD HAT. It displays class schedules with a navigable menu system and includes RetroPie integration.
+This project ports a school schedule display from a Raspberry Pi Pico W to a Raspberry Pi Zero WH with a Waveshare 1.44" LCD HAT. It displays class schedules with a navigable menu system and includes a RetroArch-powered games menu for Tetris and Doom.
 
 ## Target Hardware
 - **Board**: Raspberry Pi Zero WH (compatible with all Pi models)
@@ -18,7 +18,7 @@ This project ports a school schedule display from a Raspberry Pi Pico W to a Ras
 - `main.py` - Application entry point with menu system integration
 - `display_waveshare.py` - Display driver for ST7735S LCD (128x128)
 - `input_handler.py` - Joystick and button input handling
-- `menu.py` - Menu system with schedule, clock, settings, and RetroPie launcher
+- `menu.py` - Menu system with schedule, clock, settings, and RetroArch games launcher
 - `config.py` - School schedule configuration
 
 ### Configuration Files
@@ -44,12 +44,11 @@ This project ports a school schedule display from a Raspberry Pi Pico W to a Ras
 - Schedule screen (live updates every second)
 - Clock screen (digital time + date)
 - Settings screen (future expansion)
-- RetroPie launcher
+- RetroArch games menu
 
-### 3. RetroPie Integration
-- Menu option to launch EmulationStation
-- Clean exit from schedule app
-- Can auto-restart after RetroPie exits (via systemd)
+### 3. RetroArch Games Menu
+- Menu option to launch curated RetroArch sessions
+- Clean exit from schedule app and auto-restart after exiting games
 
 ## Dependencies
 

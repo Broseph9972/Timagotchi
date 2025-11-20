@@ -13,7 +13,7 @@ fi
 
 echo "Installing system packages..."
 sudo apt-get update
-sudo apt-get install -y python3-pip python3-pil python3-numpy git
+sudo apt-get install -y python3-pip python3-pil python3-numpy git retroarch libretro
 
 echo "Installing Python dependencies..."
 pip3 install --break-system-packages pillow numpy spidev RPi.GPIO

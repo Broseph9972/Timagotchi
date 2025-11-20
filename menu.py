@@ -1,11 +1,13 @@
 import datetime
 import subprocess
-import os
+import time
 from config import (
     PERIODS, SCHOOL_START, SCHOOL_END, LUNCH_START, LUNCH_END,
     PERIOD_LENGTH, PASSING_TIME, A_DAY_PERIODS, B_DAY_PERIODS,
     ADVISORY_START, advisory, advisorydays, advisorylength, freetimedaus, USE_24_HOUR
 )
+from input_handler import InputHandler
+from games_config import GAMES, get_game_command
 
 class Menu:
     def __init__(self, display, input_handler):
@@ -13,10 +15,12 @@ class Menu:
         self.input_handler = input_handler
         self.current_screen = "main"
         self.selected_index = 0
+        self.game_selected_index = 0
         self.running = True
         
-        self.main_menu_items = ["Schedule", "Clock", "Settings", "Launch RetroPie", "Exit"]
+        self.main_menu_items = ["Schedule", "Clock", "Settings", "Games", "Exit"]
         self.settings_menu_items = ["A/B Day: Auto", "Back"]
+        self.game_menu_items = list(GAMES.keys()) + ["Back"]
     
     def is_advisory_day(self):
         today = datetime.datetime.now().strftime('%a').lower()
@@ -141,6 +145,9 @@ class Menu:
     def show_settings_menu(self):
         self.display.show_menu(self.settings_menu_items, self.selected_index, "Settings")
     
+    def show_games_menu(self):
+        self.display.show_menu(self.game_menu_items, self.game_selected_index, "Games")
+    
     def handle_main_menu_input(self, action):
         if action == 'up':
             self.selected_index = (self.selected_index - 1) % len(self.main_menu_items)
@@ -160,10 +167,10 @@ class Menu:
                 self.current_screen = "settings"
                 self.selected_index = 0
                 self.show_settings_menu()
-            elif selected_item == "Launch RetroPie":
-                self.launch_retropie()
-            elif selected_item == "Exit":
-                self.running = False
+            elif selected_item == "Games":
+                self.current_screen = "games"
+                self.game_selected_index = 0
+                self.show_games_menu()
     
     def handle_schedule_input(self, action):
         if action == 'left' or action == 'key1':
@@ -194,37 +201,56 @@ class Menu:
             self.selected_index = 0
             self.show_main_menu()
     
-    def launch_retropie(self):
-        self.display.show_message("Launching", "Starting RetroPie...", (100, 255, 100))
-        fbcp_proc = None
-        try:
-            self.input_handler.cleanup()
-
-            # Start FBCP to mirror HDMI framebuffer to the LCD
-            try:
-                fbcp_proc = subprocess.Popen(
-                    ["/home/pi/fbcp-ili9341/build/fbcp-ili9341"],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-            except FileNotFoundError:
-                fbcp_proc = None
-
-            subprocess.run(["emulationstation"], check=False)
-            self.running = False
-        except FileNotFoundError:
-            self.display.show_message("Error", "RetroPie not found\nInstall EmulationStation", (255, 100, 100))
-            import time
-            time.sleep(3)
+    def handle_game_input(self, action):
+        if action == 'up':
+            self.game_selected_index = (self.game_selected_index - 1) % len(self.game_menu_items)
+            self.show_games_menu()
+        elif action == 'down':
+            self.game_selected_index = (self.game_selected_index + 1) % len(self.game_menu_items)
+            self.show_games_menu()
+        elif action == 'select' or action == 'right':
+            selected_item = self.game_menu_items[self.game_selected_index]
+            if selected_item == "Back":
+                self.current_screen = "main"
+                self.selected_index = 0
+                self.show_main_menu()
+            else:
+                self.launch_game(selected_item)
+        elif action == 'left' or action == 'key1':
             self.current_screen = "main"
             self.selected_index = 0
             self.show_main_menu()
+    
+    def launch_game(self, game_name):
+        try:
+            command = get_game_command(game_name)
+        except Exception as exc:
+            self.display.show_message("Error", str(exc), (255, 100, 100))
+            time.sleep(2)
+            self.show_games_menu()
+            return
+
+        self.display.show_message("Launching", f"Starting {game_name}", (100, 255, 100))
+        try:
+            self.input_handler.cleanup()
+        except Exception:
+            pass
+
+        try:
+            subprocess.run(command, check=False)
+        except FileNotFoundError:
+            self.display.show_message("Error", "RetroArch is not installed", (255, 100, 100))
+            time.sleep(2)
         finally:
-            if fbcp_proc is not None:
-                try:
-                    fbcp_proc.terminate()
-                except Exception:
-                    pass
+            try:
+                self.input_handler = InputHandler()
+            except Exception as exc:
+                self.display.show_message("Error", f"Input handler failed: {exc}", (255, 100, 100))
+                time.sleep(2)
+
+        self.current_screen = "games"
+        self.game_selected_index = 0
+        self.show_games_menu()
     
     def run(self):
         import time
@@ -245,6 +271,8 @@ class Menu:
                     self.handle_clock_input(action)
                 elif self.current_screen == "settings":
                     self.handle_settings_input(action)
+                elif self.current_screen == "games":
+                    self.handle_game_input(action)
             
             current_time = time.time()
             if current_time - last_update > 1.0:
