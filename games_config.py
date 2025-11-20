@@ -1,8 +1,12 @@
 import os
 from typing import Dict, List
 
-DEFAULT_ROM_DIR = os.environ.get("GAME_ROM_DIR", "/home/pi/roms")
-DEFAULT_CORE_DIR = os.environ.get("RETROARCH_CORE_DIR", "/usr/lib/libretro")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_ROM_DIR = os.environ.get("GAME_ROM_DIR", os.path.join(BASE_DIR, "roms"))
+DEFAULT_CORE_DIR = os.environ.get(
+    "RETROARCH_CORE_DIR",
+    "/home/pi/.config/retroarch/cores",
+)
 
 GAMES: Dict[str, Dict[str, List[str] | str]] = {
     "Doom (PrBoom)": {

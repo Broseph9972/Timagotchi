@@ -239,10 +239,6 @@ cd /home/pi/schedule-display && sudo python3 main.py &
 - Add your user to gpio group: `sudo usermod -aG gpio $USER` then reboot
 - If you edited scripts on Windows, run `dos2unix *.sh` to avoid stray CRLF characters before launching.
 
-### RetroPie Not Launching
-- Make sure EmulationStation is installed: `which emulationstation`
-- Install RetroPie: https://retropie.org.uk/docs/Manual-Installation/
-
 ## License
 
 MIT
