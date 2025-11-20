@@ -4,7 +4,7 @@
 A school schedule display system for Raspberry Pi Zero WH with Waveshare 1.44" LCD HAT.
 ## LOTS OF CODE IS AI
 ## Overview
-This project is a pi zero 
+This project is a pi zero scheduler that tells u how much time u have left in school
 ## Features
 
 - **Schedule View**: Shows what period ur in and how much time left( i want to add a progress bar)
