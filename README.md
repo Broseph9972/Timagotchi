@@ -1,5 +1,6 @@
 # Pi Schedule Display
-
+![Pic of it working](https://github.com/Broseph9972/Timagotchi/blob/8dd138669abf655206ba47d0e1635b271fd48dee/WIN_20251119_20_47_22_Pro.jpg)
+![Pic of it working 2](https://github.com/Broseph9972/Timagotchi/blob/8dd138669abf655206ba47d0e1635b271fd48dee/WIN_20251106_21_18_16_Pro.jpg)
 A school schedule display system for Raspberry Pi Zero WH with Waveshare 1.44" LCD HAT.
 
 ## Overview
