@@ -7,26 +7,57 @@ import time
 
 def _load_lcd_driver():
     base_dir = os.path.dirname(__file__)
-    driver_dir = os.path.join(base_dir, "old code")
-    cfg_path = os.path.join(driver_dir, "config.py")
-    lcd_path = os.path.join(driver_dir, "LCD_1in44.py")
+    legacy_dir = os.path.join(base_dir, "old code")
 
-    orig_config = sys.modules.get("config")
-    try:
-        spec_cfg = importlib.util.spec_from_file_location("_lcd_hat_config", cfg_path)
-        lcd_hat_config = importlib.util.module_from_spec(spec_cfg)
-        spec_cfg.loader.exec_module(lcd_hat_config)
-        sys.modules["config"] = lcd_hat_config
+    candidates = []
+    if os.path.isdir(legacy_dir):
+        candidates.append(
+            (
+                os.path.join(legacy_dir, "config.py"),
+                os.path.join(legacy_dir, "LCD_1in44.py"),
+                None,
+            )
+        )
 
-        spec_lcd = importlib.util.spec_from_file_location("LCD_1in44", lcd_path)
-        lcd_module = importlib.util.module_from_spec(spec_lcd)
-        spec_lcd.loader.exec_module(lcd_module)
-    finally:
-        if orig_config is not None:
-            sys.modules["config"] = orig_config
-        else:
-            sys.modules.pop("config", None)
-    return lcd_module
+    spec_pkg = importlib.util.find_spec("LCD_1in44")
+    if spec_pkg and spec_pkg.origin:
+        driver_dir = os.path.dirname(spec_pkg.origin)
+        candidates.append((os.path.join(driver_dir, "config.py"), spec_pkg.origin, spec_pkg))
+
+    load_errors = []
+    for cfg_path, lcd_path, spec in candidates:
+        if not (os.path.exists(cfg_path) and os.path.exists(lcd_path)):
+            continue
+
+        orig_config = sys.modules.get("config")
+        try:
+            spec_cfg = importlib.util.spec_from_file_location("_lcd_hat_config", cfg_path)
+            lcd_hat_config = importlib.util.module_from_spec(spec_cfg)
+            spec_cfg.loader.exec_module(lcd_hat_config)
+            sys.modules["config"] = lcd_hat_config
+
+            spec_lcd = spec or importlib.util.spec_from_file_location("LCD_1in44", lcd_path)
+            if spec_lcd is None or spec_lcd.loader is None:
+                load_errors.append(f"Missing loader for {lcd_path}")
+                continue
+            lcd_module = importlib.util.module_from_spec(spec_lcd)
+            sys.modules["LCD_1in44"] = lcd_module
+            spec_lcd.loader.exec_module(lcd_module)
+            return lcd_module
+        except Exception as exc:
+            load_errors.append(f"{lcd_path}: {exc}")
+        finally:
+            if orig_config is not None:
+                sys.modules["config"] = orig_config
+            else:
+                sys.modules.pop("config", None)
+
+    error_detail = "; ".join(load_errors) if load_errors else "driver files not found"
+    raise FileNotFoundError(
+        "Could not load Waveshare LCD driver (LCD_1in44). "
+        "Re-run install.sh to reinstall the driver or restore the legacy 'old code' folder. "
+        f"Details: {error_detail}"
+    )
 
 
 LCD_1in44 = _load_lcd_driver()
