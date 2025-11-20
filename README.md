@@ -2,7 +2,7 @@
 ![Pic of it working](https://github.com/Broseph9972/Timagotchi/blob/8dd138669abf655206ba47d0e1635b271fd48dee/WIN_20251119_20_47_22_Pro.jpg)
 ![Pic of it working 2](https://github.com/Broseph9972/Timagotchi/blob/8dd138669abf655206ba47d0e1635b271fd48dee/WIN_20251106_21_18_16_Pro.jpg)
 A school schedule display system for Raspberry Pi Zero WH with Waveshare 1.44" LCD HAT.
-
+## README IS AI
 ## Overview
 
 This project ports a school schedule display from a Raspberry Pi Pico W to a Raspberry Pi Zero WH equipped with the Waveshare 1.44" LCD HAT. It renders a colorful class schedule, clock, and a RetroArch-powered games menu on the ST7735S display while the HAT’s joystick and extra buttons keep navigation tactile.
