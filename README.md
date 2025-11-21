@@ -2,7 +2,7 @@
 ![Pic of it working](https://github.com/Broseph9972/Timagotchi/blob/8dd138669abf655206ba47d0e1635b271fd48dee/WIN_20251119_20_47_22_Pro.jpg)
 ![Pic of it working 2](https://github.com/Broseph9972/Timagotchi/blob/8dd138669abf655206ba47d0e1635b271fd48dee/WIN_20251106_21_18_16_Pro.jpg)
 A school schedule display system for Raspberry Pi Zero WH with Waveshare 1.44" LCD HAT.
-## LOTS OF CODE IS AI
+## LOTS OF CODE IS AI, README IS NOT AI
 ## Overview
 This project is a pi zero scheduler that tells u how much time u have left in school
 ## Features
@@ -11,8 +11,6 @@ This project is a pi zero scheduler that tells u how much time u have left in sc
 - **Clock View**: its a clock. it shows time and date.
 - **Menu System**: crappy menu ill change later
 - **RetroArch Games Menu**: DOES NOT WORK YET but i have retroarch working and i will add later
-- **Joystick & Buttons**: Full 5-way joystick plus three extra buttons for shortcuts/back navigation.
-- **Systemd-Friendly**: Service file included for clean auto-start and restart after RetroPie exits.
 
 ## Target Hardware
 
