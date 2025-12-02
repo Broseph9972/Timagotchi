@@ -1,4 +1,4 @@
-# Timagotchi
+# Timagotchi --to the mod who keeps checking my thing- i dont understand whats wrong w/ my readme please just let me submit my project :(
 ![Pic of it working](https://github.com/Broseph9972/Timagotchi/blob/8dd138669abf655206ba47d0e1635b271fd48dee/WIN_20251119_20_47_22_Pro.jpg)
 ![Pic of it working 2](https://github.com/Broseph9972/Timagotchi/blob/8dd138669abf655206ba47d0e1635b271fd48dee/WIN_20251106_21_18_16_Pro.jpg)
 A school schedule display system for Raspberry Pi Zero WH with Waveshare 1.44" LCD HAT.
@@ -22,13 +22,11 @@ This project is a pi zero scheduler that tells u how much time u have left in sc
 ## Project Structure
 
 ### Core Files
-- `main.py` – Application entry point with menu integration.
-- `display_waveshare.py` – ST7735S display driver and drawing helpers.
-- `input_handler.py` – Joystick and button handling (RPi.GPIO or lgpio backend).
-- `menu.py` – Menu logic, RetroArch game launcher, and on-screen views.
-- `display.py` – Legacy SSD1306 OLED code (kept for reference).
-- `rtc.py` – Legacy DS3231 RTC helper (not used on Pi builds).
-
+- `main.py` – starts everything
+- `display_waveshare.py` – its a driver
+- `input_handler.py` – shoves button inputs in places they need to go
+- `menu.py` – Its where the menu menus.
+- 
 ### Configuration & Utilities
 - `config.py` – Schedule definition (editable manually or via the helper script).
 - `configure_schedule.py` – makes ur config.json for u
