@@ -190,10 +190,3 @@ Add to `/etc/rc.local` (before `exit 0`):
 ```bash
 cd /home/pi/schedule-display && sudo python3 main.py &
 ```
-
-## Troubleshooting
-
-### Blank Screen
-- Verify SPI is enabled: `ls /dev/spi*` (should show `/dev/spidev0.0` and `/dev/spidev0.1`)
-- Make sure you're running with `sudo`
-- Check connections on the HAT
