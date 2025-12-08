@@ -19,6 +19,7 @@ class Menu:
         
         self.main_menu_items = ["Schedule", "Clock", "Settings", "Set Time"]
         self.settings_menu_items = ["A/B Day", "WiFi", "Back"]
+        self.set_time_menu_items = ["WiFi Sync", "Manual Set", "Back"]
         self.adjust_hour = 0
         self.adjust_minute = 0
         self.ab_day_mode = AB_DAY_MODE  # "auto", "a", or "b"
@@ -26,6 +27,7 @@ class Menu:
         self.key3_press_time = None  # Track when Key3 is pressed
         self.last_sync_time = 0  # Track last WiFi sync time for periodic syncing
         self.sync_on_boot = (TIME_SYNC_MODE == "on_boot")  # Flag to sync once at startup
+        self.last_sync_error = None  # Store the last sync error message
     
     def is_advisory_day(self):
         today = datetime.datetime.now().strftime('%a').lower()
@@ -163,10 +165,13 @@ class Menu:
             message = f"A/B Day: {current}\n\nUp/Down: Toggle\nSelect: Confirm"
         self.display.show_message("A/B Day", message, (200, 150, 255))
     
+    def show_set_time_menu(self):
+        self.display.show_menu(self.set_time_menu_items, self.selected_index, "Set Time")
+    
     def show_set_time_screen(self):
         hour_str = f"{self.adjust_hour:02d}"
         minute_str = f"{self.adjust_minute:02d}"
-        message = f"Set Time:\n{hour_str}:{minute_str}\n\nKey1: Hour+\nKey2: Min+\nKey3: Sync"
+        message = f"Set Time:\n{hour_str}:{minute_str}\n\nKey1: Hour+\nKey2: Min+\nSel: Apply"
         self.display.show_message("Set Time", message, (255, 200, 100))
     
     def handle_set_time_input(self, action):
@@ -178,13 +183,42 @@ class Menu:
             self.key3_press_time = None  # Reset hold timer
             self.adjust_minute = (self.adjust_minute + 1) % 60
             self.show_set_time_screen()
-        elif action == 'key3':
-            # Start tracking Key3 press for hold detection
-            if self.key3_press_time is None:
-                self.key3_press_time = time.time()
-        elif action == 'left' or action == 'select':
-            # Exit without saving
+        elif action == 'select':  # Confirm and apply the time
+            self.apply_manual_time()
+            self.current_screen = "set_time_menu"
+            self.selected_index = 0
+            self.show_set_time_menu()
+        elif action == 'left':  # Cancel and go back
             self.key3_press_time = None
+            self.current_screen = "set_time_menu"
+            self.selected_index = 0
+            self.show_set_time_menu()
+    
+    def handle_set_time_menu_input(self, action):
+        if action == 'up':
+            self.selected_index = (self.selected_index - 1) % len(self.set_time_menu_items)
+            self.show_set_time_menu()
+        elif action == 'down':
+            self.selected_index = (self.selected_index + 1) % len(self.set_time_menu_items)
+            self.show_set_time_menu()
+        elif action == 'select' or action == 'right':
+            selected_item = self.set_time_menu_items[self.selected_index]
+            if selected_item == "WiFi Sync":
+                self.sync_time_via_wifi()
+                self.current_screen = "set_time_menu"
+                self.selected_index = 0
+                self.show_set_time_menu()
+            elif selected_item == "Manual Set":
+                self.current_screen = "set_time"
+                now = datetime.datetime.now()
+                self.adjust_hour = now.hour
+                self.adjust_minute = now.minute
+                self.show_set_time_screen()
+            elif selected_item == "Back":
+                self.current_screen = "main"
+                self.selected_index = 0
+                self.show_main_menu()
+        elif action == 'left' or action == 'key1':
             self.current_screen = "main"
             self.selected_index = 0
             self.show_main_menu()
@@ -233,11 +267,9 @@ class Menu:
                 self.selected_index = 0
                 self.show_settings_menu()
             elif selected_item == "Set Time":
-                self.current_screen = "set_time"
-                now = datetime.datetime.now()
-                self.adjust_hour = now.hour
-                self.adjust_minute = now.minute
-                self.show_set_time_screen()
+                self.current_screen = "set_time_menu"
+                self.selected_index = 0
+                self.show_set_time_menu()
     
     def handle_schedule_input(self, action):
         if action == 'left' or action == 'key1':
@@ -288,17 +320,66 @@ class Menu:
             
             # Try timedatectl with ntp
             try:
-                subprocess.run(['sudo', 'timedatectl', 'set-ntp', 'true'], check=False, timeout=10)
+                result = subprocess.run(['sudo', 'timedatectl', 'set-ntp', 'true'], 
+                                      capture_output=True, text=True, timeout=10)
                 time.sleep(2)
                 # Force update from NTP
-                subprocess.run(['sudo', 'timedatectl', 'set-time', 'now'], check=False, timeout=10)
-                self.display.show_message("Time Synced", "WiFi sync\nsuccessful!", (100, 255, 100))
-            except Exception:
-                self.display.show_message("Sync Failed", "Unable to sync\ntime via WiFi", (255, 100, 100))
+                result = subprocess.run(['sudo', 'timedatectl', 'set-time', 'now'], 
+                                      capture_output=True, text=True, timeout=10)
+                
+                if result.returncode != 0:
+                    error_msg = result.stderr.strip()
+                    if "Automatic time synchronization is enabled" in error_msg:
+                        self.last_sync_error = "Auto sync enabled:\nDisable in settings"
+                        self.display.show_message("Sync Failed", self.last_sync_error, (255, 100, 100))
+                    else:
+                        self.last_sync_error = error_msg if error_msg else "Unknown error"
+                        self.display.show_message("Sync Failed", self.last_sync_error[:40], (255, 100, 100))
+                else:
+                    self.last_sync_error = None
+                    self.display.show_message("Time Synced", "WiFi sync\nsuccessful!", (100, 255, 100))
+            except subprocess.TimeoutExpired:
+                self.last_sync_error = "Sync timed out"
+                self.display.show_message("Sync Failed", "Operation timed out", (255, 100, 100))
+            except Exception as e:
+                self.last_sync_error = str(e)
+                self.display.show_message("Sync Failed", str(e)[:40], (255, 100, 100))
             
             time.sleep(2)
         except Exception as e:
-            self.display.show_message("Error", str(e), (255, 100, 100))
+            self.last_sync_error = str(e)
+            self.display.show_message("Error", str(e)[:40], (255, 100, 100))
+            time.sleep(2)
+    
+    def apply_manual_time(self):
+        """Apply the manually set time"""
+        try:
+            # Format time as HH:MM:SS
+            time_str = f"{self.adjust_hour:02d}:{self.adjust_minute:02d}:00"
+            
+            result = subprocess.run(['sudo', 'timedatectl', 'set-time', time_str],
+                                  capture_output=True, text=True, timeout=10)
+            
+            if result.returncode != 0:
+                error_msg = result.stderr.strip()
+                if "Automatic time synchronization is enabled" in error_msg:
+                    self.last_sync_error = "Disable auto sync first:\nsudo timedatectl set-ntp false"
+                    self.display.show_message("Failed", self.last_sync_error, (255, 100, 100))
+                else:
+                    self.last_sync_error = error_msg if error_msg else "Failed to set time"
+                    self.display.show_message("Failed", self.last_sync_error[:40], (255, 100, 100))
+            else:
+                self.last_sync_error = None
+                self.display.show_message("Time Set", f"Set to {time_str}", (100, 255, 100))
+            
+            time.sleep(2)
+        except subprocess.TimeoutExpired:
+            self.last_sync_error = "Operation timed out"
+            self.display.show_message("Failed", "Timeout", (255, 100, 100))
+            time.sleep(2)
+        except Exception as e:
+            self.last_sync_error = str(e)
+            self.display.show_message("Error", str(e)[:40], (255, 100, 100))
             time.sleep(2)
     
     def run(self):
@@ -329,6 +410,8 @@ class Menu:
                     self.handle_ab_day_input(action)
                 elif self.current_screen == "wifi":
                     self.handle_wifi_input(action)
+                elif self.current_screen == "set_time_menu":
+                    self.handle_set_time_menu_input(action)
                 elif self.current_screen == "set_time":
                     self.handle_set_time_input(action)
             
