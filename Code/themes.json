@@ -1,0 +1,71 @@
+{
+  "themes": {
+    "light": {
+      "name": "Light",
+      "background": [255, 255, 255],
+      "text_primary": [0, 0, 0],
+      "text_secondary": [80, 80, 80],
+      "text_accent": [100, 150, 255],
+      "menu_highlight": [200, 200, 200],
+      "success": [100, 255, 100],
+      "error": [255, 100, 100],
+      "warning": [255, 200, 100]
+    },
+    "dark": {
+      "name": "Dark",
+      "background": [20, 20, 20],
+      "text_primary": [255, 255, 255],
+      "text_secondary": [180, 180, 180],
+      "text_accent": [100, 200, 255],
+      "menu_highlight": [60, 60, 60],
+      "success": [100, 255, 100],
+      "error": [255, 100, 100],
+      "warning": [255, 200, 100]
+    },
+    "ocean": {
+      "name": "Ocean",
+      "background": [5, 35, 60],
+      "text_primary": [200, 220, 255],
+      "text_secondary": [150, 180, 220],
+      "text_accent": [100, 200, 255],
+      "menu_highlight": [30, 80, 140],
+      "success": [100, 255, 150],
+      "error": [255, 120, 100],
+      "warning": [255, 200, 80]
+    },
+    "forest": {
+      "name": "Forest",
+      "background": [20, 45, 20],
+      "text_primary": [220, 255, 200],
+      "text_secondary": [180, 220, 160],
+      "text_accent": [150, 255, 150],
+      "menu_highlight": [50, 100, 50],
+      "success": [150, 255, 100],
+      "error": [255, 100, 100],
+      "warning": [255, 200, 100]
+    },
+    "sunset": {
+      "name": "Sunset",
+      "background": [60, 30, 20],
+      "text_primary": [255, 220, 180],
+      "text_secondary": [240, 180, 140],
+      "text_accent": [255, 180, 100],
+      "menu_highlight": [100, 50, 40],
+      "success": [200, 255, 150],
+      "error": [255, 100, 80],
+      "warning": [255, 200, 80]
+    },
+    "cyberpunk": {
+      "name": "Cyberpunk",
+      "background": [10, 10, 30],
+      "text_primary": [0, 255, 255],
+      "text_secondary": [100, 255, 200],
+      "text_accent": [255, 0, 255],
+      "menu_highlight": [0, 100, 100],
+      "success": [0, 255, 100],
+      "error": [255, 0, 100],
+      "warning": [255, 200, 0]
+    }
+  },
+  "current_theme": "dark"
+}

@@ -1,6 +1,7 @@
 import datetime
 import subprocess
 import time
+import json
 from config import (
     PERIODS, SCHOOL_START, SCHOOL_END, LUNCH_START, LUNCH_END,
     PERIOD_LENGTH, PASSING_TIME, A_DAY_PERIODS, B_DAY_PERIODS,
@@ -8,6 +9,7 @@ from config import (
     AB_DAY_MODE, MANUAL_AB_DAY, TIME_SYNC_MODE, TIME_SYNC_INTERVAL
 )
 from input_handler import InputHandler
+from theme_manager import ThemeManager
 
 class Menu:
     def __init__(self, display, input_handler):
@@ -17,9 +19,13 @@ class Menu:
         self.selected_index = 0
         self.running = True
         
+        # Initialize theme manager
+        self.theme_manager = ThemeManager()
+        
         self.main_menu_items = ["Schedule", "Clock", "Settings", "Set Time"]
-        self.settings_menu_items = ["A/B Day", "WiFi", "Back"]
+        self.settings_menu_items = ["A/B Day", "WiFi", "Theme", "Back"]
         self.set_time_menu_items = ["WiFi Sync", "Manual Set", "Back"]
+        self.theme_menu_items = self.theme_manager.get_theme_names()
         self.adjust_hour = 0
         self.adjust_minute = 0
         self.ab_day_mode = AB_DAY_MODE  # "auto", "a", or "b"
@@ -309,6 +315,10 @@ class Menu:
             elif selected_item == "WiFi":
                 self.current_screen = "wifi"
                 self.show_wifi_menu()
+            elif selected_item == "Theme":
+                self.current_screen = "theme"
+                self.selected_index = 0
+                self.show_theme_menu()
         elif action == 'left':
             self.current_screen = "main"
             self.selected_index = 0
@@ -318,6 +328,31 @@ class Menu:
         if action == 'left':
             self.current_screen = "settings"
             self.selected_index = 1  # Reset to WiFi option
+            self.show_settings_menu()
+    
+    def show_theme_menu(self):
+        self.display.show_menu(self.theme_menu_items, self.selected_index, "Theme")
+    
+    def handle_theme_input(self, action):
+        if action == 'up':
+            self.selected_index = (self.selected_index - 1) % len(self.theme_menu_items)
+            self.show_theme_menu()
+        elif action == 'down':
+            self.selected_index = (self.selected_index + 1) % len(self.theme_menu_items)
+            self.show_theme_menu()
+        elif action == 'select' or action == 'right':
+            selected_theme = self.theme_menu_items[self.selected_index]
+            self.theme_manager.set_theme(selected_theme)
+            self.display.show_message("Theme Set", f"Changed to\n{selected_theme.title()}", 
+                                     self.theme_manager.get_success())
+            time.sleep(1)
+            self.current_screen = "settings"
+            # Find the Theme option index
+            self.selected_index = self.settings_menu_items.index("Theme") if "Theme" in self.settings_menu_items else 2
+            self.show_settings_menu()
+        elif action == 'left':
+            self.current_screen = "settings"
+            self.selected_index = self.settings_menu_items.index("Theme") if "Theme" in self.settings_menu_items else 2
             self.show_settings_menu()
     
     def sync_time_via_wifi(self):
@@ -444,6 +479,8 @@ class Menu:
                     self.handle_ab_day_input(action)
                 elif self.current_screen == "wifi":
                     self.handle_wifi_input(action)
+                elif self.current_screen == "theme":
+                    self.handle_theme_input(action)
                 elif self.current_screen == "set_time_menu":
                     self.handle_set_time_menu_input(action)
                 elif self.current_screen == "set_time":
