@@ -215,7 +215,7 @@ class Menu:
                 self.current_screen = "main"
                 self.selected_index = 0
                 self.show_main_menu()
-        elif action == 'left' or action == 'key1':
+        elif action == 'left':
             self.current_screen = "main"
             self.selected_index = 0
             self.show_main_menu()
@@ -239,7 +239,7 @@ class Menu:
             self.current_screen = "settings"
             self.selected_index = 0
             self.show_settings_menu()
-        elif action == 'left' or action == 'key1':
+        elif action == 'left':
             self.current_screen = "settings"
             self.selected_index = 0
             self.show_settings_menu()
@@ -269,13 +269,13 @@ class Menu:
                 self.show_set_time_menu()
     
     def handle_schedule_input(self, action):
-        if action == 'left' or action == 'key1':
+        if action == 'left':
             self.current_screen = "main"
             self.selected_index = 0
             self.show_main_menu()
     
     def handle_clock_input(self, action):
-        if action == 'left' or action == 'key1':
+        if action == 'left':
             self.current_screen = "main"
             self.selected_index = 0
             self.show_main_menu()
@@ -299,13 +299,13 @@ class Menu:
             elif selected_item == "WiFi":
                 self.current_screen = "wifi"
                 self.show_wifi_menu()
-        elif action == 'left' or action == 'key1':
+        elif action == 'left':
             self.current_screen = "main"
             self.selected_index = 0
             self.show_main_menu()
     
     def handle_wifi_input(self, action):
-        if action == 'left' or action == 'key1':
+        if action == 'left':
             self.current_screen = "settings"
             self.selected_index = 1  # Reset to WiFi option
             self.show_settings_menu()
