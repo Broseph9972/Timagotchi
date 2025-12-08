@@ -7,7 +7,6 @@ from config import (
     ADVISORY_START, advisory, advisorydays, advisorylength, freetimedaus, USE_24_HOUR
 )
 from input_handler import InputHandler
-from games_config import GAMES, get_game_command
 
 class Menu:
     def __init__(self, display, input_handler):
@@ -15,12 +14,12 @@ class Menu:
         self.input_handler = input_handler
         self.current_screen = "main"
         self.selected_index = 0
-        self.game_selected_index = 0
         self.running = True
         
-        self.main_menu_items = ["Schedule", "Clock", "Settings", "Games", "Exit"]
-        self.settings_menu_items = ["A/B Day: Auto", "Back"]
-        self.game_menu_items = list(GAMES.keys()) + ["Back"]
+        self.main_menu_items = ["Schedule", "Clock", "Settings", "Set Time"]
+        self.settings_menu_items = ["A/B Day: Auto", "WiFi", "Back"]
+        self.adjust_hour = 0
+        self.adjust_minute = 0
     
     def is_advisory_day(self):
         today = datetime.datetime.now().strftime('%a').lower()
@@ -145,8 +144,52 @@ class Menu:
     def show_settings_menu(self):
         self.display.show_menu(self.settings_menu_items, self.selected_index, "Settings")
     
-    def show_games_menu(self):
-        self.display.show_menu(self.game_menu_items, self.game_selected_index, "Games")
+    def show_wifi_menu(self):
+        self.display.show_message("WiFi", "Connecting to\nconfigured networks...", (100, 200, 255))
+    
+    def show_set_time_screen(self):
+        hour_str = f"{self.adjust_hour:02d}"
+        minute_str = f"{self.adjust_minute:02d}"
+        message = f"Set Time: {hour_str}:{minute_str}\n\nKey1: Hour+\nKey2: Min+\nKey3: Done"
+        self.display.show_message("Set Time", message, (255, 200, 100))
+    
+    def handle_set_time_input(self, action):
+        if action == 'key1':  # Increase hour
+            self.adjust_hour = (self.adjust_hour + 1) % 24
+            self.show_set_time_screen()
+        elif action == 'key2':  # Increase minute
+            self.adjust_minute = (self.adjust_minute + 1) % 60
+            self.show_set_time_screen()
+        elif action == 'key3':  # Finish and apply time
+            try:
+                now = datetime.datetime.now()
+                new_time = now.replace(hour=self.adjust_hour, minute=self.adjust_minute, second=0, microsecond=0)
+                import os
+                import subprocess
+                
+                # Try to set system time using timedatectl (Linux/Pi)
+                try:
+                    subprocess.run(['sudo', 'timedatectl', 'set-time', new_time.strftime('%Y-%m-%d %H:%M:%S')], check=False)
+                except Exception:
+                    # Fallback: Try date command (Linux/Pi)
+                    try:
+                        subprocess.run(['sudo', 'date', '-s', new_time.strftime('%Y-%m-%d %H:%M:%S')], check=False)
+                    except Exception:
+                        pass
+                
+                self.display.show_message("Time Set", f"System time set to\n{self.adjust_hour:02d}:{self.adjust_minute:02d}", (100, 255, 100))
+            except Exception as e:
+                self.display.show_message("Error", str(e), (255, 100, 100))
+            
+            time.sleep(2)
+            self.current_screen = "main"
+            self.selected_index = 0
+            self.show_main_menu()
+        elif action == 'left' or action == 'key1' or action == 'select':
+            # Exit without saving
+            self.current_screen = "main"
+            self.selected_index = 0
+            self.show_main_menu()
     
     def handle_main_menu_input(self, action):
         if action == 'up':
@@ -167,10 +210,12 @@ class Menu:
                 self.current_screen = "settings"
                 self.selected_index = 0
                 self.show_settings_menu()
-            elif selected_item == "Games":
-                self.current_screen = "games"
-                self.game_selected_index = 0
-                self.show_games_menu()
+            elif selected_item == "Set Time":
+                self.current_screen = "set_time"
+                now = datetime.datetime.now()
+                self.adjust_hour = now.hour
+                self.adjust_minute = now.minute
+                self.show_set_time_screen()
     
     def handle_schedule_input(self, action):
         if action == 'left' or action == 'key1':
@@ -192,65 +237,24 @@ class Menu:
             self.selected_index = (self.selected_index + 1) % len(self.settings_menu_items)
             self.show_settings_menu()
         elif action == 'select' or action == 'right':
-            if self.settings_menu_items[self.selected_index] == "Back":
-                self.current_screen = "main"
-                self.selected_index = 0
-                self.show_main_menu()
-        elif action == 'left' or action == 'key1':
-            self.current_screen = "main"
-            self.selected_index = 0
-            self.show_main_menu()
-    
-    def handle_game_input(self, action):
-        if action == 'up':
-            self.game_selected_index = (self.game_selected_index - 1) % len(self.game_menu_items)
-            self.show_games_menu()
-        elif action == 'down':
-            self.game_selected_index = (self.game_selected_index + 1) % len(self.game_menu_items)
-            self.show_games_menu()
-        elif action == 'select' or action == 'right':
-            selected_item = self.game_menu_items[self.game_selected_index]
+            selected_item = self.settings_menu_items[self.selected_index]
             if selected_item == "Back":
                 self.current_screen = "main"
                 self.selected_index = 0
                 self.show_main_menu()
-            else:
-                self.launch_game(selected_item)
+            elif selected_item == "WiFi":
+                self.current_screen = "wifi"
+                self.show_wifi_menu()
         elif action == 'left' or action == 'key1':
             self.current_screen = "main"
             self.selected_index = 0
             self.show_main_menu()
     
-    def launch_game(self, game_name):
-        try:
-            command = get_game_command(game_name)
-        except Exception as exc:
-            self.display.show_message("Error", str(exc), (255, 100, 100))
-            time.sleep(2)
-            self.show_games_menu()
-            return
-
-        self.display.show_message("Launching", f"Starting {game_name}", (100, 255, 100))
-        try:
-            self.input_handler.cleanup()
-        except Exception:
-            pass
-
-        try:
-            subprocess.run(command, check=False)
-        except FileNotFoundError:
-            self.display.show_message("Error", "RetroArch is not installed", (255, 100, 100))
-            time.sleep(2)
-        finally:
-            try:
-                self.input_handler = InputHandler()
-            except Exception as exc:
-                self.display.show_message("Error", f"Input handler failed: {exc}", (255, 100, 100))
-                time.sleep(2)
-
-        self.current_screen = "games"
-        self.game_selected_index = 0
-        self.show_games_menu()
+    def handle_wifi_input(self, action):
+        if action == 'left' or action == 'key1':
+            self.current_screen = "settings"
+            self.selected_index = 1  # Reset to WiFi option
+            self.show_settings_menu()
     
     def run(self):
         import time
@@ -271,8 +275,10 @@ class Menu:
                     self.handle_clock_input(action)
                 elif self.current_screen == "settings":
                     self.handle_settings_input(action)
-                elif self.current_screen == "games":
-                    self.handle_game_input(action)
+                elif self.current_screen == "wifi":
+                    self.handle_wifi_input(action)
+                elif self.current_screen == "set_time":
+                    self.handle_set_time_input(action)
             
             current_time = time.time()
             if current_time - last_update > 1.0:

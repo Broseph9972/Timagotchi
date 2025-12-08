@@ -33,3 +33,10 @@ PASSING_TIME = 4
 # Additional settings
 lunchlength = "25"
 abday = "true"
+
+# WiFi Networks
+# List of (SSID, PASSWORD) tuples. Use empty string "" for open networks
+WIFI_NETWORKS = [
+    # ("Network Name", "Password"),
+    # ("Open Network", ""),
+]

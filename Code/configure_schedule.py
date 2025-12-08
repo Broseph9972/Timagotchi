@@ -103,6 +103,24 @@ def main():
     a_day_periods = get_period_names("A day") if has_ab else {}
     b_day_periods = get_period_names("B day") if has_ab else {}
 
+    # WiFi Network Configuration
+    print("\n" + "="*50)
+    print("WiFi Network Configuration")
+    print("="*50)
+    num_networks = int(input("How many WiFi networks do you want to connect to? "))
+    wifi_networks = []
+    
+    for i in range(num_networks):
+        print(f"\nNetwork {i+1}:")
+        ssid = input(f"  Network name (SSID): ").strip()
+        password = input(f"  Password (leave empty for open network): ").strip()
+        wifi_networks.append((ssid, password))
+    
+    wifi_networks_str = "[\n"
+    for ssid, password in wifi_networks:
+        wifi_networks_str += f'    ("{ssid}", "{password}"),\n'
+    wifi_networks_str += "]"
+
     # Build the configuration content using regular string formatting
     config_lines = [
         "# School Schedule Configuration\n",
@@ -138,7 +156,11 @@ def main():
         "",
         "# Additional settings",
         f'lunchlength = "{lunch_length}"',
-        f'abday = "{str(has_ab).lower()}"'
+        f'abday = "{str(has_ab).lower()}"',
+        "",
+        "# WiFi Networks",
+        "# List of (SSID, PASSWORD) tuples. Use empty string \"\" for open networks",
+        f"WIFI_NETWORKS = {wifi_networks_str}"
     ]
 
     config_content = "\n".join(config_lines)
