@@ -169,9 +169,19 @@ class Menu:
         self.display.show_menu(self.set_time_menu_items, self.selected_index, "Set Time")
     
     def show_set_time_screen(self):
-        hour_str = f"{self.adjust_hour:02d}"
-        minute_str = f"{self.adjust_minute:02d}"
-        message = f"Set Time:\n{hour_str}:{minute_str}\n\nKey1: Hour+\nKey2: Min+\nKey3: Done"
+        if USE_24_HOUR:
+            hour_str = f"{self.adjust_hour:02d}"
+            minute_str = f"{self.adjust_minute:02d}"
+            message = f"Set Time:\n{hour_str}:{minute_str}\n\nKey1: Hour+\nKey2: Min+\nKey3: Done"
+        else:
+            # Convert to 12-hour format for display
+            display_hour = self.adjust_hour % 12
+            if display_hour == 0:
+                display_hour = 12
+            am_pm = "AM" if self.adjust_hour < 12 else "PM"
+            hour_str = f"{display_hour:02d}"
+            minute_str = f"{self.adjust_minute:02d}"
+            message = f"Set Time:\n{hour_str}:{minute_str} {am_pm}\n\nKey1: Hour+\nKey2: Min+\nKey3: Done"
         self.display.show_message("Set Time", message, (255, 200, 100))
     
     def handle_set_time_input(self, action):
@@ -351,7 +361,7 @@ class Menu:
     def apply_manual_time(self):
         """Apply the manually set time"""
         try:
-            # Format time as HH:MM:SS
+            # Format time as HH:MM:SS (always in 24-hour for system)
             time_str = f"{self.adjust_hour:02d}:{self.adjust_minute:02d}:00"
             
             result = subprocess.run(['sudo', 'timedatectl', 'set-time', time_str],
@@ -367,7 +377,16 @@ class Menu:
                     self.display.show_message("Failed", self.last_sync_error[:40], (255, 100, 100))
             else:
                 self.last_sync_error = None
-                self.display.show_message("Time Set", f"Set to {time_str}", (100, 255, 100))
+                # Display time in the configured format
+                if USE_24_HOUR:
+                    display_time = time_str
+                else:
+                    display_hour = self.adjust_hour % 12
+                    if display_hour == 0:
+                        display_hour = 12
+                    am_pm = "AM" if self.adjust_hour < 12 else "PM"
+                    display_time = f"{display_hour:02d}:{self.adjust_minute:02d} {am_pm}"
+                self.display.show_message("Time Set", f"Set to {display_time}", (100, 255, 100))
             
             time.sleep(2)
         except subprocess.TimeoutExpired:
