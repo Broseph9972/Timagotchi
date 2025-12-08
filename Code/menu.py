@@ -171,26 +171,22 @@ class Menu:
     def show_set_time_screen(self):
         hour_str = f"{self.adjust_hour:02d}"
         minute_str = f"{self.adjust_minute:02d}"
-        message = f"Set Time:\n{hour_str}:{minute_str}\n\nKey1: Hour+\nKey2: Done\nSel: Apply"
+        message = f"Set Time:\n{hour_str}:{minute_str}\n\nKey1: Hour+\nKey2: Min+\nKey3: Done"
         self.display.show_message("Set Time", message, (255, 200, 100))
     
     def handle_set_time_input(self, action):
         if action == 'key1':  # Increase hour
-            self.key3_press_time = None  # Reset hold timer
             self.adjust_hour = (self.adjust_hour + 1) % 24
             self.show_set_time_screen()
-        elif action == 'key2':  # Apply and done
+        elif action == 'key2':  # Increase minute
+            self.adjust_minute = (self.adjust_minute + 1) % 60
+            self.show_set_time_screen()
+        elif action == 'key3':  # Apply and done
             self.apply_manual_time()
             self.current_screen = "set_time_menu"
             self.selected_index = 0
             self.show_set_time_menu()
-        elif action == 'select':  # Confirm and apply the time
-            self.apply_manual_time()
-            self.current_screen = "set_time_menu"
-            self.selected_index = 0
-            self.show_set_time_menu()
-        elif action == 'left':  # Cancel and go back
-            self.key3_press_time = None
+        elif action == 'select' or action == 'left':  # Cancel and go back
             self.current_screen = "set_time_menu"
             self.selected_index = 0
             self.show_set_time_menu()

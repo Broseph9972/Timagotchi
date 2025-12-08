@@ -65,6 +65,9 @@ echo "Preparing RetroArch ROM storage..."
 sudo mkdir -p /home/pi/timagotchi/roms
 sudo chown pi:pi /home/pi/timagotchi/roms
 
+echo "Disabling automatic time synchronization..."
+sudo timedatectl set-ntp false
+
 echo ""
 echo "Setting up autostart service..."
 
