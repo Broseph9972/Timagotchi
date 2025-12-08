@@ -66,10 +66,43 @@ sudo mkdir -p /home/pi/timagotchi/roms
 sudo chown pi:pi /home/pi/timagotchi/roms
 
 echo ""
-echo "Installation complete!"
-echo "Reboot required for GPIO permissions."
+echo "Setting up autostart service..."
+
+# Get the directory where start.sh is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Create systemd service file
+sudo tee /etc/systemd/system/timagotchi.service > /dev/null <<EOF
+[Unit]
+Description=Timagotchi Schedule Display
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=$SCRIPT_DIR
+ExecStart=$SCRIPT_DIR/start.sh
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Enable and start the service
+sudo systemctl daemon-reload
+sudo systemctl enable timagotchi.service
+
+echo "Autostart service installed!"
+echo "To start: sudo systemctl start timagotchi"
+echo "To stop: sudo systemctl stop timagotchi"
+echo "To view logs: sudo journalctl -u timagotchi -f"
+
 echo ""
-echo "To run:"
+echo "Installation complete!"
+echo "Reboot required for GPIO permissions and autostart."
+echo ""
+echo "To run manually:"
 echo "  ./start.sh"
 echo "Made by Jqseph9972"
 echo ""

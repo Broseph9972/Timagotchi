@@ -282,32 +282,24 @@ class Menu:
             self.show_settings_menu()
     
     def sync_time_via_wifi(self):
-        """Attempt to sync time via WiFi using ntpdate or timedatectl"""
+        """Attempt to sync time via WiFi using timedatectl"""
         try:
             self.display.show_message("Syncing...", "Getting time from\nwifi network...", (100, 200, 100))
             
-            # Try ntpdate first
+            # Try timedatectl with ntp
             try:
-                subprocess.run(['sudo', 'ntpdate', '-s', 'time.nist.gov'], check=False, timeout=10)
+                subprocess.run(['sudo', 'timedatectl', 'set-ntp', 'true'], check=False, timeout=10)
+                time.sleep(2)
+                # Force update from NTP
+                subprocess.run(['sudo', 'timedatectl', 'set-time', 'now'], check=False, timeout=10)
                 self.display.show_message("Time Synced", "WiFi sync\nsuccessful!", (100, 255, 100))
             except Exception:
-                # Try timedatectl with ntp
-                try:
-                    subprocess.run(['sudo', 'timedatectl', 'set-ntp', 'true'], check=False, timeout=10)
-                    time.sleep(2)
-                    subprocess.run(['sudo', 'timedatectl', 'set-time', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')], check=False)
-                    self.display.show_message("Time Synced", "WiFi sync\nsuccessful!", (100, 255, 100))
-                except Exception:
-                    self.display.show_message("Sync Failed", "Unable to sync\ntime via WiFi", (255, 100, 100))
+                self.display.show_message("Sync Failed", "Unable to sync\ntime via WiFi", (255, 100, 100))
             
             time.sleep(2)
-            self.current_screen = "set_time"
-            self.show_set_time_screen()
         except Exception as e:
             self.display.show_message("Error", str(e), (255, 100, 100))
             time.sleep(2)
-            self.current_screen = "set_time"
-            self.show_set_time_screen()
     
     def run(self):
         import time
@@ -350,7 +342,7 @@ class Menu:
             
             # Check if Key3 is being held in set_time screen
             if self.current_screen == "set_time" and self.key3_press_time is not None:
-                if time.time() - self.key3_press_time >= 2.0:
+                if time.time() - self.key3_press_time >= 3.0:
                     self.key3_press_time = None  # Reset to prevent multiple triggers
                     self.sync_time_via_wifi()
             
