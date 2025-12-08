@@ -149,9 +149,9 @@ class WaveshareDisplay:
     def show_message(self, title, message, color=(255, 255, 255)):
         self.clear()
 
-        self.draw.text((2, 40), title, font=self.font_large, fill=color)
+        self.draw.text((2, 20), title, font=self.font_large, fill=color)
 
-        y_offset = 65
+        y_offset = 40
         for line in message.split("\n"):
             self.draw.text((2, y_offset), line, font=self.font_tiny, fill=(200, 200, 200))
             y_offset += 14
