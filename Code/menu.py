@@ -352,11 +352,20 @@ class Menu:
                 self.last_sync_error = str(e)
                 self.display.show_message("Sync Failed", str(e)[:40], (255, 100, 100))
             
+            # Wait and then clear input buffer to avoid stale button presses
             time.sleep(2)
+            # Drain any accumulated input
+            for _ in range(10):
+                self.input_handler.get_input()
+                time.sleep(0.05)
         except Exception as e:
             self.last_sync_error = str(e)
             self.display.show_message("Error", str(e)[:40], (255, 100, 100))
             time.sleep(2)
+            # Clear input buffer
+            for _ in range(10):
+                self.input_handler.get_input()
+                time.sleep(0.05)
     
     def apply_manual_time(self):
         """Apply the manually set time"""
@@ -388,11 +397,20 @@ class Menu:
                     display_time = f"{display_hour:02d}:{self.adjust_minute:02d} {am_pm}"
                 self.display.show_message("Time Set", f"Set to {display_time}", (100, 255, 100))
             
+            # Wait and then clear input buffer to avoid stale button presses
             time.sleep(2)
+            # Drain any accumulated input
+            for _ in range(10):
+                self.input_handler.get_input()
+                time.sleep(0.05)
         except subprocess.TimeoutExpired:
             self.last_sync_error = "Operation timed out"
             self.display.show_message("Failed", "Timeout", (255, 100, 100))
             time.sleep(2)
+            # Clear input buffer
+            for _ in range(10):
+                self.input_handler.get_input()
+                time.sleep(0.05)
         except Exception as e:
             self.last_sync_error = str(e)
             self.display.show_message("Error", str(e)[:40], (255, 100, 100))
