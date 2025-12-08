@@ -44,3 +44,8 @@ WIFI_NETWORKS = [
     # ("Network Name", "Password"),
     # ("Open Network", ""),
 ]
+
+# Time Sync Settings
+# Automatic time sync control: "disabled", "on_boot", or "periodic"
+TIME_SYNC_MODE = "disabled"  # "disabled" = manual only, "on_boot" = sync on startup, "periodic" = sync every N hours
+TIME_SYNC_INTERVAL = 6  # Hours between periodic syncs (only used if TIME_SYNC_MODE = "periodic")

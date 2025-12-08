@@ -5,7 +5,7 @@ from config import (
     PERIODS, SCHOOL_START, SCHOOL_END, LUNCH_START, LUNCH_END,
     PERIOD_LENGTH, PASSING_TIME, A_DAY_PERIODS, B_DAY_PERIODS,
     ADVISORY_START, advisory, advisorydays, advisorylength, freetimedaus, USE_24_HOUR,
-    AB_DAY_MODE, MANUAL_AB_DAY
+    AB_DAY_MODE, MANUAL_AB_DAY, TIME_SYNC_MODE, TIME_SYNC_INTERVAL
 )
 from input_handler import InputHandler
 
@@ -23,6 +23,9 @@ class Menu:
         self.adjust_minute = 0
         self.ab_day_mode = AB_DAY_MODE  # "auto", "a", or "b"
         self.manual_ab_day = MANUAL_AB_DAY  # "a" or "b" when in manual mode
+        self.key3_press_time = None  # Track when Key3 is pressed
+        self.last_sync_time = 0  # Track last WiFi sync time for periodic syncing
+        self.sync_on_boot = (TIME_SYNC_MODE == "on_boot")  # Flag to sync once at startup
     
     def is_advisory_day(self):
         today = datetime.datetime.now().strftime('%a').lower()
@@ -103,7 +106,9 @@ class Menu:
             current_time_str = current_time.strftime("%I:%M %p")
         
         if current_time < school_start:
-            self.display.show_message("Before School", f"School starts at\n{SCHOOL_START}", (200, 200, 200))
+            time_until_start = self.get_time_until(SCHOOL_START, current_time)
+            time_until_str = self.format_timedelta(time_until_start)
+            self.display.show_message("School Hasn't Started", f"Starts in {time_until_str}\nSchool @ {SCHOOL_START}", (200, 200, 200))
             return
         elif current_time > school_end:
             self.display.show_message("After School", "School day has ended", (200, 200, 200))
@@ -161,43 +166,25 @@ class Menu:
     def show_set_time_screen(self):
         hour_str = f"{self.adjust_hour:02d}"
         minute_str = f"{self.adjust_minute:02d}"
-        message = f"Set Time: {hour_str}:{minute_str}\n\nKey1: Hour+\nKey2: Min+\nKey3: Done"
+        message = f"Set Time:\n{hour_str}:{minute_str}\n\nKey1: Hour+\nKey2: Min+\nKey3: Sync"
         self.display.show_message("Set Time", message, (255, 200, 100))
     
     def handle_set_time_input(self, action):
         if action == 'key1':  # Increase hour
+            self.key3_press_time = None  # Reset hold timer
             self.adjust_hour = (self.adjust_hour + 1) % 24
             self.show_set_time_screen()
         elif action == 'key2':  # Increase minute
+            self.key3_press_time = None  # Reset hold timer
             self.adjust_minute = (self.adjust_minute + 1) % 60
             self.show_set_time_screen()
-        elif action == 'key3':  # Finish and apply time
-            try:
-                now = datetime.datetime.now()
-                new_time = now.replace(hour=self.adjust_hour, minute=self.adjust_minute, second=0, microsecond=0)
-                import os
-                import subprocess
-                
-                # Try to set system time using timedatectl (Linux/Pi)
-                try:
-                    subprocess.run(['sudo', 'timedatectl', 'set-time', new_time.strftime('%Y-%m-%d %H:%M:%S')], check=False)
-                except Exception:
-                    # Fallback: Try date command (Linux/Pi)
-                    try:
-                        subprocess.run(['sudo', 'date', '-s', new_time.strftime('%Y-%m-%d %H:%M:%S')], check=False)
-                    except Exception:
-                        pass
-                
-                self.display.show_message("Time Set", f"System time set to\n{self.adjust_hour:02d}:{self.adjust_minute:02d}", (100, 255, 100))
-            except Exception as e:
-                self.display.show_message("Error", str(e), (255, 100, 100))
-            
-            time.sleep(2)
-            self.current_screen = "main"
-            self.selected_index = 0
-            self.show_main_menu()
-        elif action == 'left' or action == 'key1' or action == 'select':
+        elif action == 'key3':
+            # Start tracking Key3 press for hold detection
+            if self.key3_press_time is None:
+                self.key3_press_time = time.time()
+        elif action == 'left' or action == 'select':
             # Exit without saving
+            self.key3_press_time = None
             self.current_screen = "main"
             self.selected_index = 0
             self.show_main_menu()
@@ -294,8 +281,41 @@ class Menu:
             self.selected_index = 1  # Reset to WiFi option
             self.show_settings_menu()
     
+    def sync_time_via_wifi(self):
+        """Attempt to sync time via WiFi using ntpdate or timedatectl"""
+        try:
+            self.display.show_message("Syncing...", "Getting time from\nwifi network...", (100, 200, 100))
+            
+            # Try ntpdate first
+            try:
+                subprocess.run(['sudo', 'ntpdate', '-s', 'time.nist.gov'], check=False, timeout=10)
+                self.display.show_message("Time Synced", "WiFi sync\nsuccessful!", (100, 255, 100))
+            except Exception:
+                # Try timedatectl with ntp
+                try:
+                    subprocess.run(['sudo', 'timedatectl', 'set-ntp', 'true'], check=False, timeout=10)
+                    time.sleep(2)
+                    subprocess.run(['sudo', 'timedatectl', 'set-time', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')], check=False)
+                    self.display.show_message("Time Synced", "WiFi sync\nsuccessful!", (100, 255, 100))
+                except Exception:
+                    self.display.show_message("Sync Failed", "Unable to sync\ntime via WiFi", (255, 100, 100))
+            
+            time.sleep(2)
+            self.current_screen = "set_time"
+            self.show_set_time_screen()
+        except Exception as e:
+            self.display.show_message("Error", str(e), (255, 100, 100))
+            time.sleep(2)
+            self.current_screen = "set_time"
+            self.show_set_time_screen()
+    
     def run(self):
         import time
+        
+        # Handle time sync on boot if enabled
+        if self.sync_on_boot:
+            self.sync_time_via_wifi()
+            self.sync_on_boot = False  # Only sync once at startup
         
         self.show_main_menu()
         
@@ -327,6 +347,19 @@ class Menu:
                 elif self.current_screen == "clock":
                     self.show_clock_screen()
                 last_update = current_time
+            
+            # Check if Key3 is being held in set_time screen
+            if self.current_screen == "set_time" and self.key3_press_time is not None:
+                if time.time() - self.key3_press_time >= 2.0:
+                    self.key3_press_time = None  # Reset to prevent multiple triggers
+                    self.sync_time_via_wifi()
+            
+            # Handle periodic time sync if enabled
+            if TIME_SYNC_MODE == "periodic":
+                sync_interval = TIME_SYNC_INTERVAL * 3600  # Convert hours to seconds
+                if current_time - self.last_sync_time > sync_interval:
+                    self.sync_time_via_wifi()
+                    self.last_sync_time = current_time
             
             time.sleep(0.05)
         

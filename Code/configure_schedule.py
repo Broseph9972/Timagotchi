@@ -136,6 +136,29 @@ def main():
         wifi_networks_str += f'    ("{ssid}", "{password}"),\n'
     wifi_networks_str += "]"
 
+    # Ask about time sync settings
+    print("\n=== Time Sync Settings ===")
+    print("How should the system handle time synchronization?")
+    print("  1) Disabled (manual only, no automatic sync)")
+    print("  2) On Boot (sync once when system starts)")
+    print("  3) Periodic (sync every N hours)")
+    
+    sync_choice = input("\nSelect time sync mode (1-3, default 1): ").strip()
+    
+    if sync_choice == "2":
+        time_sync_mode = "on_boot"
+        time_sync_interval = 6  # Not used but set to default
+    elif sync_choice == "3":
+        time_sync_mode = "periodic"
+        sync_hours = input("How many hours between syncs? (default 6): ").strip()
+        try:
+            time_sync_interval = int(sync_hours)
+        except ValueError:
+            time_sync_interval = 6
+    else:
+        time_sync_mode = "disabled"
+        time_sync_interval = 6  # Not used but set to default
+    
     # Build the configuration content using regular string formatting
     config_lines = [
         "# School Schedule Configuration\n",
@@ -179,7 +202,15 @@ def main():
         "",
         "# WiFi Networks",
         "# List of (SSID, PASSWORD) tuples. Use empty string \"\" for open networks",
-        f"WIFI_NETWORKS = {wifi_networks_str}"
+        f"WIFI_NETWORKS = {wifi_networks_str}",
+        "",
+        "# Time Synchronization Settings",
+        "# TIME_SYNC_MODE options:",
+        "#   - \"disabled\": Manual sync only (hold Key3 for 2 seconds in Set Time)",
+        "#   - \"on_boot\": Sync once when system starts",
+        "#   - \"periodic\": Sync every TIME_SYNC_INTERVAL hours",
+        f'TIME_SYNC_MODE = "{time_sync_mode}"',
+        f"TIME_SYNC_INTERVAL = {time_sync_interval}  # Hours between periodic syncs (if using periodic mode)",
     ]
 
     config_content = "\n".join(config_lines)
