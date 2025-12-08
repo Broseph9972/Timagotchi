@@ -4,7 +4,8 @@ import time
 from config import (
     PERIODS, SCHOOL_START, SCHOOL_END, LUNCH_START, LUNCH_END,
     PERIOD_LENGTH, PASSING_TIME, A_DAY_PERIODS, B_DAY_PERIODS,
-    ADVISORY_START, advisory, advisorydays, advisorylength, freetimedaus, USE_24_HOUR
+    ADVISORY_START, advisory, advisorydays, advisorylength, freetimedaus, USE_24_HOUR,
+    AB_DAY_MODE, MANUAL_AB_DAY
 )
 from input_handler import InputHandler
 
@@ -17,9 +18,11 @@ class Menu:
         self.running = True
         
         self.main_menu_items = ["Schedule", "Clock", "Settings", "Set Time"]
-        self.settings_menu_items = ["A/B Day: Auto", "WiFi", "Back"]
+        self.settings_menu_items = ["A/B Day", "WiFi", "Back"]
         self.adjust_hour = 0
         self.adjust_minute = 0
+        self.ab_day_mode = AB_DAY_MODE  # "auto", "a", or "b"
+        self.manual_ab_day = MANUAL_AB_DAY  # "a" or "b" when in manual mode
     
     def is_advisory_day(self):
         today = datetime.datetime.now().strftime('%a').lower()
@@ -147,6 +150,14 @@ class Menu:
     def show_wifi_menu(self):
         self.display.show_message("WiFi", "Connecting to\nconfigured networks...", (100, 200, 255))
     
+    def show_ab_day_menu(self):
+        if self.ab_day_mode == "auto":
+            message = "A/B Day: Auto\n\nUp/Down: Change\nSelect: Confirm"
+        else:
+            current = self.manual_ab_day.upper()
+            message = f"A/B Day: {current}\n\nUp/Down: Toggle\nSelect: Confirm"
+        self.display.show_message("A/B Day", message, (200, 150, 255))
+    
     def show_set_time_screen(self):
         hour_str = f"{self.adjust_hour:02d}"
         minute_str = f"{self.adjust_minute:02d}"
@@ -190,6 +201,30 @@ class Menu:
             self.current_screen = "main"
             self.selected_index = 0
             self.show_main_menu()
+    
+    def handle_ab_day_input(self, action):
+        if action == 'up':
+            if self.ab_day_mode == "auto":
+                self.ab_day_mode = "manual"
+                self.manual_ab_day = "b"
+            else:
+                self.manual_ab_day = "b" if self.manual_ab_day == "a" else "a"
+            self.show_ab_day_menu()
+        elif action == 'down':
+            if self.ab_day_mode == "auto":
+                self.ab_day_mode = "manual"
+                self.manual_ab_day = "a"
+            else:
+                self.manual_ab_day = "b" if self.manual_ab_day == "a" else "a"
+            self.show_ab_day_menu()
+        elif action == 'select' or action == 'right':
+            self.current_screen = "settings"
+            self.selected_index = 0
+            self.show_settings_menu()
+        elif action == 'left' or action == 'key1':
+            self.current_screen = "settings"
+            self.selected_index = 0
+            self.show_settings_menu()
     
     def handle_main_menu_input(self, action):
         if action == 'up':
@@ -242,6 +277,9 @@ class Menu:
                 self.current_screen = "main"
                 self.selected_index = 0
                 self.show_main_menu()
+            elif selected_item == "A/B Day":
+                self.current_screen = "ab_day"
+                self.show_ab_day_menu()
             elif selected_item == "WiFi":
                 self.current_screen = "wifi"
                 self.show_wifi_menu()
@@ -275,6 +313,8 @@ class Menu:
                     self.handle_clock_input(action)
                 elif self.current_screen == "settings":
                     self.handle_settings_input(action)
+                elif self.current_screen == "ab_day":
+                    self.handle_ab_day_input(action)
                 elif self.current_screen == "wifi":
                     self.handle_wifi_input(action)
                 elif self.current_screen == "set_time":

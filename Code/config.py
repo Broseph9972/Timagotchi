@@ -33,6 +33,10 @@ PASSING_TIME = 4
 # Additional settings
 lunchlength = "25"
 abday = "true"
+# Manual A/B day selection (can be "auto", "a", or "b")
+# Set to "a" or "b" to manually select, or "auto" for automatic rotation
+AB_DAY_MODE = "auto"  # "auto", "a", or "b"
+MANUAL_AB_DAY = "a"   # Current day when in manual mode ("a" or "b")
 
 # WiFi Networks
 # List of (SSID, PASSWORD) tuples. Use empty string "" for open networks
