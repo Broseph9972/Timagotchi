@@ -48,16 +48,13 @@ echo "Set TIME_SYNC_MODE to: 'disabled', 'on_boot', or 'periodic'"
 echo ""
 echo "Setting up autostart service..."
 
-# Get the directory where start.sh is located
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Set the default path for autostart
+SCRIPT_DIR="$HOME/Timagotchi/Code"
 
 echo "Script directory: $SCRIPT_DIR"
 
-# Make sure start.sh has execute permissions
-chmod +x "$SCRIPT_DIR/start.sh"
-
 # Create systemd service file - use 'cat' with quoted heredoc to avoid variable expansion issues
-sudo tee /etc/systemd/system/timagotchi.service > /dev/null <<'SERVICEFILE'
+sudo tee /etc/systemd/system/timagotchi.service > /dev/null <<SERVICEFILE
 [Unit]
 Description=Timagotchi Schedule Display
 After=network.target
@@ -65,8 +62,8 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=SCRIPT_DIR_PLACEHOLDER
-ExecStart=SCRIPT_DIR_PLACEHOLDER/start.sh
+WorkingDirectory=$SCRIPT_DIR
+ExecStart=$SCRIPT_DIR/start.sh
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal
@@ -75,9 +72,6 @@ StandardError=journal
 [Install]
 WantedBy=multi-user.target
 SERVICEFILE
-
-# Replace the placeholder with actual path
-sudo sed -i "s|SCRIPT_DIR_PLACEHOLDER|$SCRIPT_DIR|g" /etc/systemd/system/timagotchi.service
 
 # Fix permissions on service file
 sudo chmod 644 /etc/systemd/system/timagotchi.service
