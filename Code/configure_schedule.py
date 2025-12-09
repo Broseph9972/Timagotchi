@@ -216,6 +216,10 @@ def main():
         "#   - \"periodic\": Sync every TIME_SYNC_INTERVAL hours",
         f'TIME_SYNC_MODE = "{time_sync_mode}"',
         f"TIME_SYNC_INTERVAL = {time_sync_interval}  # Hours between periodic syncs (if using periodic mode)",
+        "",
+        "# Progress Bar Settings",
+        "# Display mode: \"time_in_class\", \"time_in_day\", or \"lunch_day\"",
+        'PROGRESS_BAR_MODE = "time_in_class"  # What the progress bar shows',
     ]
 
     config_content = "\n".join(config_lines)

@@ -198,75 +198,88 @@ class Menu:
     
     def get_progress_bar(self):
         """Calculate progress bar based on current mode"""
-        now = datetime.datetime.now()
-        
-        # Parse times
-        school_start = datetime.datetime.strptime(SCHOOL_START, "%H:%M").time()
-        school_start_dt = datetime.datetime.combine(datetime.date.today(), school_start)
-        school_end = datetime.datetime.strptime(SCHOOL_END, "%H:%M").time()
-        school_end_dt = datetime.datetime.combine(datetime.date.today(), school_end)
-        lunch_start = datetime.datetime.strptime(LUNCH_START, "%H:%M").time()
-        lunch_start_dt = datetime.datetime.combine(datetime.date.today(), lunch_start)
-        lunch_end = datetime.datetime.strptime(LUNCH_END, "%H:%M").time()
-        lunch_end_dt = datetime.datetime.combine(datetime.date.today(), lunch_end)
-        
-        # Calculate actual school end time from 6th period end
-        period_6_start = datetime.datetime.strptime(PERIODS[6], "%H:%M").time()
-        period_6_start_dt = datetime.datetime.combine(datetime.date.today(), period_6_start)
-        actual_school_end = period_6_start_dt + datetime.timedelta(minutes=PERIOD_LENGTH)
-        
-        if self.progress_bar_mode == "time_in_class":
-            # Progress within current class period
-            for period in range(1, 7):
-                if period not in PERIODS:
-                    continue
-                period_start = datetime.datetime.strptime(PERIODS[period], "%H:%M").time()
-                period_start_dt = datetime.datetime.combine(datetime.date.today(), period_start)
-                period_end_dt = period_start_dt + datetime.timedelta(minutes=PERIOD_LENGTH)
-                
-                if period_start_dt <= now < period_end_dt:
-                    elapsed = (now - period_start_dt).total_seconds()
-                    total = PERIOD_LENGTH * 60
-                    progress = int((elapsed / total) * 100) if total > 0 else 0
-                    return f"Class: {progress}%", progress
+        try:
+            now = datetime.datetime.now()
             
-            # Not in class
-            return "Not in class", 0
-        
-        elif self.progress_bar_mode == "time_in_day":
-            # Progress through school day (using actual end time from 6th period)
-            if now < school_start_dt:
-                return "Before school", 0
-            elif now >= actual_school_end:
-                return "After school", 100
+            # Parse times
+            school_start = datetime.datetime.strptime(SCHOOL_START, "%H:%M").time()
+            school_start_dt = datetime.datetime.combine(datetime.date.today(), school_start)
+            school_end = datetime.datetime.strptime(SCHOOL_END, "%H:%M").time()
+            school_end_dt = datetime.datetime.combine(datetime.date.today(), school_end)
+            lunch_start = datetime.datetime.strptime(LUNCH_START, "%H:%M").time()
+            lunch_start_dt = datetime.datetime.combine(datetime.date.today(), lunch_start)
+            lunch_end = datetime.datetime.strptime(LUNCH_END, "%H:%M").time()
+            lunch_end_dt = datetime.datetime.combine(datetime.date.today(), lunch_end)
+            
+            # Calculate actual school end time from 6th period end (or latest period)
+            actual_school_end = school_end_dt  # Fallback to configured end time
+            if 6 in PERIODS:
+                period_6_start = datetime.datetime.strptime(PERIODS[6], "%H:%M").time()
+                period_6_start_dt = datetime.datetime.combine(datetime.date.today(), period_6_start)
+                actual_school_end = period_6_start_dt + datetime.timedelta(minutes=PERIOD_LENGTH)
             else:
-                elapsed = (now - school_start_dt).total_seconds()
-                total = (actual_school_end - school_start_dt).total_seconds()
-                progress = int((elapsed / total) * 100) if total > 0 else 0
-                return f"Day: {progress}%", progress
-        
-        elif self.progress_bar_mode == "lunch_day":
-            # Progress until lunch, then after lunch shows time left in day
-            if now < lunch_start_dt:
-                # Before lunch: show progress to lunch
-                elapsed = (now - school_start_dt).total_seconds()
-                total = (lunch_start_dt - school_start_dt).total_seconds()
-                progress = int((elapsed / total) * 100) if total > 0 else 0
-                return f"Until Lunch: {progress}%", progress
-            elif now < lunch_end_dt:
-                # During lunch
-                return "Lunch", 100
-            elif now >= actual_school_end:
-                # After school
-                return "After school", 100
-            else:
-                # After lunch: show time left in day
-                elapsed = (now - lunch_end_dt).total_seconds()
-                total = (actual_school_end - lunch_end_dt).total_seconds()
-                progress = int((elapsed / total) * 100) if total > 0 else 0
-                return f"Day Left: {progress}%", progress
-        
-        return "Unknown", 0
+                # Find the last period and use that
+                if PERIODS:
+                    last_period = max(PERIODS.keys())
+                    last_period_start = datetime.datetime.strptime(PERIODS[last_period], "%H:%M").time()
+                    last_period_start_dt = datetime.datetime.combine(datetime.date.today(), last_period_start)
+                    actual_school_end = last_period_start_dt + datetime.timedelta(minutes=PERIOD_LENGTH)
+            
+            if self.progress_bar_mode == "time_in_class":
+                # Progress within current class period
+                for period in range(1, 7):
+                    if period not in PERIODS:
+                        continue
+                    period_start = datetime.datetime.strptime(PERIODS[period], "%H:%M").time()
+                    period_start_dt = datetime.datetime.combine(datetime.date.today(), period_start)
+                    period_end_dt = period_start_dt + datetime.timedelta(minutes=PERIOD_LENGTH)
+                    
+                    if period_start_dt <= now < period_end_dt:
+                        elapsed = (now - period_start_dt).total_seconds()
+                        total = PERIOD_LENGTH * 60
+                        progress = int((elapsed / total) * 100) if total > 0 else 0
+                        return f"Class: {progress}%", progress
+                
+                # Not in class
+                return "Not in class", 0
+            
+            elif self.progress_bar_mode == "time_in_day":
+                # Progress through school day (using actual end time from last period)
+                if now < school_start_dt:
+                    return "Before school", 0
+                elif now >= actual_school_end:
+                    return "After school", 100
+                else:
+                    elapsed = (now - school_start_dt).total_seconds()
+                    total = (actual_school_end - school_start_dt).total_seconds()
+                    progress = int((elapsed / total) * 100) if total > 0 else 0
+                    return f"Day: {progress}%", progress
+            
+            elif self.progress_bar_mode == "lunch_day":
+                # Progress until lunch, then after lunch shows time left in day
+                if now < lunch_start_dt:
+                    # Before lunch: show progress to lunch
+                    elapsed = (now - school_start_dt).total_seconds()
+                    total = (lunch_start_dt - school_start_dt).total_seconds()
+                    progress = int((elapsed / total) * 100) if total > 0 else 0
+                    return f"Until Lunch: {progress}%", progress
+                elif now < lunch_end_dt:
+                    # During lunch
+                    return "Lunch", 100
+                elif now >= actual_school_end:
+                    # After school
+                    return "After school", 100
+                else:
+                    # After lunch: show time left in day
+                    elapsed = (now - lunch_end_dt).total_seconds()
+                    total = (actual_school_end - lunch_end_dt).total_seconds()
+                    progress = int((elapsed / total) * 100) if total > 0 else 0
+                    return f"Day Left: {progress}%", progress
+            
+            return "Unknown", 0
+        except Exception as e:
+            # If there's any error in calculation, return safe defaults
+            return "Error", 0
     
     def show_settings_menu(self):
         self.display.show_menu(self.settings_menu_items, self.selected_index, "Settings")

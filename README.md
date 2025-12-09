@@ -71,6 +71,10 @@ chmod +x install.sh start.sh
 ./install.sh
 ```
 
+To customize your schedule run 
+```bash
+python3 configure_schedule.py
+```
 **If install.sh and start.sh wont run, try ```dos2unix install.sh start.sh``` this happens when i sftp it over. If using git ignore this**
 
 **Important**: Reboot after install.
@@ -153,13 +157,9 @@ _All joystick directions and buttons are active-low with pull-ups enabled._
 - Key3: GPIO 16
 
 ## TODO
-
-- A/B day toggle in the settings menu.
-- Custom color themes.
-- Network time synchronization.
 - Weather display and additional widgets.
 - Multiple schedule profiles.
-- Timer/stopwatch mode and progress bar visual.
+- Timer/stopwatch mode
 - check grades via canvas
 
 ### auto start w/ systemd service
