@@ -6,10 +6,15 @@ try:
     from display_waveshare import WaveshareDisplay
     from input_handler import InputHandler
     from menu import Menu
+    from theme_manager import ThemeManager
     
     print("Starting Pi Schedule Display...")
     
-    display = WaveshareDisplay()
+    # Initialize theme manager first
+    theme_manager = ThemeManager()
+    
+    # Pass theme manager to display
+    display = WaveshareDisplay(theme_manager)
     print("Display initialized")
     
     input_handler = InputHandler()
