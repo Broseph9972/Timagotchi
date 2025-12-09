@@ -38,6 +38,8 @@ class Menu:
         self.last_sync_time = 0  # Track last WiFi sync time for periodic syncing
         self.sync_on_boot = (TIME_SYNC_MODE == "on_boot")  # Flag to sync once at startup
         self.last_sync_error = None  # Store the last sync error message
+        self.available_networks = []  # Store scanned WiFi networks
+        self.wifi_scan_index = 0  # Index for selecting networks
     
     def is_advisory_day(self):
         today = datetime.datetime.now().strftime('%a').lower()
@@ -191,8 +193,109 @@ class Menu:
     def show_settings_menu(self):
         self.display.show_menu(self.settings_menu_items, self.selected_index, "Settings")
     
+    def scan_wifi_networks(self):
+        """Scan for available WiFi networks using nmcli or iwlist"""
+        try:
+            self.display.show_message("WiFi", "Scanning for\nnetworks...", (100, 200, 255))
+            
+            # Try using nmcli (NetworkManager)
+            try:
+                result = subprocess.run(
+                    ['sudo', 'nmcli', 'device', 'wifi', 'list'],
+                    capture_output=True, text=True, timeout=10
+                )
+                if result.returncode == 0:
+                    networks = self._parse_nmcli_output(result.stdout)
+                    if networks:
+                        self.available_networks = networks
+                        self.wifi_scan_index = 0
+                        return True
+            except:
+                pass
+            
+            # Fallback: try iwlist (older systems)
+            try:
+                result = subprocess.run(
+                    ['sudo', 'iwlist', 'wlan0', 'scan'],
+                    capture_output=True, text=True, timeout=10
+                )
+                if result.returncode == 0:
+                    networks = self._parse_iwlist_output(result.stdout)
+                    if networks:
+                        self.available_networks = networks
+                        self.wifi_scan_index = 0
+                        return True
+            except:
+                pass
+            
+            return False
+        except Exception as e:
+            self.display.show_message("Error", f"Scan failed: {str(e)[:30]}", (255, 100, 100))
+            time.sleep(2)
+            return False
+    
+    def _parse_nmcli_output(self, output):
+        """Parse nmcli wifi list output"""
+        networks = []
+        lines = output.strip().split('\n')[1:]  # Skip header
+        for line in lines:
+            if line.strip():
+                # Format: SSID BSSID RSSI CHANNEL SECURITY
+                parts = line.split()
+                if len(parts) >= 5:
+                    ssid = parts[0]
+                    security = ' '.join(parts[4:]) if len(parts) > 4 else ""
+                    is_open = "--" in security or security.strip() == ""
+                    networks.append({"ssid": ssid, "security": security, "open": is_open})
+        return networks
+    
+    def _parse_iwlist_output(self, output):
+        """Parse iwlist scan output"""
+        networks = []
+        current_network = {}
+        
+        for line in output.split('\n'):
+            if 'ESSID' in line and '"' in line:
+                # Extract SSID
+                ssid = line.split('"')[1]
+                current_network['ssid'] = ssid
+            elif 'Encryption key:off' in line:
+                current_network['open'] = True
+                current_network['security'] = "Open"
+            elif 'Encryption key:on' in line:
+                current_network['open'] = False
+            
+            if current_network.get('ssid'):
+                is_duplicate = any(n['ssid'] == current_network['ssid'] for n in networks)
+                if not is_duplicate:
+                    networks.append(current_network)
+                    current_network = {}
+        
+        return networks
+    
     def show_wifi_menu(self):
-        self.display.show_message("WiFi", "Connecting to\nconfigured networks...", (100, 200, 255))
+        """Show WiFi network selection menu"""
+        if not self.available_networks:
+            if not self.scan_wifi_networks():
+                self.display.show_message("WiFi", "No networks found\nor scan failed", (255, 100, 100))
+                time.sleep(2)
+                return
+        
+        self.show_wifi_network_list()
+    
+    def show_wifi_network_list(self):
+        """Display current WiFi network for selection"""
+        if not self.available_networks:
+            self.display.show_message("WiFi", "No networks\nfound", (200, 100, 100))
+            return
+        
+        network = self.available_networks[self.wifi_scan_index]
+        ssid = network['ssid']
+        is_open = network.get('open', False)
+        status = "[OPEN]" if is_open else "[SECURED]"
+        
+        message = f"WiFi Network:\n{ssid}\n{status}\n\nUp/Down: Browse\nSelect: Connect"
+        self.display.show_message("WiFi", message, (100, 200, 255))
     
     def show_ab_day_menu(self):
         if self.ab_day_mode == "auto":
@@ -355,10 +458,58 @@ class Menu:
             self.selected_index = 0
             self.show_main_menu()
     
+    def connect_to_wifi(self, network):
+        """Attempt to connect to an open WiFi network"""
+        try:
+            ssid = network['ssid']
+            is_open = network.get('open', False)
+            
+            if not is_open:
+                self.display.show_message("WiFi", "Only open networks\nare supported", (255, 150, 100))
+                time.sleep(2)
+                return False
+            
+            self.display.show_message("WiFi", f"Connecting to\n{ssid}...", (100, 200, 255))
+            
+            # Try connecting using nmcli
+            try:
+                result = subprocess.run(
+                    ['sudo', 'nmcli', 'device', 'wifi', 'connect', ssid],
+                    capture_output=True, text=True, timeout=10
+                )
+                if result.returncode == 0:
+                    self.display.show_message("WiFi", f"Connected to\n{ssid}", (100, 255, 100))
+                    time.sleep(2)
+                    return True
+            except:
+                pass
+            
+            # Fallback: try wpa_cli or other methods
+            self.display.show_message("WiFi", "Connection\nfailed", (255, 100, 100))
+            time.sleep(2)
+            return False
+        except Exception as e:
+            self.display.show_message("Error", str(e)[:30], (255, 100, 100))
+            time.sleep(2)
+            return False
+    
     def handle_wifi_input(self, action):
-        if action == 'left':
+        if action == 'up':
+            if self.available_networks:
+                self.wifi_scan_index = (self.wifi_scan_index - 1) % len(self.available_networks)
+                self.show_wifi_network_list()
+        elif action == 'down':
+            if self.available_networks:
+                self.wifi_scan_index = (self.wifi_scan_index + 1) % len(self.available_networks)
+                self.show_wifi_network_list()
+        elif action == 'select' or action == 'right':
+            if self.available_networks:
+                network = self.available_networks[self.wifi_scan_index]
+                self.connect_to_wifi(network)
+                self.show_wifi_network_list()
+        elif action == 'left':
             self.current_screen = "settings"
-            self.selected_index = 1  # Reset to WiFi option
+            self.selected_index = self.settings_menu_items.index("WiFi") if "WiFi" in self.settings_menu_items else 1
             self.show_settings_menu()
     
     def show_theme_menu(self):

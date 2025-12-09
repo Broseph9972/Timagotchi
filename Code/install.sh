@@ -49,7 +49,7 @@ echo ""
 echo "Setting up autostart service..."
 
 # Set the default path for autostart
-SCRIPT_DIR="$HOME/Timagotchi/Code"
+SCRIPT_DIR="/timagotchi/code"
 
 echo "Script directory: $SCRIPT_DIR"
 
@@ -61,9 +61,9 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
+User=$USER
 WorkingDirectory=$SCRIPT_DIR
-ExecStart=$SCRIPT_DIR/start.sh
+ExecStart=sudo $SCRIPT_DIR/start.sh
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal
