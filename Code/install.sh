@@ -51,8 +51,13 @@ echo "Setting up autostart service..."
 # Get the directory where start.sh is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Create systemd service file
-sudo tee /etc/systemd/system/timagotchi.service > /dev/null <<EOF
+echo "Script directory: $SCRIPT_DIR"
+
+# Make sure start.sh has execute permissions
+chmod +x "$SCRIPT_DIR/start.sh"
+
+# Create systemd service file - use 'cat' with quoted heredoc to avoid variable expansion issues
+sudo tee /etc/systemd/system/timagotchi.service > /dev/null <<'SERVICEFILE'
 [Unit]
 Description=Timagotchi Schedule Display
 After=network.target
@@ -60,18 +65,37 @@ After=network.target
 [Service]
 Type=simple
 User=pi
-WorkingDirectory=$SCRIPT_DIR
-ExecStart=$SCRIPT_DIR/start.sh
+SERVICEFILE
+
+# Append the dynamic path
+echo "WorkingDirectory=$SCRIPT_DIR" | sudo tee -a /etc/systemd/system/timagotchi.service > /dev/null
+echo "ExecStart=$SCRIPT_DIR/start.sh" | sudo tee -a /etc/systemd/system/timagotchi.service > /dev/null
+
+# Append the rest of the service file
+sudo tee -a /etc/systemd/system/timagotchi.service > /dev/null <<'SERVICEFILE'
 Restart=on-failure
 RestartSec=10
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
-EOF
+SERVICEFILE
 
-# Enable and start the service
+# Fix permissions on service file
+sudo chmod 644 /etc/systemd/system/timagotchi.service
+
+# Enable and reload
 sudo systemctl daemon-reload
 sudo systemctl enable timagotchi.service
+
+# Verify service is enabled
+if sudo systemctl is-enabled timagotchi.service &> /dev/null; then
+    echo "✓ Autostart service enabled successfully"
+    echo "✓ Service path: $SCRIPT_DIR/start.sh"
+else
+    echo "✗ WARNING: Service may not be properly enabled"
+fi
 
 echo "Autostart service installed!"
 echo "To start: sudo systemctl start timagotchi"
@@ -83,6 +107,6 @@ echo "Installation complete!"
 echo "Reboot required for GPIO permissions and autostart."
 echo ""
 echo "To run manually:"
-echo "  ./start.sh"
+echo "  cd $SCRIPT_DIR && ./start.sh"
 echo "Made by Jqseph9972"
 echo ""
