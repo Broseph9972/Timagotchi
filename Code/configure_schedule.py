@@ -27,10 +27,10 @@ def get_time_input(prompt, use_24h=False):
         except ValueError:
             print("Invalid time format. Please try again.")
 
-def get_period_names(day_label):
+def get_period_names(day_label, num_periods=6):
     periods = {}
     print(f"\nEnter {day_label} period names (or press Enter to skip):")
-    for i in range(1, 7):
+    for i in range(1, num_periods + 1):
         name = input(f"{day_label} period {i} name: ").strip()
         if name:
             periods[i] = name
@@ -43,26 +43,17 @@ def main():
     school_start = get_time_input("School start time", use_24h)
     school_end = get_time_input("School end time", use_24h)
 
-    has_advisory = input("\nDoes your school have advisory periods? (y/n): ").lower() == 'y'
-    advisory_config = "true" if has_advisory else "false"
     from datetime import datetime, timedelta
 
-    # Get passing time first
+    # Get passing time and period length
     passing_time = input("\nPassing time between periods (minutes): ")
     period_length = input("Regular period length (minutes): ")
 
-    if has_advisory:
-        advisory_start = get_time_input("Advisory start time", use_24h)
-        advisory_end = get_time_input("Advisory end time", use_24h)
-        advisory_start_time = datetime.strptime(advisory_start, "%H:%M")
-        advisory_end_time = datetime.strptime(advisory_end, "%H:%M")
-        advisory_length = str(int((advisory_end_time - advisory_start_time).seconds / 60))
-        advisory_days = input("Advisory days (e.g., m,t,w): ").lower()
-    else:
-        advisory_start = school_start
-        advisory_end = school_start
-        advisory_length = "0"
-        advisory_days = ""
+    # Advisory periods removed from configuration (handled separately if needed)
+    advisory_start = school_start
+    advisory_end = school_start
+    advisory_length = "0"
+    advisory_days = ""
 
     lunch_start = get_time_input("\nLunch start time", use_24h)
     lunch_end = get_time_input("Lunch end time", use_24h)
@@ -73,31 +64,37 @@ def main():
     num_periods = int(input("\nHow many periods are there (not including lunch and advisory)? "))
     print("\nCalculating period start times...")
     periods = {}
-    
+
     # Calculate time difference between start and end of school day
     school_start_time = datetime.strptime(school_start, "%H:%M")
     school_end_time = datetime.strptime(school_end, "%H:%M")
-    
-    # Start from after advisory if it exists
-    current_time = advisory_end_time if has_advisory else school_start_time
-    
-    # Calculate period start times
-    for i in range(1, num_periods + 1):
-        if current_time >= lunch_start_time and current_time <= lunch_end_time:
-            current_time = lunch_end_time
-        periods[i] = current_time.strftime("%H:%M")
-        current_time += timedelta(minutes=int(period_length) + int(passing_time))
-    
-    # Calculate period start times
+
+    # Simulate timeline from school start and assign period start times.
+    # This ensures no class is scheduled during lunch and avoids adding
+    # an extra passing time immediately after lunch.
     current_time = school_start_time
-    if has_advisory:
-        current_time = advisory_end_time
-        
+    period_len = int(period_length)
+    pass_min = int(passing_time)
+
     for i in range(1, num_periods + 1):
-        if current_time >= lunch_start_time and current_time <= lunch_end_time:
+        # If current time falls into lunch, move forward to the end of lunch
+        if lunch_start_time <= current_time < lunch_end_time:
             current_time = lunch_end_time
+
         periods[i] = current_time.strftime("%H:%M")
-        current_time += timedelta(minutes=int(period_length) + int(passing_time))
+
+        # Class ends after period length
+        class_end = current_time + timedelta(minutes=period_len)
+
+        # Next period normally starts after class end + passing time
+        next_start = class_end + timedelta(minutes=pass_min)
+
+        # If the computed next start falls into lunch, jump to lunch end
+        # (do not apply an extra passing period after lunch)
+        if lunch_start_time <= next_start < lunch_end_time:
+            next_start = lunch_end_time
+
+        current_time = next_start
 
     has_ab = input("\nDoes your school use A/B day scheduling? (y/n): ").lower() == 'y'
     a_day_periods = {}
@@ -106,8 +103,8 @@ def main():
     manual_ab_day = "a"
     
     if has_ab:
-        a_day_periods = get_period_names("A day")
-        b_day_periods = get_period_names("B day")
+        a_day_periods = get_period_names("A day", num_periods)
+        b_day_periods = get_period_names("B day", num_periods)
         
         # A/B Day Mode Configuration
         print("\n" + "="*50)
@@ -172,11 +169,7 @@ def main():
         f'SCHOOL_END = "{school_end}"    # Regular school end time',
         f"USE_24_HOUR = {str(use_24h)}  # Set to False for 12-hour format (e.g. \"3:45 PM\")",
         "",
-        "# Advisory period",
-        f'ADVISORY_START = "{advisory_start}"',
-        f'advisory = "{advisory_config}"',
-        f'advisorylength = "{advisory_length}"',
-        f'advisorydays = "{advisory_days}"',
+        "# Advisory period removed (not configured)",
         'freetimedaus = "w,th,f"',
         "",
         "# Period start times",
