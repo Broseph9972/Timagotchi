@@ -8,7 +8,7 @@ from config import (
     PERIODS, SCHOOL_START, SCHOOL_END, LUNCH_START, LUNCH_END,
     PERIOD_LENGTH, PASSING_TIME, A_DAY_PERIODS, B_DAY_PERIODS,
     ADVISORY_START, advisory, advisorydays, advisorylength, freetimedaus, USE_24_HOUR,
-    AB_DAY_MODE, MANUAL_AB_DAY, TIME_SYNC_MODE, TIME_SYNC_INTERVAL, abday
+    AB_DAY_MODE, MANUAL_AB_DAY, TIME_SYNC_MODE, TIME_SYNC_INTERVAL, abday, PROGRESS_BAR_MODE
 )
 from input_handler import InputHandler
 from theme_manager import ThemeManager
@@ -29,7 +29,7 @@ class Menu:
         self.settings_menu_items = []
         if abday.lower() == "true":
             self.settings_menu_items.append("A/B Day")
-        self.settings_menu_items.extend(["WiFi", "Theme", "Restart", "Back"])
+        self.settings_menu_items.extend(["WiFi", "Theme", "Progress Bar", "Restart", "Back"])
         self.set_time_menu_items = ["WiFi Sync", "Manual Set", "Back"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
         self.adjust_hour = 0
@@ -42,6 +42,9 @@ class Menu:
         self.last_sync_error = None  # Store the last sync error message
         self.available_networks = []  # Store scanned WiFi networks
         self.wifi_scan_index = 0  # Index for selecting networks
+        self.progress_bar_modes = ["time_in_class", "time_in_day", "time_until_lunch", "time_after_lunch"]
+        self.progress_bar_mode = PROGRESS_BAR_MODE
+        self.progress_bar_mode_index = self.progress_bar_modes.index(self.progress_bar_mode) if self.progress_bar_mode in self.progress_bar_modes else 0
     
     def is_advisory_day(self):
         today = datetime.datetime.now().strftime('%a').lower()
@@ -191,6 +194,90 @@ class Menu:
     
     def show_main_menu(self):
         self.display.show_menu(self.main_menu_items, self.selected_index, "Main Menu")
+        self.show_progress_bar()
+    
+    def get_progress_bar(self):
+        """Calculate progress bar based on current mode"""
+        now = datetime.datetime.now()
+        
+        # Parse times
+        school_start = datetime.datetime.strptime(SCHOOL_START, "%H:%M").time()
+        school_start_dt = datetime.datetime.combine(datetime.date.today(), school_start)
+        school_end = datetime.datetime.strptime(SCHOOL_END, "%H:%M").time()
+        school_end_dt = datetime.datetime.combine(datetime.date.today(), school_end)
+        lunch_start = datetime.datetime.strptime(LUNCH_START, "%H:%M").time()
+        lunch_start_dt = datetime.datetime.combine(datetime.date.today(), lunch_start)
+        lunch_end = datetime.datetime.strptime(LUNCH_END, "%H:%M").time()
+        lunch_end_dt = datetime.datetime.combine(datetime.date.today(), lunch_end)
+        
+        if self.progress_bar_mode == "time_in_class":
+            # Progress within current class period
+            current_period = None
+            for period in range(1, 7):
+                if period not in PERIODS:
+                    continue
+                period_start = datetime.datetime.strptime(PERIODS[period], "%H:%M").time()
+                period_start_dt = datetime.datetime.combine(datetime.date.today(), period_start)
+                period_end_dt = period_start_dt + datetime.timedelta(minutes=PERIOD_LENGTH)
+                
+                if period_start_dt <= now < period_end_dt:
+                    elapsed = (now - period_start_dt).total_seconds()
+                    total = PERIOD_LENGTH * 60
+                    progress = int((elapsed / total) * 100) if total > 0 else 0
+                    return f"Class: {progress}%", progress
+            
+            # Not in class
+            return "Not in class", 0
+        
+        elif self.progress_bar_mode == "time_in_day":
+            # Progress through school day
+            if now < school_start_dt:
+                return "Before school", 0
+            elif now >= school_end_dt:
+                return "After school", 100
+            else:
+                elapsed = (now - school_start_dt).total_seconds()
+                total = (school_end_dt - school_start_dt).total_seconds()
+                progress = int((elapsed / total) * 100) if total > 0 else 0
+                return f"Day: {progress}%", progress
+        
+        elif self.progress_bar_mode == "time_until_lunch":
+            # Progress until lunch
+            if now < lunch_start_dt:
+                elapsed = (now - school_start_dt).total_seconds()
+                total = (lunch_start_dt - school_start_dt).total_seconds()
+                progress = int((elapsed / total) * 100) if total > 0 else 0
+                return f"Until Lunch: {progress}%", progress
+            elif now < lunch_end_dt:
+                return "Lunch time", 100
+            else:
+                # After lunch
+                return "After lunch", 100
+        
+        elif self.progress_bar_mode == "time_after_lunch":
+            # Progress after lunch until end of day
+            if now < lunch_end_dt:
+                return "Before end", 0
+            elif now >= school_end_dt:
+                return "After school", 100
+            else:
+                elapsed = (now - lunch_end_dt).total_seconds()
+                total = (school_end_dt - lunch_end_dt).total_seconds()
+                progress = int((elapsed / total) * 100) if total > 0 else 0
+                return f"After Lunch: {progress}%", progress
+        
+        return "Unknown", 0
+    
+    def show_progress_bar(self):
+        """Display the progress bar on the display"""
+        try:
+            label, progress = self.get_progress_bar()
+            # The display should render this as a progress bar
+            # For now, we'll show it as text. You can enhance the display module to show actual bars
+            if hasattr(self.display, 'show_progress'):
+                self.display.show_progress(label, progress)
+        except Exception as e:
+            pass  # Silently fail if progress bar can't be displayed
     
     def show_settings_menu(self):
         self.display.show_menu(self.settings_menu_items, self.selected_index, "Settings")
@@ -455,6 +542,9 @@ class Menu:
                 self.current_screen = "theme"
                 self.selected_index = 0
                 self.show_theme_menu()
+            elif selected_item == "Progress Bar":
+                self.current_screen = "progress_bar"
+                self.show_progress_bar_menu()
             elif selected_item == "Restart":
                 self.restart_program()
         elif action == 'left':
@@ -539,6 +629,31 @@ class Menu:
         elif action == 'left':
             self.current_screen = "settings"
             self.selected_index = self.settings_menu_items.index("Theme") if "Theme" in self.settings_menu_items else 2
+            self.show_settings_menu()
+    
+    def show_progress_bar_menu(self):
+        """Display progress bar mode selection"""
+        current_mode = self.progress_bar_modes[self.progress_bar_mode_index]
+        mode_display = current_mode.replace("_", " ").title()
+        message = f"Progress Bar:\n{mode_display}\n\nUp/Down: Change\nSelect: Confirm"
+        self.display.show_message("Progress Bar", message, (100, 150, 255))
+    
+    def handle_progress_bar_input(self, action):
+        if action == 'up':
+            self.progress_bar_mode_index = (self.progress_bar_mode_index - 1) % len(self.progress_bar_modes)
+            self.progress_bar_mode = self.progress_bar_modes[self.progress_bar_mode_index]
+            self.show_progress_bar_menu()
+        elif action == 'down':
+            self.progress_bar_mode_index = (self.progress_bar_mode_index + 1) % len(self.progress_bar_modes)
+            self.progress_bar_mode = self.progress_bar_modes[self.progress_bar_mode_index]
+            self.show_progress_bar_menu()
+        elif action == 'select' or action == 'right':
+            self.current_screen = "settings"
+            self.selected_index = self.settings_menu_items.index("Progress Bar") if "Progress Bar" in self.settings_menu_items else 3
+            self.show_settings_menu()
+        elif action == 'left':
+            self.current_screen = "settings"
+            self.selected_index = self.settings_menu_items.index("Progress Bar") if "Progress Bar" in self.settings_menu_items else 3
             self.show_settings_menu()
     
     def restart_program(self):
@@ -699,6 +814,8 @@ class Menu:
                     self.handle_wifi_input(action)
                 elif self.current_screen == "theme":
                     self.handle_theme_input(action)
+                elif self.current_screen == "progress_bar":
+                    self.handle_progress_bar_input(action)
                 elif self.current_screen == "set_time_menu":
                     self.handle_set_time_menu_input(action)
                 elif self.current_screen == "set_time":
@@ -710,6 +827,8 @@ class Menu:
                     self.show_schedule_screen()
                 elif self.current_screen == "clock":
                     self.show_clock_screen()
+                elif self.current_screen == "main":
+                    self.show_main_menu()
                 last_update = current_time
             
             # Check if Key3 is being held in set_time screen
