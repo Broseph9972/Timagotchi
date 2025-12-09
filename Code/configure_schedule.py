@@ -100,23 +100,28 @@ def main():
         current_time += timedelta(minutes=int(period_length) + int(passing_time))
 
     has_ab = input("\nDoes your school use A/B day scheduling? (y/n): ").lower() == 'y'
-    a_day_periods = get_period_names("A day") if has_ab else {}
-    b_day_periods = get_period_names("B day") if has_ab else {}
-
-    # A/B Day Mode Configuration
-    print("\n" + "="*50)
-    print("A/B Day Mode Configuration")
-    print("="*50)
-    print("Choose A/B day mode:")
-    print("1. Auto (rotates based on calendar)")
-    print("2. Manual (you set current day as A or B)")
-    ab_mode_choice = input("Select mode (1 or 2, default: 1): ").strip()
-    ab_day_mode = "auto" if ab_mode_choice != "2" else "manual"
+    a_day_periods = {}
+    b_day_periods = {}
+    ab_day_mode = "auto"
     manual_ab_day = "a"
-    if ab_day_mode == "manual":
-        manual_ab_day = input("Set current day as (a or b, default: a): ").strip().lower()
-        if manual_ab_day not in ["a", "b"]:
-            manual_ab_day = "a"
+    
+    if has_ab:
+        a_day_periods = get_period_names("A day")
+        b_day_periods = get_period_names("B day")
+        
+        # A/B Day Mode Configuration
+        print("\n" + "="*50)
+        print("A/B Day Mode Configuration")
+        print("="*50)
+        print("Choose A/B day mode:")
+        print("1. Auto (rotates based on calendar)")
+        print("2. Manual (you set current day as A or B)")
+        ab_mode_choice = input("Select mode (1 or 2, default: 1): ").strip()
+        ab_day_mode = "auto" if ab_mode_choice != "2" else "manual"
+        if ab_day_mode == "manual":
+            manual_ab_day = input("Set current day as (a or b, default: a): ").strip().lower()
+            if manual_ab_day not in ["a", "b"]:
+                manual_ab_day = "a"
 
     # WiFi Network Configuration
     print("\n" + "="*50)

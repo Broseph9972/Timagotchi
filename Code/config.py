@@ -24,7 +24,7 @@ LUNCH_END = "14:05"
 # Period names
 A_DAY_PERIODS = {1: 'Spanish', 2: 'ELA', 3: 'Math', 4: 'Gym', 5: 'Science', 6: 'SS'}
 
-B_DAY_PERIODS = {}
+B_DAY_PERIODS = {1: 'Spanish', 2: 'ELA', 3: 'Math', 4: 'Health', 5: 'Science', 6: 'SS'}
 
 # Period lengths (in minutes)
 PERIOD_LENGTH = 51

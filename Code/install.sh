@@ -64,15 +64,9 @@ After=network.target
 
 [Service]
 Type=simple
-User=pi
-SERVICEFILE
-
-# Append the dynamic path
-echo "WorkingDirectory=$SCRIPT_DIR" | sudo tee -a /etc/systemd/system/timagotchi.service > /dev/null
-echo "ExecStart=$SCRIPT_DIR/start.sh" | sudo tee -a /etc/systemd/system/timagotchi.service > /dev/null
-
-# Append the rest of the service file
-sudo tee -a /etc/systemd/system/timagotchi.service > /dev/null <<'SERVICEFILE'
+User=root
+WorkingDirectory=SCRIPT_DIR_PLACEHOLDER
+ExecStart=SCRIPT_DIR_PLACEHOLDER/start.sh
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal
@@ -81,6 +75,9 @@ StandardError=journal
 [Install]
 WantedBy=multi-user.target
 SERVICEFILE
+
+# Replace the placeholder with actual path
+sudo sed -i "s|SCRIPT_DIR_PLACEHOLDER|$SCRIPT_DIR|g" /etc/systemd/system/timagotchi.service
 
 # Fix permissions on service file
 sudo chmod 644 /etc/systemd/system/timagotchi.service

@@ -6,7 +6,7 @@ from config import (
     PERIODS, SCHOOL_START, SCHOOL_END, LUNCH_START, LUNCH_END,
     PERIOD_LENGTH, PASSING_TIME, A_DAY_PERIODS, B_DAY_PERIODS,
     ADVISORY_START, advisory, advisorydays, advisorylength, freetimedaus, USE_24_HOUR,
-    AB_DAY_MODE, MANUAL_AB_DAY, TIME_SYNC_MODE, TIME_SYNC_INTERVAL
+    AB_DAY_MODE, MANUAL_AB_DAY, TIME_SYNC_MODE, TIME_SYNC_INTERVAL, abday
 )
 from input_handler import InputHandler
 from theme_manager import ThemeManager
@@ -23,7 +23,11 @@ class Menu:
         self.theme_manager = ThemeManager()
         
         self.main_menu_items = ["Schedule", "Clock", "Settings", "Set Time"]
-        self.settings_menu_items = ["A/B Day", "WiFi", "Theme", "Back"]
+        # Build settings menu items based on config
+        self.settings_menu_items = []
+        if abday.lower() == "true":
+            self.settings_menu_items.append("A/B Day")
+        self.settings_menu_items.extend(["WiFi", "Theme", "Back"])
         self.set_time_menu_items = ["WiFi Sync", "Manual Set", "Back"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
         self.adjust_hour = 0
@@ -42,6 +46,22 @@ class Menu:
     def is_freetime_day(self):
         today = datetime.datetime.now().strftime('%a').lower()
         return today[0] in freetimedaus.lower().split(',')
+    
+    def get_current_ab_day(self):
+        """Get current A/B day based on mode"""
+        if abday.lower() != "true":
+            return "a"  # Default to A if A/B days are disabled
+        
+        if self.ab_day_mode == "auto":
+            # Auto mode: alternate daily starting with A on Monday
+            today = datetime.datetime.now()
+            days_since_monday = today.weekday()  # 0 = Monday, 6 = Sunday
+            # At start of week (Monday), we're on day 0 (A day)
+            # Every day, we switch. So: Mon=A, Tue=B, Wed=A, Thu=B, Fri=A
+            return "a" if days_since_monday % 2 == 0 else "b"
+        else:
+            # Manual mode
+            return self.manual_ab_day.lower()
     
     def get_current_period(self, current_time):
         advisory_start = datetime.datetime.strptime(ADVISORY_START, "%H:%M").time()
@@ -124,10 +144,21 @@ class Menu:
         
         period_name = ""
         if period is not None and isinstance(period, int):
-            if period in A_DAY_PERIODS:
-                period_name = A_DAY_PERIODS[period]
+            # Determine which period set to use (A or B day)
+            if abday.lower() == "true":
+                current_day = self.get_current_ab_day()
+                if current_day == "b" and period in B_DAY_PERIODS:
+                    period_name = B_DAY_PERIODS[period]
+                elif period in A_DAY_PERIODS:
+                    period_name = A_DAY_PERIODS[period]
+                else:
+                    period_name = f"Period {period}"
             else:
-                period_name = f"Period {period}"
+                # A/B days disabled, use A_DAY_PERIODS as default
+                if period in A_DAY_PERIODS:
+                    period_name = A_DAY_PERIODS[period]
+                else:
+                    period_name = f"Period {period}"
         
         lunch_time_str = None
         lunch_start_dt = datetime.datetime.strptime(LUNCH_START, "%H:%M").time()
