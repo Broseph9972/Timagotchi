@@ -2,6 +2,8 @@ import datetime
 import subprocess
 import time
 import json
+import os
+import sys
 from config import (
     PERIODS, SCHOOL_START, SCHOOL_END, LUNCH_START, LUNCH_END,
     PERIOD_LENGTH, PASSING_TIME, A_DAY_PERIODS, B_DAY_PERIODS,
@@ -27,7 +29,7 @@ class Menu:
         self.settings_menu_items = []
         if abday.lower() == "true":
             self.settings_menu_items.append("A/B Day")
-        self.settings_menu_items.extend(["WiFi", "Theme", "Back"])
+        self.settings_menu_items.extend(["WiFi", "Theme", "Restart", "Back"])
         self.set_time_menu_items = ["WiFi Sync", "Manual Set", "Back"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
         self.adjust_hour = 0
@@ -453,6 +455,8 @@ class Menu:
                 self.current_screen = "theme"
                 self.selected_index = 0
                 self.show_theme_menu()
+            elif selected_item == "Restart":
+                self.restart_program()
         elif action == 'left':
             self.current_screen = "main"
             self.selected_index = 0
@@ -535,6 +539,22 @@ class Menu:
         elif action == 'left':
             self.current_screen = "settings"
             self.selected_index = self.settings_menu_items.index("Theme") if "Theme" in self.settings_menu_items else 2
+            self.show_settings_menu()
+    
+    def restart_program(self):
+        """Restart the Timagotchi program"""
+        try:
+            self.display.show_message("Restarting", "Program restarting...", (100, 200, 255))
+            time.sleep(1)
+            self.input_handler.cleanup()
+            self.running = False
+            # Use os.execv to replace current process with new one
+            os.execv(sys.executable, [sys.executable] + sys.argv)
+        except Exception as e:
+            self.display.show_message("Error", f"Restart failed: {str(e)[:30]}", (255, 100, 100))
+            time.sleep(2)
+            self.current_screen = "settings"
+            self.selected_index = self.settings_menu_items.index("Restart") if "Restart" in self.settings_menu_items else 2
             self.show_settings_menu()
     
     def sync_time_via_wifi(self):
