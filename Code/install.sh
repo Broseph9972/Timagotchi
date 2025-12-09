@@ -13,7 +13,7 @@ fi
 
 echo "Installing system packages..."
 sudo apt-get update
-sudo apt install -y python3-pip python3-pil python3-numpy git retroarch retroarch-assets
+sudo apt install -y python3-pip python3-pil python3-numpy git
 #sudo apt install -y libretro-common || echo "Warning: libretro-common package not available"
 
 echo "Installing Python dependencies..."
@@ -39,11 +39,11 @@ echo "$USER ALL=(ALL) NOPASSWD: /usr/bin/timedatectl" | sudo tee /etc/sudoers.d/
 sudo chmod 0440 /etc/sudoers.d/timagotchi-timedatectl
 
 echo "Preparing RetroArch ROM storage..."
-sudo mkdir -p /home/pi/timagotchi/roms
-sudo chown pi:pi /home/pi/timagotchi/roms
+sudo mkdir -p "$HOME/timagotchi/roms"
+sudo chown $USER:$USER "$HOME/timagotchi/roms"
 
-echo "Disabling automatic time synchronization..."
-sudo timedatectl set-ntp false
+echo "Time synchronization can be configured in config.py"
+echo "Set TIME_SYNC_MODE to: 'disabled', 'on_boot', or 'periodic'"
 
 echo ""
 echo "Setting up autostart service..."
