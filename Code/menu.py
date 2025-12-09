@@ -360,26 +360,26 @@ class Menu:
         try:
             self.display.show_message("Syncing...", "Getting time from\nwifi network...", (100, 200, 100))
             
-            # Try timedatectl with ntp
             try:
-                result = subprocess.run(['sudo', 'timedatectl', 'set-ntp', 'true'], 
-                                      capture_output=True, text=True, timeout=10)
-                time.sleep(2)
-                # Force update from NTP
-                result = subprocess.run(['sudo', 'timedatectl', 'set-time', 'now'], 
-                                      capture_output=True, text=True, timeout=10)
+                # Ensure NTP is enabled first
+                subprocess.run(['sudo', 'timedatectl', 'set-ntp', 'on'], 
+                              capture_output=True, text=True, timeout=5, check=False)
+                time.sleep(1)
                 
-                if result.returncode != 0:
-                    error_msg = result.stderr.strip()
-                    if "Automatic time synchronization is enabled" in error_msg:
-                        self.last_sync_error = "Auto sync enabled:\nDisable in settings"
-                        self.display.show_message("Sync Failed", self.last_sync_error, (255, 100, 100))
-                    else:
-                        self.last_sync_error = error_msg if error_msg else "Unknown error"
-                        self.display.show_message("Sync Failed", self.last_sync_error[:40], (255, 100, 100))
-                else:
+                # Wait for NTP to sync (give it a moment)
+                time.sleep(3)
+                
+                # Get the current synced time
+                result = subprocess.run(['timedatectl', 'show', '-p', 'NTPSynchronized'],
+                                      capture_output=True, text=True, timeout=5)
+                
+                if "yes" in result.stdout.lower():
                     self.last_sync_error = None
                     self.display.show_message("Time Synced", "WiFi sync\nsuccessful!", (100, 255, 100))
+                else:
+                    self.last_sync_error = "NTP not synchronized"
+                    self.display.show_message("Sync Failed", "NTP sync pending", (255, 100, 100))
+                
             except subprocess.TimeoutExpired:
                 self.last_sync_error = "Sync timed out"
                 self.display.show_message("Sync Failed", "Operation timed out", (255, 100, 100))
@@ -405,6 +405,17 @@ class Menu:
     def apply_manual_time(self):
         """Apply the manually set time"""
         try:
+            # Check if NTP is still enabled
+            ntp_check = subprocess.run(['timedatectl', 'show', '-p', 'NTP'],
+                                      capture_output=True, text=True, timeout=5)
+            ntp_enabled = "yes" in ntp_check.stdout.lower()
+            
+            if ntp_enabled:
+                # Try to disable NTP first
+                subprocess.run(['sudo', 'timedatectl', 'set-ntp', 'off'], 
+                              capture_output=True, text=True, timeout=5, check=False)
+                time.sleep(1)
+            
             # Format time as HH:MM:SS (always in 24-hour for system)
             time_str = f"{self.adjust_hour:02d}:{self.adjust_minute:02d}:00"
             
@@ -413,8 +424,8 @@ class Menu:
             
             if result.returncode != 0:
                 error_msg = result.stderr.strip()
-                if "Automatic time synchronization is enabled" in error_msg:
-                    self.last_sync_error = "Disable auto sync first:\nsudo timedatectl set-ntp false"
+                if "ntp" in error_msg.lower() or "synchronized" in error_msg.lower():
+                    self.last_sync_error = "Run: sudo timedatectl\nset-ntp false"
                     self.display.show_message("Failed", self.last_sync_error, (255, 100, 100))
                 else:
                     self.last_sync_error = error_msg if error_msg else "Failed to set time"

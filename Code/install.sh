@@ -61,6 +61,11 @@ rm -rf /tmp/LCD_1in44
 echo "Adding user to gpio group..."
 sudo usermod -aG gpio $USER
 
+echo "Configuring sudoers for timedatectl..."
+# Allow pi user to run timedatectl without password
+echo "$USER ALL=(ALL) NOPASSWD: /usr/bin/timedatectl" | sudo tee /etc/sudoers.d/timagotchi-timedatectl > /dev/null
+sudo chmod 0440 /etc/sudoers.d/timagotchi-timedatectl
+
 echo "Preparing RetroArch ROM storage..."
 sudo mkdir -p /home/pi/timagotchi/roms
 sudo chown pi:pi /home/pi/timagotchi/roms
