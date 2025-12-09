@@ -7,7 +7,7 @@ import sys
 from config import (
     PERIODS, SCHOOL_START, SCHOOL_END, LUNCH_START, LUNCH_END,
     PERIOD_LENGTH, PASSING_TIME, A_DAY_PERIODS, B_DAY_PERIODS,
-    ADVISORY_START, advisory, advisorydays, advisorylength, freetimedaus, USE_24_HOUR,
+    freetimedaus, USE_24_HOUR,
     AB_DAY_MODE, MANUAL_AB_DAY, TIME_SYNC_MODE, TIME_SYNC_INTERVAL, abday, PROGRESS_BAR_MODE
 )
 from input_handler import InputHandler
@@ -46,9 +46,7 @@ class Menu:
         self.progress_bar_mode = PROGRESS_BAR_MODE
         self.progress_bar_mode_index = self.progress_bar_modes.index(self.progress_bar_mode) if self.progress_bar_mode in self.progress_bar_modes else 0
     
-    def is_advisory_day(self):
-        today = datetime.datetime.now().strftime('%a').lower()
-        return advisory.lower() == "true" and today[0] in advisorydays.lower().split(',')
+
     
     def is_freetime_day(self):
         today = datetime.datetime.now().strftime('%a').lower()
@@ -71,18 +69,6 @@ class Menu:
             return self.manual_ab_day.lower()
     
     def get_current_period(self, current_time):
-        advisory_start = datetime.datetime.strptime(ADVISORY_START, "%H:%M").time()
-        advisory_start = datetime.datetime.combine(datetime.date.today(), advisory_start)
-        advisory_end = advisory_start + datetime.timedelta(minutes=int(advisorylength))
-        
-        if advisory_start <= current_time < advisory_end:
-            if self.is_advisory_day():
-                time_remaining = advisory_end - current_time
-                return "ADVISORY", time_remaining, False
-            elif self.is_freetime_day():
-                time_remaining = advisory_end - current_time
-                return "FREETIME", time_remaining, False
-        
         lunch_start = datetime.datetime.strptime(LUNCH_START, "%H:%M").time()
         lunch_start = datetime.datetime.combine(datetime.date.today(), lunch_start)
         lunch_end = datetime.datetime.strptime(LUNCH_END, "%H:%M").time()
