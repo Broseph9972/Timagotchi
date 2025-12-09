@@ -42,7 +42,7 @@ class Menu:
         self.last_sync_error = None  # Store the last sync error message
         self.available_networks = []  # Store scanned WiFi networks
         self.wifi_scan_index = 0  # Index for selecting networks
-        self.progress_bar_modes = ["time_in_class", "time_in_day", "time_until_lunch", "time_after_lunch"]
+        self.progress_bar_modes = ["time_in_class", "time_in_day", "lunch_day"]
         self.progress_bar_mode = PROGRESS_BAR_MODE
         self.progress_bar_mode_index = self.progress_bar_modes.index(self.progress_bar_mode) if self.progress_bar_mode in self.progress_bar_modes else 0
     
@@ -193,8 +193,8 @@ class Menu:
         self.display.show_clock(time_str, date_str)
     
     def show_main_menu(self):
-        self.display.show_menu(self.main_menu_items, self.selected_index, "Main Menu")
-        self.show_progress_bar()
+        label, progress = self.get_progress_bar()
+        self.display.show_menu(self.main_menu_items, self.selected_index, "Main Menu", label, progress)
     
     def get_progress_bar(self):
         """Calculate progress bar based on current mode"""
@@ -210,9 +210,13 @@ class Menu:
         lunch_end = datetime.datetime.strptime(LUNCH_END, "%H:%M").time()
         lunch_end_dt = datetime.datetime.combine(datetime.date.today(), lunch_end)
         
+        # Calculate actual school end time from 6th period end
+        period_6_start = datetime.datetime.strptime(PERIODS[6], "%H:%M").time()
+        period_6_start_dt = datetime.datetime.combine(datetime.date.today(), period_6_start)
+        actual_school_end = period_6_start_dt + datetime.timedelta(minutes=PERIOD_LENGTH)
+        
         if self.progress_bar_mode == "time_in_class":
             # Progress within current class period
-            current_period = None
             for period in range(1, 7):
                 if period not in PERIODS:
                     continue
@@ -230,54 +234,39 @@ class Menu:
             return "Not in class", 0
         
         elif self.progress_bar_mode == "time_in_day":
-            # Progress through school day
+            # Progress through school day (using actual end time from 6th period)
             if now < school_start_dt:
                 return "Before school", 0
-            elif now >= school_end_dt:
+            elif now >= actual_school_end:
                 return "After school", 100
             else:
                 elapsed = (now - school_start_dt).total_seconds()
-                total = (school_end_dt - school_start_dt).total_seconds()
+                total = (actual_school_end - school_start_dt).total_seconds()
                 progress = int((elapsed / total) * 100) if total > 0 else 0
                 return f"Day: {progress}%", progress
         
-        elif self.progress_bar_mode == "time_until_lunch":
-            # Progress until lunch
+        elif self.progress_bar_mode == "lunch_day":
+            # Progress until lunch, then after lunch shows time left in day
             if now < lunch_start_dt:
+                # Before lunch: show progress to lunch
                 elapsed = (now - school_start_dt).total_seconds()
                 total = (lunch_start_dt - school_start_dt).total_seconds()
                 progress = int((elapsed / total) * 100) if total > 0 else 0
                 return f"Until Lunch: {progress}%", progress
             elif now < lunch_end_dt:
-                return "Lunch time", 100
-            else:
-                # After lunch
-                return "After lunch", 100
-        
-        elif self.progress_bar_mode == "time_after_lunch":
-            # Progress after lunch until end of day
-            if now < lunch_end_dt:
-                return "Before end", 0
-            elif now >= school_end_dt:
+                # During lunch
+                return "Lunch", 100
+            elif now >= actual_school_end:
+                # After school
                 return "After school", 100
             else:
+                # After lunch: show time left in day
                 elapsed = (now - lunch_end_dt).total_seconds()
-                total = (school_end_dt - lunch_end_dt).total_seconds()
+                total = (actual_school_end - lunch_end_dt).total_seconds()
                 progress = int((elapsed / total) * 100) if total > 0 else 0
-                return f"After Lunch: {progress}%", progress
+                return f"Day Left: {progress}%", progress
         
         return "Unknown", 0
-    
-    def show_progress_bar(self):
-        """Display the progress bar on the display"""
-        try:
-            label, progress = self.get_progress_bar()
-            # The display should render this as a progress bar
-            # For now, we'll show it as text. You can enhance the display module to show actual bars
-            if hasattr(self.display, 'show_progress'):
-                self.display.show_progress(label, progress)
-        except Exception as e:
-            pass  # Silently fail if progress bar can't be displayed
     
     def show_settings_menu(self):
         self.display.show_menu(self.settings_menu_items, self.selected_index, "Settings")
@@ -634,7 +623,14 @@ class Menu:
     def show_progress_bar_menu(self):
         """Display progress bar mode selection"""
         current_mode = self.progress_bar_modes[self.progress_bar_mode_index]
-        mode_display = current_mode.replace("_", " ").title()
+        if current_mode == "time_in_class":
+            mode_display = "In Class"
+        elif current_mode == "time_in_day":
+            mode_display = "In Day"
+        elif current_mode == "lunch_day":
+            mode_display = "Lunch/Day"
+        else:
+            mode_display = current_mode.replace("_", " ").title()
         message = f"Progress Bar:\n{mode_display}\n\nUp/Down: Change\nSelect: Confirm"
         self.display.show_message("Progress Bar", message, (100, 150, 255))
     

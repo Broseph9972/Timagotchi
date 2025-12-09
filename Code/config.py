@@ -51,5 +51,5 @@ TIME_SYNC_MODE = "disabled"  # "disabled" = manual only, "on_boot" = sync on sta
 TIME_SYNC_INTERVAL = 6  # Hours between periodic syncs (only used if TIME_SYNC_MODE = "periodic")
 
 # Progress Bar Settings
-# Display mode: "time_in_class", "time_in_day", "time_until_lunch", "time_after_lunch"
+# Display mode: "time_in_class", "time_in_day", or "lunch_day"
 PROGRESS_BAR_MODE = "time_in_class"  # What the progress bar shows

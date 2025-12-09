@@ -129,7 +129,7 @@ class WaveshareDisplay:
 
         self._render()
 
-    def show_menu(self, menu_items, selected_index, title="Menu"):
+    def show_menu(self, menu_items, selected_index, title="Menu", progress_label="", progress_value=0):
         self.clear()
         
         y_offset = 2
@@ -143,6 +143,28 @@ class WaveshareDisplay:
             else:
                 self.draw.text((4, y_offset), f"  {item}", font=self.font_small, fill=(200, 200, 200))
             y_offset += 18
+
+        # Draw progress bar at the bottom if progress_label is provided
+        if progress_label:
+            # Progress bar background
+            bar_y = self.height - 12
+            bar_x_start = 2
+            bar_width = self.width - 4
+            bar_height = 10
+            
+            # Draw bar background
+            self.draw.rectangle((bar_x_start, bar_y, bar_x_start + bar_width, bar_y + bar_height), 
+                               fill=(50, 50, 50), outline=(100, 100, 100))
+            
+            # Draw filled portion based on progress
+            if progress_value > 0:
+                fill_width = int((progress_value / 100.0) * bar_width)
+                self.draw.rectangle((bar_x_start, bar_y, bar_x_start + fill_width, bar_y + bar_height), 
+                                   fill=(100, 200, 100))
+            
+            # Draw progress text
+            text_color = (150, 200, 150)
+            self.draw.text((bar_x_start + 2, bar_y + 0), progress_label, font=self.font_tiny, fill=text_color)
 
         self._render()
 
