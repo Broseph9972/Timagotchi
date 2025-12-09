@@ -387,19 +387,20 @@ class Menu:
                 self.last_sync_error = str(e)
                 self.display.show_message("Sync Failed", str(e)[:40], (255, 100, 100))
             
-            # Wait and then clear input buffer to avoid stale button presses
+            # Wait for display to be visible
             time.sleep(2)
-            # Drain any accumulated input
-            for _ in range(10):
-                self.input_handler.get_input()
-                time.sleep(0.05)
+            # Reset all debounce timers to prevent stale presses
+            current_time = time.time()
+            for pin in self.input_handler.pins:
+                self.input_handler.last_press[pin] = current_time
         except Exception as e:
             self.last_sync_error = str(e)
             self.display.show_message("Error", str(e)[:40], (255, 100, 100))
             time.sleep(2)
-            # Clear input buffer
-            for _ in range(10):
-                self.input_handler.get_input()
+            # Reset debounce timers
+            current_time = time.time()
+            for pin in self.input_handler.pins:
+                self.input_handler.last_press[pin] = current_time
                 time.sleep(0.05)
     
     def apply_manual_time(self):
@@ -443,24 +444,28 @@ class Menu:
                     display_time = f"{display_hour:02d}:{self.adjust_minute:02d} {am_pm}"
                 self.display.show_message("Time Set", f"Set to {display_time}", (100, 255, 100))
             
-            # Wait and then clear input buffer to avoid stale button presses
+            # Wait for display to be visible
             time.sleep(2)
-            # Drain any accumulated input
-            for _ in range(10):
-                self.input_handler.get_input()
-                time.sleep(0.05)
+            # Reset all debounce timers to prevent stale presses
+            current_time = time.time()
+            for pin in self.input_handler.pins:
+                self.input_handler.last_press[pin] = current_time
         except subprocess.TimeoutExpired:
             self.last_sync_error = "Operation timed out"
             self.display.show_message("Failed", "Timeout", (255, 100, 100))
             time.sleep(2)
-            # Clear input buffer
-            for _ in range(10):
-                self.input_handler.get_input()
-                time.sleep(0.05)
+            # Reset debounce timers
+            current_time = time.time()
+            for pin in self.input_handler.pins:
+                self.input_handler.last_press[pin] = current_time
         except Exception as e:
             self.last_sync_error = str(e)
             self.display.show_message("Error", str(e)[:40], (255, 100, 100))
             time.sleep(2)
+            # Reset debounce timers
+            current_time = time.time()
+            for pin in self.input_handler.pins:
+                self.input_handler.last_press[pin] = current_time
     
     def run(self):
         import time
