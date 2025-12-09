@@ -121,12 +121,7 @@ sudo python3 main.py
 ### Controls
 
 #### Joystick
-its a joystick, it moves stuff. middle click is ok as well but rlly hard to use so just use key3
-
-#### Buttons (not all implemented yet)
-- **Key1**: Quick back to the main menu.
-- **Key2**: Check grades
-- **Key3**: OK
+its a joystick, it moves stuff. middle click is ok as well but rlly hard to use so just use right to select
 
 _All joystick directions and buttons are active-low with pull-ups enabled._
 
@@ -197,3 +192,5 @@ Add to `/etc/rc.local` (before `exit 0`):
 ```bash
 cd /home/pi/schedule-display && sudo python3 main.py &
 ```
+
+#_I Hope this project helps you be slightly productive and if you have any suggestions at all feel free to contribute or create an issue in the repo. Idk what starring does but if you like this project please do that. THANK YOU!_#
