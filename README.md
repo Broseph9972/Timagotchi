@@ -52,23 +52,30 @@ basic knowledge
 
 ## Installation
 
+Install PiOS 32bit
+
 ### Automated Installation
 
 ```bash
-chmod +x install.sh
+sudo raspi-config
+```
+
+Navigate to: **Interfacing Options → SPI → Yes**, then reboot. this is for the screen to work
+
+```bash
+git clone https://github.com/broseph9972/Timagotchi && cd Timagotchi/code
+```
+
+```bash
+chmod +x install.sh start.sh
 ./install.sh
 ```
 
-**If install.sh and start.sh wont run, try ```dos2unix install.sh start.sh``` this happens when i sftp it over.
-
-
-This will:
-- Check if SPI is enabled
-- Install system dependencies
-- Install Python packages
-- Add your user to the GPIO group
+**If install.sh and start.sh wont run, try ```dos2unix install.sh start.sh``` this happens when i sftp it over. If using git ignore this**
 
 **Important**: Reboot after install.
+
+it should start on default but if not use
 
 ### Manual Installation
 
@@ -78,7 +85,7 @@ This will:
 sudo raspi-config
 ```
 
-Navigate to: **Interfacing Options → SPI → Yes**, then reboot. this is the screen to work
+Navigate to: **Interfacing Options → SPI → Yes**, then reboot. this is for the screen to work
 
 #### 2. Install Dependencies
 
@@ -97,7 +104,7 @@ sudo usermod -aG gpio [Your username]
 
 #### 4. Configure Your Schedule
 
-i made a script that does this for u, but it's made for my school system specifically, so feel free to edit and commit if u want. You can also edit manually, its just json.
+i made a script that does this for u, but it's made for my school system specifically, so feel free to edit and contribute if u want. You can also edit manually, its just json.
 
 ```bash
 python3 configure_schedule.py
