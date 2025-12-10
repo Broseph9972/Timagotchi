@@ -62,6 +62,7 @@ def main():
     lunch_length = str(int((lunch_end_time - lunch_start_time).seconds / 60))
 
     num_periods = int(input("\nHow many periods are there (not including lunch and advisory)? "))
+    lunch_after_period = int(input("Which period does lunch come after? "))
     print("\nCalculating period start times...")
     periods = {}
 
@@ -70,17 +71,12 @@ def main():
     school_end_time = datetime.strptime(school_end, "%H:%M")
 
     # Simulate timeline from school start and assign period start times.
-    # This ensures no class is scheduled during lunch and avoids adding
-    # an extra passing time immediately after lunch.
+    # Lunch comes after the specified period.
     current_time = school_start_time
     period_len = int(period_length)
     pass_min = int(passing_time)
 
     for i in range(1, num_periods + 1):
-        # If current time falls into lunch, move forward to the end of lunch
-        if lunch_start_time <= current_time < lunch_end_time:
-            current_time = lunch_end_time
-
         periods[i] = current_time.strftime("%H:%M")
 
         # Class ends after period length
@@ -89,9 +85,9 @@ def main():
         # Next period normally starts after class end + passing time
         next_start = class_end + timedelta(minutes=pass_min)
 
-        # If the computed next start falls into lunch, jump to lunch end
-        # (do not apply an extra passing period after lunch)
-        if lunch_start_time <= next_start < lunch_end_time:
+        # If this is the period after which lunch should occur, insert lunch
+        if i == lunch_after_period:
+            # Insert lunch instead of next period
             next_start = lunch_end_time
 
         current_time = next_start
