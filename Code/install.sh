@@ -49,7 +49,7 @@ echo ""
 echo "Setting up autostart service..."
 
 # Set the default path for autostart
-SCRIPT_DIR="/timagotchi/code"
+SCRIPT_DIR="/home/pi/timagotchi/code"
 
 echo "Script directory: $SCRIPT_DIR"
 
