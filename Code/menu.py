@@ -388,7 +388,7 @@ class Menu:
         if USE_24_HOUR:
             hour_str = f"{self.adjust_hour:02d}"
             minute_str = f"{self.adjust_minute:02d}"
-            message = f"Set Time:\n{hour_str}:{minute_str}\n\nKey1: Hour+\nKey2: Min+\nKey3: Sync"
+            message = f"Set Time:\n{hour_str}:{minute_str}\n\nKey1: Hour+\nKey2: Min+\nKey3: Done"
         else:
             # Convert to 12-hour format for display
             display_hour = self.adjust_hour % 12
@@ -397,7 +397,7 @@ class Menu:
             am_pm = "AM" if self.adjust_hour < 12 else "PM"
             hour_str = f"{display_hour:02d}"
             minute_str = f"{self.adjust_minute:02d}"
-            message = f"Set Time:\n{hour_str}:{minute_str} {am_pm}\n\nKey1: Hour+\nKey2: Min+\nKey3: Sync"
+            message = f"Set Time:\n{hour_str}:{minute_str} {am_pm}\n\nKey1: Hour+\nKey2: Min+\nKey3: Done"
         self.display.show_message("Set Time", message, (255, 200, 100))
     
     def handle_set_time_input(self, action):
@@ -407,13 +407,12 @@ class Menu:
         elif action == 'key2':  # Increase minute
             self.adjust_minute = (self.adjust_minute + 1) % 60
             self.show_set_time_screen()
-        elif action == 'key3':  # Sync time via WiFi
-            self.sync_time_via_wifi()
+        elif action == 'key3':  # Apply and done
+            self.apply_manual_time()
             self.current_screen = "set_time_menu"
             self.selected_index = 0
             self.show_set_time_menu()
-        elif action == 'select' or action == 'left':  # Apply and go back
-            self.apply_manual_time()
+        elif action == 'select' or action == 'left':  # Cancel and go back
             self.current_screen = "set_time_menu"
             self.selected_index = 0
             self.show_set_time_menu()
