@@ -1,5 +1,5 @@
 # Timagotchi
-## MESSAGE TO BLUEPRINT - My project has no real wiring because i decided to use a power bank and a premade HAT. one of you asked for that, but i did no real wiring. sorry. i put code into folders, i hope that's what you meant. will be deleted after this gets approved.
+## MESSAGE TO BLUEPRINT - My project has no real wiring because i decided to use a power bank and a premade HAT. one of you asked for that, so im just keeping this here for now.
 ![Pic of it working](https://github.com/Broseph9972/Timagotchi/blob/8dd138669abf655206ba47d0e1635b271fd48dee/WIN_20251119_20_47_22_Pro.jpg)
 ![Pic of it working 2](https://github.com/Broseph9972/Timagotchi/blob/8dd138669abf655206ba47d0e1635b271fd48dee/WIN_20251106_21_18_16_Pro.jpg)
 A school schedule display system for Raspberry Pi Zero WH with Waveshare 1.44" LCD HAT.
@@ -63,7 +63,7 @@ sudo raspi-config
 Navigate to: **Interfacing Options → SPI → Yes**, then reboot. this is for the screen to work
 
 ```bash
-git clone https://github.com/broseph9972/Timagotchi && cd Timagotchi/code
+git clone https://github.com/broseph9972/Timagotchi && cd Timagotchi/Code
 ```
 
 ```bash
