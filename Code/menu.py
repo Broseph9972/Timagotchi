@@ -36,7 +36,6 @@ class Menu:
         self.adjust_minute = 0
         self.ab_day_mode = AB_DAY_MODE  # "auto", "a", or "b"
         self.manual_ab_day = MANUAL_AB_DAY  # "a" or "b" when in manual mode
-        self.key3_press_time = None  # Track when Key3 is pressed
         self.last_sync_time = 0  # Track last WiFi sync time for periodic syncing
         self.sync_on_boot = (TIME_SYNC_MODE == "on_boot")  # Flag to sync once at startup
         self.last_sync_error = None  # Store the last sync error message
@@ -389,7 +388,7 @@ class Menu:
         if USE_24_HOUR:
             hour_str = f"{self.adjust_hour:02d}"
             minute_str = f"{self.adjust_minute:02d}"
-            message = f"Set Time:\n{hour_str}:{minute_str}\n\nKey1: Hour+\nKey2: Min+\nKey3: Done"
+            message = f"Set Time:\n{hour_str}:{minute_str}\n\nKey1: Hour+\nKey2: Min+\nKey3: Sync"
         else:
             # Convert to 12-hour format for display
             display_hour = self.adjust_hour % 12
@@ -398,7 +397,7 @@ class Menu:
             am_pm = "AM" if self.adjust_hour < 12 else "PM"
             hour_str = f"{display_hour:02d}"
             minute_str = f"{self.adjust_minute:02d}"
-            message = f"Set Time:\n{hour_str}:{minute_str} {am_pm}\n\nKey1: Hour+\nKey2: Min+\nKey3: Done"
+            message = f"Set Time:\n{hour_str}:{minute_str} {am_pm}\n\nKey1: Hour+\nKey2: Min+\nKey3: Sync"
         self.display.show_message("Set Time", message, (255, 200, 100))
     
     def handle_set_time_input(self, action):
@@ -408,12 +407,13 @@ class Menu:
         elif action == 'key2':  # Increase minute
             self.adjust_minute = (self.adjust_minute + 1) % 60
             self.show_set_time_screen()
-        elif action == 'key3':  # Apply and done
-            self.apply_manual_time()
+        elif action == 'key3':  # Sync time via WiFi
+            self.sync_time_via_wifi()
             self.current_screen = "set_time_menu"
             self.selected_index = 0
             self.show_set_time_menu()
-        elif action == 'select' or action == 'left':  # Cancel and go back
+        elif action == 'select' or action == 'left':  # Apply and go back
+            self.apply_manual_time()
             self.current_screen = "set_time_menu"
             self.selected_index = 0
             self.show_set_time_menu()
@@ -834,12 +834,6 @@ class Menu:
                 elif self.current_screen == "main":
                     self.show_main_menu()
                 last_update = current_time
-            
-            # Check if Key3 is being held in set_time screen
-            if self.current_screen == "set_time" and self.key3_press_time is not None:
-                if time.time() - self.key3_press_time >= 3.0:
-                    self.key3_press_time = None  # Reset to prevent multiple triggers
-                    self.sync_time_via_wifi()
             
             # Handle periodic time sync if enabled
             if TIME_SYNC_MODE == "periodic":
