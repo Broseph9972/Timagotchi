@@ -8,7 +8,8 @@ from config import (
     PERIODS, SCHOOL_START, SCHOOL_END, LUNCH_START, LUNCH_END,
     PERIOD_LENGTH, PASSING_TIME, A_DAY_PERIODS, B_DAY_PERIODS,
     freetimedaus, USE_24_HOUR,
-    AB_DAY_MODE, MANUAL_AB_DAY, TIME_SYNC_MODE, TIME_SYNC_INTERVAL, abday, PROGRESS_BAR_MODE
+    AB_DAY_MODE, MANUAL_AB_DAY, TIME_SYNC_MODE, TIME_SYNC_INTERVAL, abday, PROGRESS_BAR_MODE,
+    ADVISORY_START, ADVISORY_PERIOD, advisory, advisorylength, advisorydays
 )
 from input_handler import InputHandler
 from theme_manager import ThemeManager
@@ -76,6 +77,38 @@ class Menu:
         if lunch_start <= current_time < lunch_end:
             time_remaining = lunch_end - current_time
             return "LUNCH", time_remaining, True
+        
+        # Check for advisory period
+        if advisory.lower() == "true":
+            advisory_start = datetime.datetime.strptime(ADVISORY_START, "%H:%M").time()
+            advisory_start_dt = datetime.datetime.combine(datetime.date.today(), advisory_start)
+            advisory_len = int(advisorylength)
+            advisory_end = advisory_start_dt + datetime.timedelta(minutes=advisory_len)
+            
+            # Check if today is an advisory day
+            today = datetime.date.today()
+            day_map = {"m": 0, "t": 1, "w": 2, "th": 3, "f": 4}
+            advisory_days_list = [day.strip() for day in advisorydays.lower().split(",")]
+            today_name = ["m", "t", "w", "th", "f"][today.weekday() if today.weekday() < 4 else 4]
+            
+            if today.weekday() < 5:  # Only check if it's a weekday
+                # Create proper day name based on weekday (0=Mon, 1=Tue, etc.)
+                weekday = today.weekday()
+                if weekday == 0:
+                    today_name = "m"
+                elif weekday == 1:
+                    today_name = "t"
+                elif weekday == 2:
+                    today_name = "w"
+                elif weekday == 3:
+                    today_name = "th"
+                elif weekday == 4:
+                    today_name = "f"
+                
+                if today_name in advisory_days_list:
+                    if advisory_start_dt <= current_time < advisory_end:
+                        time_remaining = advisory_end - current_time
+                        return "ADVISORY", time_remaining, False
         
         for period in range(1, 9):
             if period not in PERIODS:
