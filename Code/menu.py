@@ -168,7 +168,11 @@ class Menu:
             return
         
         period_name = ""
-        if period is not None and isinstance(period, int):
+        if period == "ADVISORY":
+            period_name = "Advisory"
+        elif period == "LUNCH":
+            period_name = "Lunch"
+        elif period is not None and isinstance(period, int):
             # Determine which period set to use (A or B day)
             if abday.lower() == "true":
                 current_day = self.get_current_ab_day()
