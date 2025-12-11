@@ -63,7 +63,7 @@ sudo raspi-config
 Navigate to: **Interfacing Options → SPI → Yes**, then reboot. this is for the screen to work
 
 ```bash
-git clone https://github.com/broseph9972/Timagotchi && cd Timagotchi/code
+git clone https://github.com/broseph9972/Timagotchi && cd Timagotchi/Code
 ```
 
 ```bash
