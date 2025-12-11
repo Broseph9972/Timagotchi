@@ -81,9 +81,17 @@ def main():
 
     # Simulate timeline from school start and assign period start times.
     # Lunch comes after the specified period.
-    current_time = school_start_time
     period_len = int(period_length)
     pass_min = int(passing_time)
+
+    # If there's advisory, Period 1 starts after advisory ends + passing time
+    if has_advisory:
+        advisory_start_time = datetime.strptime(advisory_start, "%H:%M")
+        advisory_len = int(advisory_length)
+        advisory_end_time = advisory_start_time + timedelta(minutes=advisory_len)
+        current_time = advisory_end_time + timedelta(minutes=pass_min)
+    else:
+        current_time = school_start_time
 
     for i in range(1, num_periods + 1):
         periods[i] = current_time.strftime("%H:%M")
