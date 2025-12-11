@@ -51,7 +51,7 @@ def main():
 
     # Advisory period configuration
     has_advisory = input("\nDoes your school have advisory? (y/n): ").lower() == 'y'
-    advisory_period = 1  # Default to period 1
+    advisory_period = 0  # Default to period 0 (advisory comes before period 1)
     if has_advisory:
         advisory_start = get_time_input("Advisory start time", use_24h)
         advisory_length = input("Advisory length (minutes): ")

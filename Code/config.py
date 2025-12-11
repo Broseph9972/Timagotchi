@@ -7,7 +7,7 @@ USE_24_HOUR = False  # Set to False for 12-hour format (e.g. "3:45 PM")
 
 # Advisory period
 ADVISORY_START = "09:20"
-ADVISORY_PERIOD = 1
+ADVISORY_PERIOD = 0
 advisory = "true"
 advisorylength = "36"
 advisorydays = "m,t"
