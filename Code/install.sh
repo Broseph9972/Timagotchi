@@ -49,7 +49,7 @@ echo ""
 echo "Setting up autostart service..."
 
 # Set the default path for autostart
-SCRIPT_DIR="/home/pi/timagotchi/code"
+SCRIPT_DIR="/home/pi/Timagotchi/Code"
 
 echo "Script directory: $SCRIPT_DIR"
 
@@ -57,17 +57,20 @@ echo "Script directory: $SCRIPT_DIR"
 sudo tee /etc/systemd/system/timagotchi.service > /dev/null <<SERVICEFILE
 [Unit]
 Description=Timagotchi Schedule Display
-After=network.target
+After=network.target local-fs.target
+Wants=network.target
 
 [Service]
 Type=simple
-User=$USER
+User=root
+Group=root
 WorkingDirectory=$SCRIPT_DIR
-ExecStart=sudo $SCRIPT_DIR/start.sh
+ExecStart=/usr/bin/python3 $SCRIPT_DIR/main.py
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
+Environment=PYTHONUNBUFFERED=1
 
 [Install]
 WantedBy=multi-user.target

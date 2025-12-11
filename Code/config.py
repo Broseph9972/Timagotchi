@@ -49,6 +49,7 @@ WIFI_NETWORKS = [
 # Automatic time sync control: "disabled", "on_boot", or "periodic"
 TIME_SYNC_MODE = "disabled"  # "disabled" = manual only, "on_boot" = sync on startup, "periodic" = sync every N hours
 TIME_SYNC_INTERVAL = 6  # Hours between periodic syncs (only used if TIME_SYNC_MODE = "periodic")
+TIMEZONE = "America/New_York"  # System timezone for NTP sync (e.g., America/New_York, America/Chicago, America/Los_Angeles)
 
 # Progress Bar Settings
 # Display mode: "time_in_class", "time_in_day", or "lunch_day"

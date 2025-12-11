@@ -673,7 +673,16 @@ class Menu:
             self.display.show_message("Syncing...", "Getting time from\nwifi network...", (100, 200, 100))
             
             try:
-                # Ensure NTP is enabled first
+                # Set timezone first (import from config)
+                try:
+                    from config import TIMEZONE
+                except ImportError:
+                    TIMEZONE = "America/New_York"  # Default if not in config
+                
+                subprocess.run(['sudo', 'timedatectl', 'set-timezone', TIMEZONE], 
+                              capture_output=True, text=True, timeout=5, check=False)
+                
+                # Ensure NTP is enabled
                 subprocess.run(['sudo', 'timedatectl', 'set-ntp', 'on'], 
                               capture_output=True, text=True, timeout=5, check=False)
                 time.sleep(1)

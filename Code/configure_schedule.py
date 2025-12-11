@@ -49,11 +49,18 @@ def main():
     passing_time = input("\nPassing time between periods (minutes): ")
     period_length = input("Regular period length (minutes): ")
 
-    # Advisory periods removed from configuration (handled separately if needed)
-    advisory_start = school_start
-    advisory_end = school_start
-    advisory_length = "0"
-    advisory_days = ""
+    # Advisory period configuration
+    has_advisory = input("\nDoes your school have advisory? (y/n): ").lower() == 'y'
+    if has_advisory:
+        advisory_start = get_time_input("Advisory start time", use_24h)
+        advisory_length = input("Advisory length (minutes): ")
+        print("\nWhich days have advisory?")
+        print("Enter days as comma-separated abbreviations: m,t,w,th,f")
+        advisory_days = input("Advisory days (e.g., m,t): ").strip().lower()
+    else:
+        advisory_start = school_start
+        advisory_length = "0"
+        advisory_days = ""
 
     lunch_start = get_time_input("\nLunch start time", use_24h)
     lunch_end = get_time_input("Lunch end time", use_24h)
@@ -143,6 +150,13 @@ def main():
     
     sync_choice = input("\nSelect time sync mode (1-3, default 1): ").strip()
     
+    # Get timezone setting
+    print("\nEnter your timezone (e.g., America/New_York, America/Chicago, America/Los_Angeles)")
+    print("See full list at: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones")
+    timezone = input("Timezone (default: America/New_York): ").strip()
+    if not timezone:
+        timezone = "America/New_York"
+    
     if sync_choice == "2":
         time_sync_mode = "on_boot"
         time_sync_interval = 6  # Not used but set to default
@@ -165,7 +179,12 @@ def main():
         f'SCHOOL_END = "{school_end}"    # Regular school end time',
         f"USE_24_HOUR = {str(use_24h)}  # Set to False for 12-hour format (e.g. \"3:45 PM\")",
         "",
-        "# Advisory period removed (not configured)",
+        "# Advisory period",
+        f'ADVISORY_START = "{advisory_start}"',
+        f'advisory = "{str(has_advisory).lower()}"',
+        f'advisorylength = "{advisory_length}"',
+        f'advisorydays = "{advisory_days}"',
+        '# Free time days (no advisory)',
         'freetimedaus = "w,th,f"',
         "",
         "# Period start times",
@@ -205,6 +224,7 @@ def main():
         "#   - \"periodic\": Sync every TIME_SYNC_INTERVAL hours",
         f'TIME_SYNC_MODE = "{time_sync_mode}"',
         f"TIME_SYNC_INTERVAL = {time_sync_interval}  # Hours between periodic syncs (if using periodic mode)",
+        f'TIMEZONE = "{timezone}"  # System timezone (e.g., America/New_York)',
         "",
         "# Progress Bar Settings",
         "# Display mode: \"time_in_class\", \"time_in_day\", or \"lunch_day\"",
