@@ -51,11 +51,9 @@ def main():
 
     # Advisory period configuration
     has_advisory = input("\nDoes your school have advisory? (y/n): ").lower() == 'y'
-    advisory_period = 0  # Default to period 0 (advisory comes before period 1)
     if has_advisory:
         advisory_start = get_time_input("Advisory start time", use_24h)
         advisory_length = input("Advisory length (minutes): ")
-        advisory_period = int(input("Which period number is advisory? (e.g., 1, 2, 3, etc.): "))
         print("\nWhich days have advisory?")
         print("Enter days as comma-separated abbreviations: m,t,w,th,f")
         advisory_days = input("Advisory days (e.g., m,t): ").strip().lower()
@@ -191,7 +189,7 @@ def main():
         "",
         "# Advisory period",
         f'ADVISORY_START = "{advisory_start}"',
-        f'ADVISORY_PERIOD = {advisory_period}',
+        f'ADVISORY_PERIOD = 0  # Advisory always comes before period 1',
         f'advisory = "{str(has_advisory).lower()}"',
         f'advisorylength = "{advisory_length}"',
         f'advisorydays = "{advisory_days}"',
