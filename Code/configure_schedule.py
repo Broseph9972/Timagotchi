@@ -51,9 +51,11 @@ def main():
 
     # Advisory period configuration
     has_advisory = input("\nDoes your school have advisory? (y/n): ").lower() == 'y'
+    advisory_period = 0  # Default to period 0 (advisory comes before period 1)
     if has_advisory:
         advisory_start = get_time_input("Advisory start time", use_24h)
         advisory_length = input("Advisory length (minutes): ")
+        advisory_period = int(input("Which period number is advisory? (e.g., 1, 2, 3, etc.): "))
         print("\nWhich days have advisory?")
         print("Enter days as comma-separated abbreviations: m,t,w,th,f")
         advisory_days = input("Advisory days (e.g., m,t): ").strip().lower()
@@ -79,17 +81,9 @@ def main():
 
     # Simulate timeline from school start and assign period start times.
     # Lunch comes after the specified period.
+    current_time = school_start_time
     period_len = int(period_length)
     pass_min = int(passing_time)
-
-    # If there's advisory, Period 1 starts after advisory ends + passing time
-    if has_advisory:
-        advisory_start_time = datetime.strptime(advisory_start, "%H:%M")
-        advisory_len = int(advisory_length)
-        advisory_end_time = advisory_start_time + timedelta(minutes=advisory_len)
-        current_time = advisory_end_time + timedelta(minutes=pass_min)
-    else:
-        current_time = school_start_time
 
     for i in range(1, num_periods + 1):
         periods[i] = current_time.strftime("%H:%M")
@@ -97,17 +91,15 @@ def main():
         # Class ends after period length
         class_end = current_time + timedelta(minutes=period_len)
 
-        # Only add passing time if this is not the last period
-        if i < num_periods:
-            # Next period normally starts after class end + passing time
-            next_start = class_end + timedelta(minutes=pass_min)
+        # Next period normally starts after class end + passing time
+        next_start = class_end + timedelta(minutes=pass_min)
 
-            # If this is the period after which lunch should occur, insert lunch
-            if i == lunch_after_period:
-                # Insert lunch instead of next period
-                next_start = lunch_end_time
+        # If this is the period after which lunch should occur, insert lunch
+        if i == lunch_after_period:
+            # Insert lunch instead of next period
+            next_start = lunch_end_time
 
-            current_time = next_start
+        current_time = next_start
 
     has_ab = input("\nDoes your school use A/B day scheduling? (y/n): ").lower() == 'y'
     a_day_periods = {}
@@ -191,7 +183,7 @@ def main():
         "",
         "# Advisory period",
         f'ADVISORY_START = "{advisory_start}"',
-        f'ADVISORY_PERIOD = 0  # Advisory always comes before period 1',
+        f'ADVISORY_PERIOD = {advisory_period}',
         f'advisory = "{str(has_advisory).lower()}"',
         f'advisorylength = "{advisory_length}"',
         f'advisorydays = "{advisory_days}"',
