@@ -97,15 +97,17 @@ def main():
         # Class ends after period length
         class_end = current_time + timedelta(minutes=period_len)
 
-        # Next period normally starts after class end + passing time
-        next_start = class_end + timedelta(minutes=pass_min)
+        # Only add passing time if this is not the last period
+        if i < num_periods:
+            # Next period normally starts after class end + passing time
+            next_start = class_end + timedelta(minutes=pass_min)
 
-        # If this is the period after which lunch should occur, insert lunch
-        if i == lunch_after_period:
-            # Insert lunch instead of next period
-            next_start = lunch_end_time
+            # If this is the period after which lunch should occur, insert lunch
+            if i == lunch_after_period:
+                # Insert lunch instead of next period
+                next_start = lunch_end_time
 
-        current_time = next_start
+            current_time = next_start
 
     has_ab = input("\nDoes your school use A/B day scheduling? (y/n): ").lower() == 'y'
     a_day_periods = {}
