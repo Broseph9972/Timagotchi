@@ -97,7 +97,22 @@ class WaveshareDisplay:
     def clear(self, color=(0, 0, 0)):
         self.draw.rectangle((0, 0, self.width, self.height), fill=color)
 
-    def show_schedule(self, period, period_name, time_remaining, lunch_time, end_time, current_time_str):
+    def _render_sidebar(self, nav_items, selected_index):
+        """Overlay the right vertical sidebar on top of current content."""
+        if not nav_items:
+            return
+        secondary = self._get_text_secondary_color()
+        nav_x = self.width - 40
+        nav_y = 4
+        for i, item in enumerate(nav_items):
+            y = nav_y + i * 18
+            if i == selected_index:
+                self.draw.rectangle((nav_x - 2, y - 2, self.width - 2, y + 14), outline=(255, 255, 0), width=1)
+                self.draw.text((nav_x, y), item, font=self.font_tiny, fill=(255, 255, 0))
+            else:
+                self.draw.text((nav_x, y), item, font=self.font_tiny, fill=secondary)
+
+    def show_schedule(self, period, period_name, time_remaining, lunch_time, end_time, current_time_str, nav_items=None, selected_index=0):
         self.clear(self._get_bg_color())
         
         y_offset = 2
@@ -130,9 +145,11 @@ class WaveshareDisplay:
         if end_time:
             self.draw.text((2, y_offset), f"Ends: {end_time}", font=self.font_small, fill=(255, 100, 100))
 
+        # Sidebar overlay
+        self._render_sidebar(nav_items or [], selected_index)
         self._render()
 
-    def show_menu(self, menu_items, selected_index, title="Menu", progress_label="", progress_value=0):
+    def show_menu(self, menu_items, selected_index, title="Menu", progress_label="", progress_value=0, nav_items=None, nav_selected_index=0):
         self.clear(self._get_bg_color())
         
         # Get colors from theme
@@ -174,9 +191,11 @@ class WaveshareDisplay:
             text_color = self._get_text_secondary_color()
             self.draw.text((bar_x_start + 2, bar_y + 0), progress_label, font=self.font_tiny, fill=text_color)
 
+        # Sidebar overlay
+        self._render_sidebar(nav_items or [], nav_selected_index)
         self._render()
 
-    def show_message(self, title, message, color=(255, 255, 255)):
+    def show_message(self, title, message, color=(255, 255, 255), nav_items=None, nav_selected_index=0):
         self.clear(self._get_bg_color())
 
         self.draw.text((2, 20), title, font=self.font_large, fill=color if color else self._get_accent_color())
@@ -186,14 +205,73 @@ class WaveshareDisplay:
             self.draw.text((2, y_offset), line, font=self.font_tiny, fill=self._get_text_secondary_color())
             y_offset += 14
 
+        # Sidebar overlay
+        self._render_sidebar(nav_items or [], nav_selected_index)
         self._render()
 
-    def show_clock(self, time_str, date_str):
+    def show_clock(self, time_str, date_str, nav_items=None, nav_selected_index=0):
         self.clear(self._get_bg_color())
 
         self.draw.text((5, 45), time_str, font=self.font_medium, fill=self._get_accent_color())
         self.draw.text((5, 70), date_str, font=self.font_tiny, fill=self._get_text_secondary_color())
 
+        # Sidebar overlay
+        self._render_sidebar(nav_items or [], nav_selected_index)
+        self._render()
+    
+    def show_main_page(self, progress_label, progress_value, time_str, date_str, schedule_summary, wifi_connected, nav_items, selected_index, bubble_text=""):
+        """Render the main page per sketch: top progress, center art+speech bubble, right vertical nav, bottom wifi indicator and clock."""
+        self.clear(self._get_bg_color())
+
+        # Top bar: progress label and bar
+        title_color = self._get_text_primary_color()
+        accent = self._get_accent_color()
+        secondary = self._get_text_secondary_color()
+
+        self.draw.text((4, 2), "progress", font=self.font_small, fill=title_color)
+        bar_y = 18
+        bar_x_start = 4
+        bar_width = self.width - 8 - 40  # leave room for right nav gutter
+        bar_height = 10
+        self.draw.rectangle((bar_x_start, bar_y, bar_x_start + bar_width, bar_y + bar_height), fill=(50, 50, 50), outline=(100, 100, 100))
+        if progress_value > 0:
+            fill_width = int((progress_value / 100.0) * bar_width)
+            self.draw.rectangle((bar_x_start, bar_y, bar_x_start + fill_width, bar_y + bar_height), fill=accent)
+        self.draw.text((bar_x_start + 2, bar_y + 12), progress_label, font=self.font_tiny, fill=secondary)
+
+        # Sidebar (drawn after main content as overlay)
+        nav_x = self.width - 40
+        nav_y = 4
+
+        # Center: character placeholder and speech bubble
+        center_x0 = 6
+        center_y0 = 34
+        center_w = nav_x - 12
+        center_h = self.height - 56
+        self.draw.rectangle((center_x0, center_y0 + 24, center_x0 + int(center_w * 0.45), center_y0 + 24 + int(center_h * 0.5)), outline=secondary)
+        # speech bubble as rounded rectangle
+        bubble_x0 = center_x0 + int(center_w * 0.5)
+        bubble_y0 = center_y0
+        bubble_w = int(center_w * 0.45)
+        bubble_h = int(center_h * 0.35)
+        self.draw.rectangle((bubble_x0, bubble_y0, bubble_x0 + bubble_w, bubble_y0 + bubble_h), outline=accent)
+        if bubble_text:
+            self.draw.text((bubble_x0 + 4, bubble_y0 + 4), bubble_text, font=self.font_tiny, fill=secondary)
+
+        # Schedule summary under bubble
+        if schedule_summary:
+            self.draw.text((center_x0, center_y0 + center_h - 12), schedule_summary, font=self.font_tiny, fill=secondary)
+
+        # Bottom: clock and Wi-Fi indicator
+        clock_y = self.height - 18
+        self.draw.text((6, clock_y), time_str, font=self.font_tiny, fill=accent)
+        self.draw.text((6, clock_y + 10), date_str, font=self.font_tiny, fill=secondary)
+        wifi_color = (100, 255, 100) if wifi_connected else (255, 100, 100)
+        wifi_text = "WiFi" if wifi_connected else "No WiFi"
+        self.draw.text((self.width - 46, self.height - 18), wifi_text, font=self.font_tiny, fill=wifi_color)
+
+        # Sidebar overlay
+        self._render_sidebar(nav_items or [], selected_index)
         self._render()
     
     # Theme color helper methods

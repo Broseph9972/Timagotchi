@@ -25,12 +25,13 @@ class Menu:
         # Initialize theme manager
         self.theme_manager = ThemeManager()
         
-        self.main_menu_items = ["Schedule", "Clock", "Settings", "Set Time"]
+        # Right-nav items as per sketch
+        self.nav_items = ["Main Page", "Grades", "Settings"]
         # Build settings menu items based on config
         self.settings_menu_items = []
         if abday.lower() == "true":
             self.settings_menu_items.append("A/B Day")
-        self.settings_menu_items.extend(["WiFi", "Theme", "Progress Bar", "Restart", "Back"])
+        self.settings_menu_items.extend(["WiFi", "Theme", "Progress Bar", "Set Time", "Restart", "Back"])
         self.set_time_menu_items = ["WiFi Sync", "Manual Set", "Back"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
         self.adjust_hour = 0
@@ -161,10 +162,10 @@ class Menu:
         if current_time < school_start:
             time_until_start = self.get_time_until(SCHOOL_START, current_time)
             time_until_str = self.format_timedelta(time_until_start)
-            self.display.show_message("School Hasn't Started", f"Starts in {time_until_str}\nSchool @ {SCHOOL_START}", (200, 200, 200))
+            self.display.show_message("School Hasn't Started", f"Starts in {time_until_str}\nSchool @ {SCHOOL_START}", (200, 200, 200), self.nav_items, self.selected_index)
             return
         elif current_time > school_end:
-            self.display.show_message("After School", "School day has ended", (200, 200, 200))
+            self.display.show_message("After School", "School day has ended", (200, 200, 200), self.nav_items, self.selected_index)
             return
         
         period_name = ""
@@ -203,7 +204,7 @@ class Menu:
         
         time_remaining_str = self.format_timedelta(time_remaining) if time_remaining else None
         
-        self.display.show_schedule(period, period_name, time_remaining_str, lunch_time_str, end_time_str, current_time_str)
+        self.display.show_schedule(period, period_name, time_remaining_str, lunch_time_str, end_time_str, current_time_str, self.nav_items, self.selected_index)
     
     def show_clock_screen(self):
         now = datetime.datetime.now()
@@ -212,11 +213,51 @@ class Menu:
         else:
             time_str = now.strftime("%I:%M:%S %p")
         date_str = now.strftime("%A, %B %d")
-        self.display.show_clock(time_str, date_str)
+        self.display.show_clock(time_str, date_str, self.nav_items, self.selected_index)
     
+    def _get_wifi_connected(self):
+        """Best-effort check for WiFi connectivity (nmcli); fallback to False."""
+        try:
+            result = subprocess.run(['nmcli', '-t', '-f', 'STATE', 'g'], capture_output=True, text=True, timeout=2)
+            state = result.stdout.strip().lower()
+            if 'connected' in state:
+                return True
+        except Exception:
+            pass
+        return False
+
+    def _get_schedule_summary(self):
+        now = datetime.datetime.now()
+        period, time_remaining, is_lunch = self.get_current_period(now)
+        if period == "LUNCH":
+            return "Lunch"
+        if period == "ADVISORY":
+            return "Advisory"
+        if period is None:
+            return "Passing"
+        # map to name
+        if isinstance(period, int):
+            if abday.lower() == "true":
+                current_day = self.get_current_ab_day()
+                if current_day == "b" and period in B_DAY_PERIODS:
+                    name = B_DAY_PERIODS[period]
+                else:
+                    name = A_DAY_PERIODS.get(period, f"Period {period}")
+            else:
+                name = A_DAY_PERIODS.get(period, f"Period {period}")
+            rem = self.format_timedelta(time_remaining) if time_remaining else ""
+            return f"{name} • {rem}"
+        return ""
+
     def show_main_menu(self):
         label, progress = self.get_progress_bar()
-        self.display.show_menu(self.main_menu_items, self.selected_index, "Main Menu", label, progress)
+        now = datetime.datetime.now()
+        time_str = now.strftime("%H:%M") if USE_24_HOUR else now.strftime("%I:%M %p")
+        date_str = now.strftime("%a %b %d")
+        schedule_summary = self._get_schedule_summary()
+        wifi_connected = self._get_wifi_connected()
+        bubble_text = "text"  # placeholder per sketch; can be dynamic later
+        self.display.show_main_page(label, progress, time_str, date_str, schedule_summary, wifi_connected, self.nav_items, self.selected_index, bubble_text)
     
     def get_progress_bar(self):
         """Calculate progress bar based on current mode"""
@@ -304,12 +345,12 @@ class Menu:
             return "Error", 0
     
     def show_settings_menu(self):
-        self.display.show_menu(self.settings_menu_items, self.selected_index, "Settings")
+        self.display.show_menu(self.settings_menu_items, self.selected_index, "Settings", nav_items=self.nav_items, nav_selected_index=self.selected_index)
     
     def scan_wifi_networks(self):
         """Scan for available WiFi networks using nmcli or iwlist"""
         try:
-            self.display.show_message("WiFi", "Scanning for\nnetworks...", (100, 200, 255))
+            self.display.show_message("WiFi", "Scanning for\nnetworks...", (100, 200, 255), self.nav_items, self.selected_index)
             
             # Try using nmcli (NetworkManager)
             try:
@@ -390,7 +431,7 @@ class Menu:
         """Show WiFi network selection menu"""
         if not self.available_networks:
             if not self.scan_wifi_networks():
-                self.display.show_message("WiFi", "No networks found\nor scan failed", (255, 100, 100))
+                self.display.show_message("WiFi", "No networks found\nor scan failed", (255, 100, 100), self.nav_items, self.selected_index)
                 time.sleep(2)
                 return
         
@@ -408,7 +449,7 @@ class Menu:
         status = "[OPEN]" if is_open else "[SECURED]"
         
         message = f"WiFi Network:\n{ssid}\n{status}\n\nUp/Down: Browse\nSelect: Connect"
-        self.display.show_message("WiFi", message, (100, 200, 255))
+        self.display.show_message("WiFi", message, (100, 200, 255), self.nav_items, self.selected_index)
     
     def show_ab_day_menu(self):
         if self.ab_day_mode == "auto":
@@ -416,10 +457,10 @@ class Menu:
         else:
             current = self.manual_ab_day.upper()
             message = f"A/B Day: {current}\n\nUp/Down: Toggle\nSelect: Confirm"
-        self.display.show_message("A/B Day", message, (200, 150, 255))
+        self.display.show_message("A/B Day", message, (200, 150, 255), self.nav_items, self.selected_index)
     
     def show_set_time_menu(self):
-        self.display.show_menu(self.set_time_menu_items, self.selected_index, "Set Time")
+        self.display.show_menu(self.set_time_menu_items, self.selected_index, "Set Time", nav_items=self.nav_items, nav_selected_index=self.selected_index)
     
     def show_set_time_screen(self):
         if USE_24_HOUR:
@@ -435,7 +476,7 @@ class Menu:
             hour_str = f"{display_hour:02d}"
             minute_str = f"{self.adjust_minute:02d}"
             message = f"Set Time:\n{hour_str}:{minute_str} {am_pm}\n\nKey1: Hour+\nKey2: Min+\nKey3: Done"
-        self.display.show_message("Set Time", message, (255, 200, 100))
+        self.display.show_message("Set Time", message, (255, 200, 100), self.nav_items, self.selected_index)
     
     def handle_set_time_input(self, action):
         if action == 'key1':  # Increase hour
@@ -509,27 +550,23 @@ class Menu:
     
     def handle_main_menu_input(self, action):
         if action == 'up':
-            self.selected_index = (self.selected_index - 1) % len(self.main_menu_items)
+            self.selected_index = (self.selected_index - 1) % len(self.nav_items)
             self.show_main_menu()
         elif action == 'down':
-            self.selected_index = (self.selected_index + 1) % len(self.main_menu_items)
+            self.selected_index = (self.selected_index + 1) % len(self.nav_items)
             self.show_main_menu()
         elif action == 'select' or action == 'right':
-            selected_item = self.main_menu_items[self.selected_index]
-            if selected_item == "Schedule":
-                self.current_screen = "schedule"
-                self.show_schedule_screen()
-            elif selected_item == "Clock":
-                self.current_screen = "clock"
-                self.show_clock_screen()
+            selected_item = self.nav_items[self.selected_index]
+            if selected_item == "Main Page":
+                self.current_screen = "main"
+                self.show_main_menu()
+            elif selected_item == "Grades":
+                self.current_screen = "grades"
+                self.show_grades_menu()
             elif selected_item == "Settings":
                 self.current_screen = "settings"
                 self.selected_index = 0
                 self.show_settings_menu()
-            elif selected_item == "Set Time":
-                self.current_screen = "set_time_menu"
-                self.selected_index = 0
-                self.show_set_time_menu()
     
     def handle_schedule_input(self, action):
         if action == 'left':
@@ -569,12 +606,20 @@ class Menu:
             elif selected_item == "Progress Bar":
                 self.current_screen = "progress_bar"
                 self.show_progress_bar_menu()
+            elif selected_item == "Set Time":
+                self.current_screen = "set_time_menu"
+                self.selected_index = 0
+                self.show_set_time_menu()
             elif selected_item == "Restart":
                 self.restart_program()
         elif action == 'left':
             self.current_screen = "main"
             self.selected_index = 0
             self.show_main_menu()
+
+    def show_grades_menu(self):
+        # Placeholder for grades menu
+        self.display.show_message("Grades", "Coming soon", (200, 200, 255))
     
     def connect_to_wifi(self, network):
         """Attempt to connect to an open WiFi network"""
@@ -583,11 +628,11 @@ class Menu:
             is_open = network.get('open', False)
             
             if not is_open:
-                self.display.show_message("WiFi", "Only open networks\nare supported", (255, 150, 100))
+                self.display.show_message("WiFi", "Only open networks\nare supported", (255, 150, 100), self.nav_items, self.selected_index)
                 time.sleep(2)
                 return False
             
-            self.display.show_message("WiFi", f"Connecting to\n{ssid}...", (100, 200, 255))
+            self.display.show_message("WiFi", f"Connecting to\n{ssid}...", (100, 200, 255), self.nav_items, self.selected_index)
             
             # Try connecting using nmcli
             try:
@@ -596,18 +641,18 @@ class Menu:
                     capture_output=True, text=True, timeout=10
                 )
                 if result.returncode == 0:
-                    self.display.show_message("WiFi", f"Connected to\n{ssid}", (100, 255, 100))
+                    self.display.show_message("WiFi", f"Connected to\n{ssid}", (100, 255, 100), self.nav_items, self.selected_index)
                     time.sleep(2)
                     return True
             except:
                 pass
             
             # Fallback: try wpa_cli or other methods
-            self.display.show_message("WiFi", "Connection\nfailed", (255, 100, 100))
+            self.display.show_message("WiFi", "Connection\nfailed", (255, 100, 100), self.nav_items, self.selected_index)
             time.sleep(2)
             return False
         except Exception as e:
-            self.display.show_message("Error", str(e)[:30], (255, 100, 100))
+            self.display.show_message("Error", str(e)[:30], (255, 100, 100), self.nav_items, self.selected_index)
             time.sleep(2)
             return False
     
@@ -631,7 +676,7 @@ class Menu:
             self.show_settings_menu()
     
     def show_theme_menu(self):
-        self.display.show_menu(self.theme_menu_items, self.selected_index, "Theme")
+        self.display.show_menu(self.theme_menu_items, self.selected_index, "Theme", nav_items=self.nav_items, nav_selected_index=self.selected_index)
     
     def handle_theme_input(self, action):
         if action == 'up':
@@ -644,7 +689,7 @@ class Menu:
             selected_theme = self.theme_menu_items[self.selected_index]
             self.theme_manager.set_theme(selected_theme)
             self.display.show_message("Theme Set", f"Changed to\n{selected_theme.title()}", 
-                                     self.theme_manager.get_success())
+                                     self.theme_manager.get_success(), self.nav_items, self.selected_index)
             time.sleep(1)
             self.current_screen = "settings"
             # Find the Theme option index
@@ -667,7 +712,7 @@ class Menu:
         else:
             mode_display = current_mode.replace("_", " ").title()
         message = f"Progress Bar:\n{mode_display}\n\nUp/Down: Change\nSelect: Confirm"
-        self.display.show_message("Progress Bar", message, (100, 150, 255))
+        self.display.show_message("Progress Bar", message, (100, 150, 255), self.nav_items, self.selected_index)
     
     def handle_progress_bar_input(self, action):
         if action == 'up':
@@ -690,14 +735,14 @@ class Menu:
     def restart_program(self):
         """Restart the Timagotchi program"""
         try:
-            self.display.show_message("Restarting", "Program restarting...", (100, 200, 255))
+            self.display.show_message("Restarting", "Program restarting...", (100, 200, 255), self.nav_items, self.selected_index)
             time.sleep(1)
             self.input_handler.cleanup()
             self.running = False
             # Use os.execv to replace current process with new one
             os.execv(sys.executable, [sys.executable] + sys.argv)
         except Exception as e:
-            self.display.show_message("Error", f"Restart failed: {str(e)[:30]}", (255, 100, 100))
+            self.display.show_message("Error", f"Restart failed: {str(e)[:30]}", (255, 100, 100), self.nav_items, self.selected_index)
             time.sleep(2)
             self.current_screen = "settings"
             self.selected_index = self.settings_menu_items.index("Restart") if "Restart" in self.settings_menu_items else 2
@@ -706,7 +751,7 @@ class Menu:
     def sync_time_via_wifi(self):
         """Attempt to sync time via WiFi using timedatectl"""
         try:
-            self.display.show_message("Syncing...", "Getting time from\nwifi network...", (100, 200, 100))
+            self.display.show_message("Syncing...", "Getting time from\nwifi network...", (100, 200, 100), self.nav_items, self.selected_index)
             
             try:
                 # Set timezone first (import from config)
@@ -732,17 +777,17 @@ class Menu:
                 
                 if "yes" in result.stdout.lower():
                     self.last_sync_error = None
-                    self.display.show_message("Time Synced", "WiFi sync\nsuccessful!", (100, 255, 100))
+                    self.display.show_message("Time Synced", "WiFi sync\nsuccessful!", (100, 255, 100), self.nav_items, self.selected_index)
                 else:
                     self.last_sync_error = "NTP not synchronized"
-                    self.display.show_message("Sync Failed", "NTP sync pending", (255, 100, 100))
+                    self.display.show_message("Sync Failed", "NTP sync pending", (255, 100, 100), self.nav_items, self.selected_index)
                 
             except subprocess.TimeoutExpired:
                 self.last_sync_error = "Sync timed out"
-                self.display.show_message("Sync Failed", "Operation timed out", (255, 100, 100))
+                self.display.show_message("Sync Failed", "Operation timed out", (255, 100, 100), self.nav_items, self.selected_index)
             except Exception as e:
                 self.last_sync_error = str(e)
-                self.display.show_message("Sync Failed", str(e)[:40], (255, 100, 100))
+                self.display.show_message("Sync Failed", str(e)[:40], (255, 100, 100), self.nav_items, self.selected_index)
             
             # Wait for display to be visible
             time.sleep(2)
@@ -752,7 +797,7 @@ class Menu:
                 self.input_handler.last_press[pin] = current_time
         except Exception as e:
             self.last_sync_error = str(e)
-            self.display.show_message("Error", str(e)[:40], (255, 100, 100))
+            self.display.show_message("Error", str(e)[:40], (255, 100, 100), self.nav_items, self.selected_index)
             time.sleep(2)
             # Reset debounce timers
             current_time = time.time()
@@ -784,10 +829,10 @@ class Menu:
                 error_msg = result.stderr.strip()
                 if "ntp" in error_msg.lower() or "synchronized" in error_msg.lower():
                     self.last_sync_error = "Run: sudo timedatectl\nset-ntp false"
-                    self.display.show_message("Failed", self.last_sync_error, (255, 100, 100))
+                    self.display.show_message("Failed", self.last_sync_error, (255, 100, 100), self.nav_items, self.selected_index)
                 else:
                     self.last_sync_error = error_msg if error_msg else "Failed to set time"
-                    self.display.show_message("Failed", self.last_sync_error[:40], (255, 100, 100))
+                    self.display.show_message("Failed", self.last_sync_error[:40], (255, 100, 100), self.nav_items, self.selected_index)
             else:
                 self.last_sync_error = None
                 # Display time in the configured format
@@ -799,7 +844,7 @@ class Menu:
                         display_hour = 12
                     am_pm = "AM" if self.adjust_hour < 12 else "PM"
                     display_time = f"{display_hour:02d}:{self.adjust_minute:02d} {am_pm}"
-                self.display.show_message("Time Set", f"Set to {display_time}", (100, 255, 100))
+                self.display.show_message("Time Set", f"Set to {display_time}", (100, 255, 100), self.nav_items, self.selected_index)
             
             # Wait for display to be visible
             time.sleep(2)
@@ -809,7 +854,7 @@ class Menu:
                 self.input_handler.last_press[pin] = current_time
         except subprocess.TimeoutExpired:
             self.last_sync_error = "Operation timed out"
-            self.display.show_message("Failed", "Timeout", (255, 100, 100))
+            self.display.show_message("Failed", "Timeout", (255, 100, 100), self.nav_items, self.selected_index)
             time.sleep(2)
             # Reset debounce timers
             current_time = time.time()
@@ -817,7 +862,7 @@ class Menu:
                 self.input_handler.last_press[pin] = current_time
         except Exception as e:
             self.last_sync_error = str(e)
-            self.display.show_message("Error", str(e)[:40], (255, 100, 100))
+            self.display.show_message("Error", str(e)[:40], (255, 100, 100), self.nav_items, self.selected_index)
             time.sleep(2)
             # Reset debounce timers
             current_time = time.time()
@@ -840,6 +885,23 @@ class Menu:
             action = self.input_handler.get_input()
             
             if action:
+                # Global key mapping: key1=Settings, key2=Grades, key3=Main Page
+                if action in ('key1', 'key2', 'key3'):
+                    if action == 'key1':
+                        self.current_screen = 'settings'
+                        self.selected_index = self.nav_items.index('Settings') if 'Settings' in self.nav_items else 2
+                        self.show_settings_menu()
+                        continue
+                    elif action == 'key2':
+                        self.current_screen = 'grades'
+                        self.selected_index = self.nav_items.index('Grades') if 'Grades' in self.nav_items else 1
+                        self.show_grades_menu()
+                        continue
+                    elif action == 'key3':
+                        self.current_screen = 'main'
+                        self.selected_index = self.nav_items.index('Main Page') if 'Main Page' in self.nav_items else 0
+                        self.show_main_menu()
+                        continue
                 if self.current_screen == "main":
                     self.handle_main_menu_input(action)
                 elif self.current_screen == "schedule":
