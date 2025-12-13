@@ -71,7 +71,7 @@ chmod +x install.sh start.sh
 ./install.sh
 ```
 
-Reboot with ```bash sudo reboot``` 
+Reboot with ```sudo reboot``` 
 
 To customize your schedule run 
 ```bash
