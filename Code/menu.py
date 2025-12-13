@@ -684,15 +684,24 @@ class Menu:
                 self.display.show_message("Update", "git not installed", (255, 100, 100), self.nav_items, self.nav_selected_index)
                 return
 
+            # Address potential "dubious ownership" on newer Git versions
+            try:
+                subprocess.run(['git', 'config', '--global', '--add', 'safe.directory', repo_dir], capture_output=True, text=True, timeout=5)
+            except Exception:
+                pass
+
             # Ensure remote origin exists; add if missing
             remote = subprocess.run(['git', '-C', repo_dir, 'config', '--get', 'remote.origin.url'], capture_output=True, text=True, timeout=5)
             if remote.returncode != 0 or not remote.stdout.strip():
                 origin_url = 'https://github.com/broseph9972/Timagotchi'
                 add_remote = subprocess.run(['git', '-C', repo_dir, 'remote', 'add', 'origin', origin_url], capture_output=True, text=True, timeout=10)
                 if add_remote.returncode != 0:
-                    err = add_remote.stderr.strip()[:80] or "Failed to add origin"
-                    self.display.show_message("Update", err, (255, 100, 100), self.nav_items, self.nav_selected_index)
-                    return
+                    err_txt = (add_remote.stderr or '').lower()
+                    # If origin already exists, proceed; otherwise report
+                    if 'already exists' not in err_txt:
+                        err = add_remote.stderr.strip()[:80] or "Failed to add origin"
+                        self.display.show_message("Update", err, (255, 100, 100), self.nav_items, self.nav_selected_index)
+                        return
 
             # Get current branch (default to main if detached)
             branch = subprocess.run(['git', '-C', repo_dir, 'rev-parse', '--abbrev-ref', 'HEAD'], capture_output=True, text=True, timeout=5)
