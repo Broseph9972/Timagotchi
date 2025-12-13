@@ -11,4 +11,5 @@ dependencies = [
     "spidev>=3.6",
     "rpi-lgpio>=0.4",
     "lgpio>=0.2.2.0",
+    "requests>=2.32.0",
 ]

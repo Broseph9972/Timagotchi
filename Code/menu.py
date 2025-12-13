@@ -13,6 +13,9 @@ from config import (
 )
 from input_handler import InputHandler
 from theme_manager import ThemeManager
+import json as _json
+import requests
+from urllib.parse import urljoin
 
 class Menu:
     def __init__(self, display, input_handler):
@@ -56,6 +59,12 @@ class Menu:
         self.last_advance_date = None
         self._load_state()
         self._advance_preset_if_new_day()
+        # Canvas state
+        self.canvas_config_path = os.path.join(os.path.dirname(__file__), 'canvas_config.json')
+        self.canvas_cache_path = os.path.join(os.path.dirname(__file__), 'canvas_cache.json')
+        self.current_course_id = None
+        self.grades_selected_index = 0
+        self.assign_selected_index = 0
     
 
     
@@ -722,8 +731,21 @@ class Menu:
             self.display.show_message("Update", (str(e) or "error")[:80], (255, 100, 100), self.nav_items, self.nav_selected_index)
 
     def show_grades_menu(self):
-        # Placeholder for grades menu
-        self.display.show_message("Grades", "Coming soon", (200, 200, 255), self.nav_items, self.nav_selected_index)
+        cfg = self._canvas_load_config()
+        if not cfg:
+            self.display.show_message("Canvas", "Set URL & API key", (255, 150, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+            return
+        self.display.show_message("Canvas", "Loading courses...", (100, 200, 255), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+        courses = self._canvas_fetch_courses(cfg)
+        if courses is None:
+            self.display.show_message("Canvas", "Fetch failed", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+            return
+        if not courses:
+            self.display.show_message("Canvas", "No courses", (200, 200, 200), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+            return
+        items = [f"{c['name'][:10]} {self._format_percent(c['percent'])}" for c in courses]
+        self._courses_list = courses
+        self.display.show_menu(items, self.grades_selected_index, title="Grades", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, start_index=0, max_visible=6, wifi_connected=self._get_wifi_connected())
     
     def connect_to_wifi(self, network):
         """Attempt to connect to an open WiFi network"""
@@ -759,6 +781,200 @@ class Menu:
             self.display.show_message("Error", str(e)[:30], (255, 100, 100), self.nav_items, self.nav_selected_index)
             time.sleep(2)
             return False
+
+    def handle_grades_input(self, action):
+        if not hasattr(self, '_courses_list') or not self._courses_list:
+            self.show_grades_menu()
+            return
+        if action == 'up':
+            self.grades_selected_index = (self.grades_selected_index - 1) % len(self._courses_list)
+            self.show_grades_menu()
+        elif action == 'down':
+            self.grades_selected_index = (self.grades_selected_index + 1) % len(self._courses_list)
+            self.show_grades_menu()
+        elif action in ('select', 'right'):
+            course = self._courses_list[self.grades_selected_index]
+            self.current_course_id = course['id']
+            self.current_screen = 'assignments'
+            self.assign_selected_index = 0
+            self.show_assignments_menu()
+        elif action == 'left':
+            self.current_screen = 'main'
+            self.show_main_menu()
+
+    def show_assignments_menu(self):
+        cfg = self._canvas_load_config()
+        if not cfg or self.current_course_id is None:
+            self.display.show_message("Canvas", "Missing course/config", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+            return
+        self.display.show_message("Canvas", "Loading assigns...", (100, 200, 255), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+        assigns = self._canvas_fetch_assignments(cfg, self.current_course_id)
+        if assigns is None:
+            self.display.show_message("Canvas", "Fetch failed", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+            return
+        if not assigns:
+            self.display.show_message("Canvas", "No assignments", (200, 200, 200), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+            return
+        self._assign_list = assigns
+        items = [self._format_assignment_item(a) for a in assigns]
+        course = next((c for c in getattr(self, '_courses_list', []) if c['id'] == self.current_course_id), None)
+        title = (course['name'] if course else 'Assignments')[:12]
+        self.display.show_menu(items, self.assign_selected_index, title=title, nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, start_index=0, max_visible=6, wifi_connected=self._get_wifi_connected())
+
+    def handle_assignments_input(self, action):
+        if not hasattr(self, '_assign_list') or not self._assign_list:
+            self.show_assignments_menu()
+            return
+        if action == 'up':
+            self.assign_selected_index = (self.assign_selected_index - 1) % len(self._assign_list)
+            self.show_assignments_menu()
+        elif action == 'down':
+            self.assign_selected_index = (self.assign_selected_index + 1) % len(self._assign_list)
+            self.show_assignments_menu()
+        elif action in ('select', 'right'):
+            a = self._assign_list[self.assign_selected_index]
+            msg = f"Score: {self._format_score(a)}\nStatus: {a.get('status','--')}\nDue: {a.get('due','--')}"
+            self.display.show_message("Assignment", msg, (150, 200, 255), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+        elif action == 'left':
+            self.current_screen = 'grades'
+            self.show_grades_menu()
+
+    def _format_percent(self, p):
+        try:
+            return f"{int(round(p))}%" if p is not None else "--"
+        except Exception:
+            return "--"
+
+    def _format_assignment_item(self, a):
+        name = (a.get('name') or 'Assignment')[:10]
+        score = self._format_score(a)
+        return f"{name} {score}"
+
+    def _format_score(self, a):
+        score = a.get('score')
+        points = a.get('points')
+        if score is None or points is None:
+            entered = a.get('entered')
+            return entered[:6] if entered else "--"
+        try:
+            return f"{int(round(score))}/{int(round(points))}"
+        except Exception:
+            return f"{score}/{points}"
+
+    def _canvas_load_config(self):
+        try:
+            if not os.path.exists(self.canvas_config_path):
+                return None
+            with open(self.canvas_config_path, 'r') as f:
+                cfg = _json.load(f)
+            base = cfg.get('base_url')
+            token = cfg.get('api_token')
+            if not base or not token:
+                return None
+            if not base.startswith('http'):
+                base = 'https://' + base
+            return {'base_url': base.rstrip('/'), 'api_token': token}
+        except Exception:
+            return None
+
+    def _canvas_request(self, cfg, path, params=None):
+        try:
+            s = requests.Session()
+            s.headers.update({'Authorization': f"Bearer {cfg['api_token']}", 'Accept': 'application/json'})
+            url = urljoin(cfg['base_url'] + '/', 'api/v1/' + path.lstrip('/'))
+            results = []
+            while url:
+                r = s.get(url, params=params, timeout=5)
+                if r.status_code == 429:
+                    time.sleep(1)
+                    r = s.get(url, params=params, timeout=5)
+                if r.status_code >= 400:
+                    return None
+                data = r.json()
+                if isinstance(data, list):
+                    results.extend(data)
+                else:
+                    results.append(data)
+                # follow Link rel=next
+                link = r.headers.get('Link', '')
+                next_url = None
+                for part in link.split(','):
+                    if 'rel="next"' in part:
+                        next_url = part[part.find('<')+1:part.find('>')]
+                        break
+                url = next_url
+                params = None
+            return results
+        except Exception:
+            return None
+
+    def _read_cache(self):
+        try:
+            if os.path.exists(self.canvas_cache_path):
+                with open(self.canvas_cache_path, 'r') as f:
+                    return _json.load(f)
+        except Exception:
+            pass
+        return {}
+
+    def _write_cache(self, data):
+        try:
+            with open(self.canvas_cache_path, 'w') as f:
+                _json.dump(data, f)
+        except Exception:
+            pass
+
+    def _canvas_fetch_courses(self, cfg):
+        cache = self._read_cache()
+        now_ts = time.time()
+        c_entry = cache.get('courses')
+        if c_entry and now_ts < c_entry.get('expires', 0):
+            return c_entry.get('data', [])
+        data = self._canvas_request(cfg, 'users/self/courses', params={'include[]':'enrollments','enrollment_state':'active','per_page':50})
+        if data is None:
+            return None
+        courses = []
+        for c in data:
+            name = c.get('name') or c.get('course_code') or 'Course'
+            percent = None
+            for e in c.get('enrollments', []):
+                if 'computed_current_score' in e and e['computed_current_score'] is not None:
+                    percent = e['computed_current_score']
+                    break
+                g = e.get('grades') or {}
+                if g.get('current_score') is not None:
+                    percent = g['current_score']
+                    break
+            courses.append({'id': c.get('id'), 'name': name, 'percent': percent})
+        cache['courses'] = {'data': courses, 'expires': now_ts + 600}
+        self._write_cache(cache)
+        return courses
+
+    def _canvas_fetch_assignments(self, cfg, course_id):
+        cache = self._read_cache()
+        now_ts = time.time()
+        a_key = f'assigns_{course_id}'
+        a_entry = cache.get(a_key)
+        if a_entry and now_ts < a_entry.get('expires', 0):
+            return a_entry.get('data', [])
+        data = self._canvas_request(cfg, f'courses/{course_id}/assignments', params={'include[]':'submission','per_page':50})
+        if data is None:
+            return None
+        assigns = []
+        for a in data:
+            sub = a.get('submission') or {}
+            assigns.append({
+                'id': a.get('id'),
+                'name': a.get('name') or 'Assignment',
+                'points': a.get('points_possible'),
+                'score': sub.get('score'),
+                'entered': sub.get('entered_grade'),
+                'status': sub.get('workflow_state'),
+                'due': a.get('due_at')
+            })
+        cache[a_key] = {'data': assigns, 'expires': now_ts + 300}
+        self._write_cache(cache)
+        return assigns
     
     def handle_wifi_input(self, action):
         if action == 'up':
@@ -1033,6 +1249,10 @@ class Menu:
                     self._handle_presets_input(action)
                 elif self.current_screen == "set_today":
                     self._handle_set_today_input(action)
+                elif self.current_screen == "grades":
+                    self.handle_grades_input(action)
+                elif self.current_screen == "assignments":
+                    self.handle_assignments_input(action)
             
             current_time = time.time()
             if current_time - last_update > 1.0:
