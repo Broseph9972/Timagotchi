@@ -818,7 +818,8 @@ class Menu:
         self._assign_list = assigns
         items = [self._format_assignment_item(a) for a in assigns]
         course = next((c for c in getattr(self, '_courses_list', []) if c['id'] == self.current_course_id), None)
-        title = (course['name'] if course else 'Assignments')[:12]
+        course_title = (course['name'] if course else 'Assignments')
+        title = f"{course_title[:10]} {self._format_percent(course.get('percent') if course else None)}"
         self.display.show_menu(items, self.assign_selected_index, title=title, nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, start_index=0, max_visible=6, wifi_connected=self._get_wifi_connected())
 
     def handle_assignments_input(self, action):
