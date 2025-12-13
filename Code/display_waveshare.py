@@ -100,7 +100,7 @@ class WaveshareDisplay:
     # Layout constants
     SIDEBAR_WIDTH = 8  # ultra-narrow gutter for icon placeholders
     PROGRESS_BAR_HEIGHT = 8
-    WIFI_BOX_SIZE = 8  # small wifi indicator box
+    WIFI_BOX_SIZE = 8  # height of wifi indicator bar at sidebar bottom
 
     def _render_sidebar(self, nav_items, selected_index):
         """Draw the right-side vertical navigation as filled placeholder boxes with dividers (no text)."""
@@ -151,12 +151,12 @@ class WaveshareDisplay:
                 self.draw.line((bar_x, y_start + 2, bar_x, y_end - 2), fill=accent_sel, width=2)
 
     def _render_wifi_indicator(self, wifi_connected):
-        """Draw a small colored box in the bottom-right corner for WiFi status."""
-        box_size = self.WIFI_BOX_SIZE
-        x = self.width - box_size - 2
-        y = self.height - box_size - 2
+        """Draw a status bar that matches the sidebar width at the bottom."""
+        bar_height = self.WIFI_BOX_SIZE
+        sidebar_x = self.width - self.SIDEBAR_WIDTH
+        y0 = self.height - bar_height
         color = (0, 200, 0) if wifi_connected else (200, 0, 0)
-        self.draw.rectangle((x, y, x + box_size, y + box_size), fill=color)
+        self.draw.rectangle((sidebar_x, y0, self.width, self.height), fill=color)
 
     def show_schedule(self, period, period_name, time_remaining, lunch_time, end_time, current_time_str, nav_items=None, selected_index=0):
         self.clear(self._get_bg_color())

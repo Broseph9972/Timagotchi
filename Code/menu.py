@@ -27,6 +27,7 @@ class Menu:
         
         # Right-nav items as per sketch
         self.nav_items = ["Main Page", "Grades", "Settings"]
+        self.nav_selected_index = 0
         # Build settings menu items based on config
         self.settings_menu_items = []
         if abday.lower() == "true":
@@ -181,10 +182,10 @@ class Menu:
         if current_time < school_start:
             time_until_start = self.get_time_until(SCHOOL_START, current_time)
             time_until_str = self.format_timedelta(time_until_start)
-            self.display.show_message("School Hasn't Started", f"Starts in {time_until_str}\nSchool @ {SCHOOL_START}", (200, 200, 200), self.nav_items, self.selected_index)
+            self.display.show_message("School Hasn't Started", f"Starts in {time_until_str}\nSchool @ {SCHOOL_START}", (200, 200, 200), self.nav_items, self.nav_selected_index)
             return
         elif current_time > school_end:
-            self.display.show_message("After School", "School day has ended", (200, 200, 200), self.nav_items, self.selected_index)
+            self.display.show_message("After School", "School day has ended", (200, 200, 200), self.nav_items, self.nav_selected_index)
             return
         
         period_name = ""
@@ -218,7 +219,7 @@ class Menu:
         
         time_remaining_str = self.format_timedelta(time_remaining) if time_remaining else None
         
-        self.display.show_schedule(period, period_name, time_remaining_str, lunch_time_str, end_time_str, current_time_str, self.nav_items, self.selected_index)
+        self.display.show_schedule(period, period_name, time_remaining_str, lunch_time_str, end_time_str, current_time_str, self.nav_items, self.nav_selected_index)
     
     def show_clock_screen(self):
         now = datetime.datetime.now()
@@ -227,7 +228,7 @@ class Menu:
         else:
             time_str = now.strftime("%I:%M:%S %p")
         date_str = now.strftime("%A, %B %d")
-        self.display.show_clock(time_str, date_str, self.nav_items, self.selected_index)
+        self.display.show_clock(time_str, date_str, self.nav_items, self.nav_selected_index)
     
     def _get_wifi_connected(self):
         """Best-effort check for WiFi connectivity (nmcli); fallback to False."""
@@ -271,7 +272,7 @@ class Menu:
         schedule_summary = self._get_schedule_summary()
         wifi_connected = self._get_wifi_connected()
         bubble_text = "text"  # placeholder per sketch; can be dynamic later
-        self.display.show_main_page(label, progress, time_str, date_str, schedule_summary, wifi_connected, self.nav_items, self.selected_index, bubble_text)
+        self.display.show_main_page(label, progress, time_str, date_str, schedule_summary, wifi_connected, self.nav_items, self.nav_selected_index, bubble_text)
     
     def get_progress_bar(self):
         """Calculate progress bar based on current mode"""
@@ -305,10 +306,10 @@ class Menu:
             if self.progress_bar_mode == "time_in_class":
                 # Progress within current class period
                 for period in range(1, 7):
-                    if period not in PERIODS:
+                self.display.show_message("School Hasn't Started", f"Starts in {time_until_str}\nSchool @ {SCHOOL_START}", (200, 200, 200), self.nav_items, self.nav_selected_index)
                         continue
                     period_start = datetime.datetime.strptime(PERIODS[period], "%H:%M").time()
-                    period_start_dt = datetime.datetime.combine(datetime.date.today(), period_start)
+                self.display.show_message("After School", "School day has ended", (200, 200, 200), self.nav_items, self.nav_selected_index)
                     period_end_dt = period_start_dt + datetime.timedelta(minutes=PERIOD_LENGTH)
                     
                     if period_start_dt <= now < period_end_dt:
@@ -341,7 +342,7 @@ class Menu:
                     progress = int((elapsed / total) * 100) if total > 0 else 0
                     return f"Until Lunch: {progress}%", progress
                 elif now < lunch_end_dt:
-                    # During lunch
+            self.display.show_schedule(period, period_name, time_remaining_str, lunch_time_str, end_time_str, current_time_str, self.nav_items, self.nav_selected_index)
                     return "Lunch", 100
                 elif now >= actual_school_end:
                     # After school
@@ -350,12 +351,12 @@ class Menu:
                     # After lunch: show time left in day
                     elapsed = (now - lunch_end_dt).total_seconds()
                     total = (actual_school_end - lunch_end_dt).total_seconds()
-                    progress = int((elapsed / total) * 100) if total > 0 else 0
+            self.display.show_clock(time_str, date_str, self.nav_items, self.nav_selected_index)
                     return f"Day Left: {progress}%", progress
             
             return "Unknown", 0
         except Exception as e:
-            # If there's any error in calculation, return safe defaults
+                self.display.show_message("WiFi", "Scanning for\nnetworks...", (100, 200, 255), self.nav_items, self.nav_selected_index)
             return "Error", 0
     
     def show_settings_menu(self):
@@ -365,7 +366,7 @@ class Menu:
             self.settings_scroll_offset = self.selected_index
         elif self.selected_index >= self.settings_scroll_offset + max_visible:
             self.settings_scroll_offset = self.selected_index - max_visible + 1
-        self.display.show_menu(self.settings_menu_items, self.selected_index, "Settings", nav_items=self.nav_items, nav_selected_index=self.selected_index, start_index=self.settings_scroll_offset, max_visible=max_visible)
+        self.display.show_menu(self.settings_menu_items, self.selected_index, "Settings", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, start_index=self.settings_scroll_offset, max_visible=max_visible)
 
     def _show_presets_menu(self):
         msg = f"Presets: {self.presets_count}\nUp/Down: 1 or 2\nSelect: Save"
@@ -389,7 +390,7 @@ class Menu:
             self.current_screen = 'settings'
             self.selected_index = self.settings_menu_items.index("Schedule Presets")
             self.show_settings_menu()
-
+                self.display.show_message("Error", f"Scan failed: {str(e)[:30]}", (255, 100, 100), self.nav_items, self.nav_selected_index)
     def _show_set_today_preset(self):
         label = 'A' if self.current_preset_index == 0 else 'B'
         msg = f"Today Preset: {label}\nUp/Down: Toggle\nSelect: Set & Auto-advance daily"
@@ -397,7 +398,7 @@ class Menu:
 
     def _handle_set_today_input(self, action):
         if action in ('up', 'down'):
-            self.current_preset_index = 1 - self.current_preset_index
+                    self.display.show_message("WiFi", "No networks found\nor scan failed", (255, 100, 100), self.nav_items, self.nav_selected_index)
             self._show_set_today_preset()
         elif action in ('select', 'right'):
             # Set today; ensure last_advance_date = today to avoid immediate auto-advance
@@ -406,7 +407,7 @@ class Menu:
             self.current_screen = 'settings'
             self.selected_index = self.settings_menu_items.index("Set Today Preset")
             self.show_settings_menu()
-        elif action == 'left':
+                self.display.show_message("WiFi", "No networks\nfound", (200, 100, 100), self.nav_items, self.nav_selected_index)
             self.current_screen = 'settings'
             self.selected_index = self.settings_menu_items.index("Set Today Preset")
             self.show_settings_menu()
@@ -415,7 +416,7 @@ class Menu:
         """Scan for available WiFi networks using nmcli or iwlist"""
         try:
             self.display.show_message("WiFi", "Scanning for\nnetworks...", (100, 200, 255), self.nav_items, self.selected_index)
-            
+            self.display.show_message("WiFi", message, (100, 200, 255), self.nav_items, self.nav_selected_index)
             # Try using nmcli (NetworkManager)
             try:
                 result = subprocess.run(
@@ -424,11 +425,11 @@ class Menu:
                 )
                 if result.returncode == 0:
                     networks = self._parse_nmcli_output(result.stdout)
-                    if networks:
+                    self.display.show_message("WiFi", "Only open networks\nare supported", (255, 150, 100), self.nav_items, self.nav_selected_index)
                         self.available_networks = networks
                         self.wifi_scan_index = 0
                         return True
-            except:
+                self.display.show_message("WiFi", f"Connecting to\n{ssid}...", (100, 200, 255), self.nav_items, self.nav_selected_index)
                 pass
             
             # Fallback: try iwlist (older systems)
@@ -437,18 +438,18 @@ class Menu:
                     ['sudo', 'iwlist', 'wlan0', 'scan'],
                     capture_output=True, text=True, timeout=10
                 )
-                if result.returncode == 0:
+                        self.display.show_message("WiFi", f"Connected to\n{ssid}", (100, 255, 100), self.nav_items, self.nav_selected_index)
                     networks = self._parse_iwlist_output(result.stdout)
                     if networks:
                         self.available_networks = networks
                         self.wifi_scan_index = 0
                         return True
             except:
-                pass
+                self.display.show_message("WiFi", "Connection\nfailed", (255, 100, 100), self.nav_items, self.nav_selected_index)
             
             return False
         except Exception as e:
-            self.display.show_message("Error", f"Scan failed: {str(e)[:30]}", (255, 100, 100))
+                self.display.show_message("Error", str(e)[:30], (255, 100, 100), self.nav_items, self.nav_selected_index)
             time.sleep(2)
             return False
     
@@ -615,7 +616,7 @@ class Menu:
     def handle_main_menu_input(self, action):
         # Sidebar is only accessible via key1/2/3; ignore up/down for nav
         if action == 'select' or action == 'right':
-            selected_item = self.nav_items[self.selected_index]
+            selected_item = self.nav_items[self.nav_selected_index]
             if selected_item == "Main Page":
                 self.current_screen = "main"
                 self.show_main_menu()
