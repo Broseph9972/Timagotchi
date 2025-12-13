@@ -98,6 +98,7 @@ class WaveshareDisplay:
         """Load icons from the Icons folder and cache them."""
         icons_dir = os.path.join(os.path.dirname(__file__), 'Icons')
         icon_files = {
+            'home': 'home.png',
             'icon': 'Icon.png',
             'settings': 'settings.png',
             'grades': 'grades.png'
@@ -122,7 +123,7 @@ class WaveshareDisplay:
     def _get_nav_item_icon_name(self, nav_item):
         """Map nav item name to icon name."""
         nav_map = {
-            "Main Page": "icon",
+            "Main Page": "home",
             "Grades": "grades",
             "Settings": "settings"
         }
@@ -361,7 +362,7 @@ class WaveshareDisplay:
         char_y = center_top + 10
         self.draw.rectangle((char_x, char_y, char_x + char_w, char_y + char_h), outline=secondary)
         
-        # Try to load and display icon
+        # Try to load and display icon (for main page, use Icon.png not home.png)
         page_icon = self._get_icon('icon')
         if page_icon:
             try:
