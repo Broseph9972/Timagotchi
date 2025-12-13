@@ -842,9 +842,11 @@ class Menu:
 
     def _format_percent(self, p):
         try:
-            return f"{int(round(p))}%" if p is not None else "--"
+            if p is None:
+                return "--"
+            return f"{int(round(float(p)))}%"
         except Exception:
-            return "--"
+            return str(p)[:6] if p else "--"
 
     def _format_assignment_item(self, a):
         name = (a.get('name') or 'Assignment')[:10]
@@ -938,6 +940,7 @@ class Menu:
         for c in data:
             name = c.get('name') or c.get('course_code') or 'Course'
             percent = None
+            grade_text = None
             for e in c.get('enrollments', []):
                 if 'computed_current_score' in e and e['computed_current_score'] is not None:
                     percent = e['computed_current_score']
@@ -946,7 +949,15 @@ class Menu:
                 if g.get('current_score') is not None:
                     percent = g['current_score']
                     break
-            courses.append({'id': c.get('id'), 'name': name, 'percent': percent})
+                if 'computed_final_score' in e and e['computed_final_score'] is not None:
+                    percent = e['computed_final_score']
+                    break
+                if g.get('final_score') is not None:
+                    percent = g['final_score']
+                    break
+                if grade_text is None:
+                    grade_text = e.get('computed_current_grade') or g.get('current_grade') or e.get('computed_final_grade') or g.get('final_grade')
+            courses.append({'id': c.get('id'), 'name': name, 'percent': percent if percent is not None else grade_text})
         cache['courses'] = {'data': courses, 'expires': now_ts + 600}
         self._write_cache(cache)
         return courses
