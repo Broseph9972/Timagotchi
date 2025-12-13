@@ -440,46 +440,19 @@ class WaveshareDisplay:
         self._render()
     
     def show_grades_menu(self, menu_items, selected_index, title="Grades", nav_items=None, nav_selected_index=0, start_index=0, max_visible=5, wifi_connected=False):
-        """Display grades menu with grades icon on the left and menu items on the right."""
+        """Display grades menu with menu items."""
         self.clear(self._get_bg_color())
         
         # Get colors from theme
         title_color = self._get_accent_color()
         selected_color = (255, 255, 0)
         unselected_color = self._get_text_secondary_color()
-        secondary = self._get_text_secondary_color()
         
-        # Icon on left side
-        icon_width = 40
-        icon_x = 4
-        icon_y = 10
-        
-        # Display grades icon
-        grades_icon = self._get_icon('grades')
-        if grades_icon:
-            try:
-                icon_resized = grades_icon.copy()
-                icon_resized.thumbnail((icon_width - 4, 50), Image.LANCZOS)
-                paste_x = icon_x + (icon_width - icon_resized.width) // 2
-                paste_y = icon_y + (60 - icon_resized.height) // 2
-                # Use alpha channel as mask for transparency
-                if icon_resized.mode == 'RGBA':
-                    self.image.paste(icon_resized, (paste_x, paste_y), icon_resized)
-                else:
-                    self.image.paste(icon_resized, (paste_x, paste_y))
-            except Exception as e:
-                # Fallback text if icon fails
-                self.draw.text((icon_x + 6, icon_y + 20), "G", font=self.font_medium, fill=secondary)
-        else:
-            # Fallback text if icon not found
-            self.draw.text((icon_x + 6, icon_y + 20), "G", font=self.font_medium, fill=secondary)
-        
-        # Menu items on right side
-        content_x = icon_x + icon_width + 4
-        content_width = self.width - self.SIDEBAR_WIDTH - content_x - 2
+        # Content area (left of sidebar)
+        content_width = self.width - self.SIDEBAR_WIDTH - 4
         
         y_offset = 4
-        self.draw.text((content_x, y_offset), title, font=self.font_medium, fill=title_color)
+        self.draw.text((4, y_offset), title, font=self.font_medium, fill=title_color)
         y_offset += 18
         
         visible_items = menu_items[start_index:start_index + max_visible]
@@ -488,17 +461,17 @@ class WaveshareDisplay:
             # Truncate item if too long
             display_item = item[:14] if len(item) > 14 else item
             if absolute_index == selected_index:
-                self.draw.rectangle((content_x - 2, y_offset - 1, content_x + content_width - 2, y_offset + 13), outline=selected_color, width=1)
-                self.draw.text((content_x + 2, y_offset), f">{display_item}", font=self.font_small, fill=selected_color)
+                self.draw.rectangle((2, y_offset - 1, content_width, y_offset + 13), outline=selected_color, width=1)
+                self.draw.text((6, y_offset), f">{display_item}", font=self.font_small, fill=selected_color)
             else:
-                self.draw.text((content_x + 2, y_offset), f" {display_item}", font=self.font_small, fill=unselected_color)
+                self.draw.text((6, y_offset), f" {display_item}", font=self.font_small, fill=unselected_color)
             y_offset += 16
         
         # Scroll indicators (only when needed)
         if start_index > 0:
-            self.draw.text((content_x + content_width - 12, 18), "^", font=self.font_tiny, fill=unselected_color)
+            self.draw.text((content_width - 10, 18), "^", font=self.font_tiny, fill=unselected_color)
         if start_index + max_visible < len(menu_items):
-            self.draw.text((content_x + content_width - 12, y_offset - 4), "v", font=self.font_tiny, fill=unselected_color)
+            self.draw.text((content_width - 10, y_offset - 4), "v", font=self.font_tiny, fill=unselected_color)
         
         # Sidebar + WiFi
         self._render_sidebar(nav_items or [], nav_selected_index)
