@@ -275,88 +275,75 @@ class Menu:
         self.display.show_main_page(label, progress, time_str, date_str, schedule_summary, wifi_connected, self.nav_items, self.nav_selected_index, bubble_text)
     
     def get_progress_bar(self):
-        """Calculate progress bar based on current mode"""
+        """Calculate progress bar based on current mode."""
         try:
             now = datetime.datetime.now()
-            
+
             # Parse times
-            school_start = datetime.datetime.strptime(SCHOOL_START, "%H:%M").time()
-            school_start_dt = datetime.datetime.combine(datetime.date.today(), school_start)
-            school_end = datetime.datetime.strptime(SCHOOL_END, "%H:%M").time()
-            school_end_dt = datetime.datetime.combine(datetime.date.today(), school_end)
-            lunch_start = datetime.datetime.strptime(LUNCH_START, "%H:%M").time()
-            lunch_start_dt = datetime.datetime.combine(datetime.date.today(), lunch_start)
-            lunch_end = datetime.datetime.strptime(LUNCH_END, "%H:%M").time()
-            lunch_end_dt = datetime.datetime.combine(datetime.date.today(), lunch_end)
-            
-            # Calculate actual school end time from 6th period end (or latest period)
-            actual_school_end = school_end_dt  # Fallback to configured end time
-            if 6 in PERIODS:
-                period_6_start = datetime.datetime.strptime(PERIODS[6], "%H:%M").time()
-                period_6_start_dt = datetime.datetime.combine(datetime.date.today(), period_6_start)
-                actual_school_end = period_6_start_dt + datetime.timedelta(minutes=PERIOD_LENGTH)
-            else:
-                # Find the last period and use that
-                if PERIODS:
-                    last_period = max(PERIODS.keys())
-                    last_period_start = datetime.datetime.strptime(PERIODS[last_period], "%H:%M").time()
-                    last_period_start_dt = datetime.datetime.combine(datetime.date.today(), last_period_start)
-                    actual_school_end = last_period_start_dt + datetime.timedelta(minutes=PERIOD_LENGTH)
-            
-            if self.progress_bar_mode == "time_in_class":
+            school_start_dt = datetime.datetime.combine(
+                datetime.date.today(), datetime.datetime.strptime(SCHOOL_START, "%H:%M").time()
+            )
+            school_end_dt = datetime.datetime.combine(
+                datetime.date.today(), datetime.datetime.strptime(SCHOOL_END, "%H:%M").time()
+            )
+            lunch_start_dt = datetime.datetime.combine(
+                datetime.date.today(), datetime.datetime.strptime(LUNCH_START, "%H:%M").time()
+            )
+            lunch_end_dt = datetime.datetime.combine(
+                datetime.date.today(), datetime.datetime.strptime(LUNCH_END, "%H:%M").time()
+            )
+
+            # Determine actual end based on last period if available
+            actual_school_end = school_end_dt
+            if PERIODS:
+                last_period = max(PERIODS.keys())
+                last_start_dt = datetime.datetime.combine(
+                    datetime.date.today(), datetime.datetime.strptime(PERIODS[last_period], "%H:%M").time()
+                )
+                actual_school_end = last_start_dt + datetime.timedelta(minutes=PERIOD_LENGTH)
+
+            mode = self.progress_bar_modes[self.progress_bar_mode_index]
+            if mode == "time_in_class":
                 # Progress within current class period
-                for period in range(1, 7):
-                self.display.show_message("School Hasn't Started", f"Starts in {time_until_str}\nSchool @ {SCHOOL_START}", (200, 200, 200), self.nav_items, self.nav_selected_index)
-                        continue
-                    period_start = datetime.datetime.strptime(PERIODS[period], "%H:%M").time()
-                self.display.show_message("After School", "School day has ended", (200, 200, 200), self.nav_items, self.nav_selected_index)
-                    period_end_dt = period_start_dt + datetime.timedelta(minutes=PERIOD_LENGTH)
-                    
-                    if period_start_dt <= now < period_end_dt:
-                        elapsed = (now - period_start_dt).total_seconds()
-                        total = PERIOD_LENGTH * 60
+                for p in sorted(PERIODS.keys()):
+                    start_dt = datetime.datetime.combine(
+                        datetime.date.today(), datetime.datetime.strptime(PERIODS[p], "%H:%M").time()
+                    )
+                    end_dt = start_dt + datetime.timedelta(minutes=PERIOD_LENGTH)
+                    if start_dt <= now < end_dt:
+                        elapsed = (now - start_dt).total_seconds()
+                        total = (end_dt - start_dt).total_seconds()
                         progress = int((elapsed / total) * 100) if total > 0 else 0
                         return f"Class: {progress}%", progress
-                
-                # Not in class
                 return "Not in class", 0
-            
-            elif self.progress_bar_mode == "time_in_day":
-                # Progress through school day (using actual end time from last period)
+
+            if mode == "time_in_day":
                 if now < school_start_dt:
                     return "Before school", 0
-                elif now >= actual_school_end:
+                if now >= actual_school_end:
                     return "After school", 100
-                else:
-                    elapsed = (now - school_start_dt).total_seconds()
-                    total = (actual_school_end - school_start_dt).total_seconds()
-                    progress = int((elapsed / total) * 100) if total > 0 else 0
-                    return f"Day: {progress}%", progress
-            
-            elif self.progress_bar_mode == "lunch_day":
-                # Progress until lunch, then after lunch shows time left in day
+                elapsed = (now - school_start_dt).total_seconds()
+                total = (actual_school_end - school_start_dt).total_seconds()
+                progress = int((elapsed / total) * 100) if total > 0 else 0
+                return f"Day: {progress}%", progress
+
+            if mode == "lunch_day":
                 if now < lunch_start_dt:
-                    # Before lunch: show progress to lunch
                     elapsed = (now - school_start_dt).total_seconds()
                     total = (lunch_start_dt - school_start_dt).total_seconds()
                     progress = int((elapsed / total) * 100) if total > 0 else 0
                     return f"Until Lunch: {progress}%", progress
-                elif now < lunch_end_dt:
-            self.display.show_schedule(period, period_name, time_remaining_str, lunch_time_str, end_time_str, current_time_str, self.nav_items, self.nav_selected_index)
+                if now < lunch_end_dt:
                     return "Lunch", 100
-                elif now >= actual_school_end:
-                    # After school
+                if now >= actual_school_end:
                     return "After school", 100
-                else:
-                    # After lunch: show time left in day
-                    elapsed = (now - lunch_end_dt).total_seconds()
-                    total = (actual_school_end - lunch_end_dt).total_seconds()
-            self.display.show_clock(time_str, date_str, self.nav_items, self.nav_selected_index)
-                    return f"Day Left: {progress}%", progress
-            
+                elapsed = (now - lunch_end_dt).total_seconds()
+                total = (actual_school_end - lunch_end_dt).total_seconds()
+                progress = int((elapsed / total) * 100) if total > 0 else 0
+                return f"Day Left: {progress}%", progress
+
             return "Unknown", 0
-        except Exception as e:
-                self.display.show_message("WiFi", "Scanning for\nnetworks...", (100, 200, 255), self.nav_items, self.nav_selected_index)
+        except Exception:
             return "Error", 0
     
     def show_settings_menu(self):
@@ -370,7 +357,7 @@ class Menu:
 
     def _show_presets_menu(self):
         msg = f"Presets: {self.presets_count}\nUp/Down: 1 or 2\nSelect: Save"
-        self.display.show_message("Schedule Presets", msg, (150, 200, 255), self.nav_items, self.selected_index)
+        self.display.show_message("Schedule Presets", msg, (150, 200, 255), self.nav_items, self.nav_selected_index)
 
     def _handle_presets_input(self, action):
         if action == 'up':
@@ -379,44 +366,35 @@ class Menu:
         elif action == 'down':
             self.presets_count = 2
             self._show_presets_menu()
-        elif action in ('select', 'right'):
+        elif action in ('select', 'right', 'left'):
             if self.presets_count == 1:
                 self.current_preset_index = 0
             self._save_state()
             self.current_screen = 'settings'
             self.selected_index = self.settings_menu_items.index("Schedule Presets")
             self.show_settings_menu()
-        elif action == 'left':
-            self.current_screen = 'settings'
-            self.selected_index = self.settings_menu_items.index("Schedule Presets")
-            self.show_settings_menu()
-                self.display.show_message("Error", f"Scan failed: {str(e)[:30]}", (255, 100, 100), self.nav_items, self.nav_selected_index)
     def _show_set_today_preset(self):
         label = 'A' if self.current_preset_index == 0 else 'B'
         msg = f"Today Preset: {label}\nUp/Down: Toggle\nSelect: Set & Auto-advance daily"
-        self.display.show_message("Set Today", msg, (150, 255, 200), self.nav_items, self.selected_index)
+        self.display.show_message("Set Today", msg, (150, 255, 200), self.nav_items, self.nav_selected_index)
 
     def _handle_set_today_input(self, action):
         if action in ('up', 'down'):
-                    self.display.show_message("WiFi", "No networks found\nor scan failed", (255, 100, 100), self.nav_items, self.nav_selected_index)
+            # Toggle preset
+            self.current_preset_index = 0 if self.current_preset_index == 1 else 1
             self._show_set_today_preset()
-        elif action in ('select', 'right'):
-            # Set today; ensure last_advance_date = today to avoid immediate auto-advance
+        elif action in ('select', 'right', 'left'):
+            # Set today and return to settings
             self.last_advance_date = datetime.date.today().isoformat()
             self._save_state()
             self.current_screen = 'settings'
             self.selected_index = self.settings_menu_items.index("Set Today Preset")
             self.show_settings_menu()
-                self.display.show_message("WiFi", "No networks\nfound", (200, 100, 100), self.nav_items, self.nav_selected_index)
-            self.current_screen = 'settings'
-            self.selected_index = self.settings_menu_items.index("Set Today Preset")
-            self.show_settings_menu()
     
     def scan_wifi_networks(self):
-        """Scan for available WiFi networks using nmcli or iwlist"""
+        """Scan for available WiFi networks using nmcli or iwlist."""
         try:
-            self.display.show_message("WiFi", "Scanning for\nnetworks...", (100, 200, 255), self.nav_items, self.selected_index)
-            self.display.show_message("WiFi", message, (100, 200, 255), self.nav_items, self.nav_selected_index)
+            self.display.show_message("WiFi", "Scanning for\nnetworks...", (100, 200, 255), self.nav_items, self.nav_selected_index)
             # Try using nmcli (NetworkManager)
             try:
                 result = subprocess.run(
@@ -425,31 +403,31 @@ class Menu:
                 )
                 if result.returncode == 0:
                     networks = self._parse_nmcli_output(result.stdout)
-                    self.display.show_message("WiFi", "Only open networks\nare supported", (255, 150, 100), self.nav_items, self.nav_selected_index)
+                    if networks:
                         self.available_networks = networks
                         self.wifi_scan_index = 0
                         return True
-                self.display.show_message("WiFi", f"Connecting to\n{ssid}...", (100, 200, 255), self.nav_items, self.nav_selected_index)
+            except Exception:
                 pass
-            
+
             # Fallback: try iwlist (older systems)
             try:
                 result = subprocess.run(
                     ['sudo', 'iwlist', 'wlan0', 'scan'],
                     capture_output=True, text=True, timeout=10
                 )
-                        self.display.show_message("WiFi", f"Connected to\n{ssid}", (100, 255, 100), self.nav_items, self.nav_selected_index)
+                if result.returncode == 0:
                     networks = self._parse_iwlist_output(result.stdout)
                     if networks:
                         self.available_networks = networks
                         self.wifi_scan_index = 0
                         return True
-            except:
-                self.display.show_message("WiFi", "Connection\nfailed", (255, 100, 100), self.nav_items, self.nav_selected_index)
-            
+            except Exception:
+                pass
+
             return False
         except Exception as e:
-                self.display.show_message("Error", str(e)[:30], (255, 100, 100), self.nav_items, self.nav_selected_index)
+            self.display.show_message("Error", f"Scan failed: {str(e)[:30]}", (255, 100, 100), self.nav_items, self.nav_selected_index)
             time.sleep(2)
             return False
     
@@ -496,7 +474,7 @@ class Menu:
         """Show WiFi network selection menu"""
         if not self.available_networks:
             if not self.scan_wifi_networks():
-                self.display.show_message("WiFi", "No networks found\nor scan failed", (255, 100, 100), self.nav_items, self.selected_index)
+                self.display.show_message("WiFi", "No networks found\nor scan failed", (255, 100, 100), self.nav_items, self.nav_selected_index)
                 time.sleep(2)
                 return
         
@@ -505,7 +483,7 @@ class Menu:
     def show_wifi_network_list(self):
         """Display current WiFi network for selection"""
         if not self.available_networks:
-            self.display.show_message("WiFi", "No networks\nfound", (200, 100, 100))
+            self.display.show_message("WiFi", "No networks\nfound", (200, 100, 100), self.nav_items, self.nav_selected_index)
             return
         
         network = self.available_networks[self.wifi_scan_index]
@@ -514,7 +492,7 @@ class Menu:
         status = "[OPEN]" if is_open else "[SECURED]"
         
         message = f"WiFi Network:\n{ssid}\n{status}\n\nUp/Down: Browse\nSelect: Connect"
-        self.display.show_message("WiFi", message, (100, 200, 255), self.nav_items, self.selected_index)
+        self.display.show_message("WiFi", message, (100, 200, 255), self.nav_items, self.nav_selected_index)
     
     def show_ab_day_menu(self):
         if self.ab_day_mode == "auto":
@@ -522,10 +500,10 @@ class Menu:
         else:
             current = self.manual_ab_day.upper()
             message = f"A/B Day: {current}\n\nUp/Down: Toggle\nSelect: Confirm"
-        self.display.show_message("A/B Day", message, (200, 150, 255), self.nav_items, self.selected_index)
+        self.display.show_message("A/B Day", message, (200, 150, 255), self.nav_items, self.nav_selected_index)
     
     def show_set_time_menu(self):
-        self.display.show_menu(self.set_time_menu_items, self.selected_index, "Set Time", nav_items=self.nav_items, nav_selected_index=self.selected_index)
+        self.display.show_menu(self.set_time_menu_items, self.selected_index, "Set Time", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index)
     
     def show_set_time_screen(self):
         if USE_24_HOUR:
@@ -541,7 +519,7 @@ class Menu:
             hour_str = f"{display_hour:02d}"
             minute_str = f"{self.adjust_minute:02d}"
             message = f"Set Time:\n{hour_str}:{minute_str} {am_pm}\n\nKey1: Hour+\nKey2: Min+\nKey3: Done"
-        self.display.show_message("Set Time", message, (255, 200, 100), self.nav_items, self.selected_index)
+        self.display.show_message("Set Time", message, (255, 200, 100), self.nav_items, self.nav_selected_index)
     
     def handle_set_time_input(self, action):
         if action == 'key1':  # Increase hour
@@ -680,45 +658,41 @@ class Menu:
                 self._run_git_pull()
             elif selected_item == "Restart":
                 self.restart_program()
-            def _run_git_pull(self):
-                """Run a safe git pull (ff-only) and report status without crashing."""
-                try:
-                    repo_dir = os.path.dirname(os.path.dirname(__file__))
-                    # Verify git is available
-                    git_check = subprocess.run(['git', '--version'], capture_output=True, text=True, timeout=5)
-                    if git_check.returncode != 0:
-                        self.display.show_message("Git Pull", "git not installed", (255, 100, 100), self.nav_items, self.selected_index)
-                        return
+    def _run_git_pull(self):
+        """Run a safe git pull (ff-only) and report status without crashing."""
+        try:
+            repo_dir = os.path.dirname(os.path.dirname(__file__))
+            # Verify git is available
+            git_check = subprocess.run(['git', '--version'], capture_output=True, text=True, timeout=5)
+            if git_check.returncode != 0:
+                self.display.show_message("Git Pull", "git not installed", (255, 100, 100), self.nav_items, self.nav_selected_index)
+                return
 
-                    # Ensure remote origin exists
-                    remote = subprocess.run(['git', '-C', repo_dir, 'config', '--get', 'remote.origin.url'], capture_output=True, text=True, timeout=5)
-                    if remote.returncode != 0 or not remote.stdout.strip():
-                        self.display.show_message("Git Pull", "No remote origin", (255, 100, 100), self.nav_items, self.selected_index)
-                        return
+            # Ensure remote origin exists
+            remote = subprocess.run(['git', '-C', repo_dir, 'config', '--get', 'remote.origin.url'], capture_output=True, text=True, timeout=5)
+            if remote.returncode != 0 or not remote.stdout.strip():
+                self.display.show_message("Git Pull", "No remote origin", (255, 100, 100), self.nav_items, self.nav_selected_index)
+                return
 
-                    # Get current branch
-                    branch = subprocess.run(['git', '-C', repo_dir, 'rev-parse', '--abbrev-ref', 'HEAD'], capture_output=True, text=True, timeout=5)
-                    current_branch = branch.stdout.strip() or 'main'
+            # Get current branch
+            branch = subprocess.run(['git', '-C', repo_dir, 'rev-parse', '--abbrev-ref', 'HEAD'], capture_output=True, text=True, timeout=5)
+            current_branch = branch.stdout.strip() or 'main'
 
-                    # Fetch and fast-forward only
-                    subprocess.run(['git', '-C', repo_dir, 'fetch', '--all', '--prune'], capture_output=True, text=True, timeout=20)
-                    result = subprocess.run(['git', '-C', repo_dir, 'pull', '--ff-only', 'origin', current_branch], capture_output=True, text=True, timeout=30)
-                    if result.returncode == 0:
-                        msg = result.stdout.strip() or "Up to date"
-                        self.display.show_message("Git Pull", msg[:60], (100, 255, 100), self.nav_items, self.selected_index)
-                    else:
-                        err = result.stderr.strip()[:80] or "Pull failed"
-                        self.display.show_message("Git Pull", err, (255, 100, 100), self.nav_items, self.selected_index)
-                except Exception as e:
-                    self.display.show_message("Git Pull", (str(e) or "error")[:80], (255, 100, 100), self.nav_items, self.selected_index)
-        elif action == 'left':
-            self.current_screen = "main"
-            self.selected_index = 0
-            self.show_main_menu()
+            # Fetch and fast-forward only
+            subprocess.run(['git', '-C', repo_dir, 'fetch', '--all', '--prune'], capture_output=True, text=True, timeout=20)
+            result = subprocess.run(['git', '-C', repo_dir, 'pull', '--ff-only', 'origin', current_branch], capture_output=True, text=True, timeout=30)
+            if result.returncode == 0:
+                msg = result.stdout.strip() or "Up to date"
+                self.display.show_message("Git Pull", msg[:60], (100, 255, 100), self.nav_items, self.nav_selected_index)
+            else:
+                err = result.stderr.strip()[:80] or "Pull failed"
+                self.display.show_message("Git Pull", err, (255, 100, 100), self.nav_items, self.nav_selected_index)
+        except Exception as e:
+            self.display.show_message("Git Pull", (str(e) or "error")[:80], (255, 100, 100), self.nav_items, self.nav_selected_index)
 
     def show_grades_menu(self):
         # Placeholder for grades menu
-        self.display.show_message("Grades", "Coming soon", (200, 200, 255))
+        self.display.show_message("Grades", "Coming soon", (200, 200, 255), self.nav_items, self.nav_selected_index)
     
     def connect_to_wifi(self, network):
         """Attempt to connect to an open WiFi network"""
@@ -727,11 +701,11 @@ class Menu:
             is_open = network.get('open', False)
             
             if not is_open:
-                self.display.show_message("WiFi", "Only open networks\nare supported", (255, 150, 100), self.nav_items, self.selected_index)
+                self.display.show_message("WiFi", "Only open networks\nare supported", (255, 150, 100), self.nav_items, self.nav_selected_index)
                 time.sleep(2)
                 return False
             
-            self.display.show_message("WiFi", f"Connecting to\n{ssid}...", (100, 200, 255), self.nav_items, self.selected_index)
+            self.display.show_message("WiFi", f"Connecting to\n{ssid}...", (100, 200, 255), self.nav_items, self.nav_selected_index)
             
             # Try connecting using nmcli
             try:
@@ -740,18 +714,18 @@ class Menu:
                     capture_output=True, text=True, timeout=10
                 )
                 if result.returncode == 0:
-                    self.display.show_message("WiFi", f"Connected to\n{ssid}", (100, 255, 100), self.nav_items, self.selected_index)
+                    self.display.show_message("WiFi", f"Connected to\n{ssid}", (100, 255, 100), self.nav_items, self.nav_selected_index)
                     time.sleep(2)
                     return True
             except:
                 pass
             
             # Fallback: try wpa_cli or other methods
-            self.display.show_message("WiFi", "Connection\nfailed", (255, 100, 100), self.nav_items, self.selected_index)
+            self.display.show_message("WiFi", "Connection\nfailed", (255, 100, 100), self.nav_items, self.nav_selected_index)
             time.sleep(2)
             return False
         except Exception as e:
-            self.display.show_message("Error", str(e)[:30], (255, 100, 100), self.nav_items, self.selected_index)
+            self.display.show_message("Error", str(e)[:30], (255, 100, 100), self.nav_items, self.nav_selected_index)
             time.sleep(2)
             return False
     
@@ -775,7 +749,7 @@ class Menu:
             self.show_settings_menu()
     
     def show_theme_menu(self):
-        self.display.show_menu(self.theme_menu_items, self.selected_index, "Theme", nav_items=self.nav_items, nav_selected_index=self.selected_index)
+        self.display.show_menu(self.theme_menu_items, self.selected_index, "Theme", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index)
     
     def handle_theme_input(self, action):
         if action == 'up':
@@ -788,7 +762,7 @@ class Menu:
             selected_theme = self.theme_menu_items[self.selected_index]
             self.theme_manager.set_theme(selected_theme)
             self.display.show_message("Theme Set", f"Changed to\n{selected_theme.title()}", 
-                                     self.theme_manager.get_success(), self.nav_items, self.selected_index)
+                                     self.theme_manager.get_success(), self.nav_items, self.nav_selected_index)
             time.sleep(1)
             self.current_screen = "settings"
             # Find the Theme option index
@@ -811,7 +785,7 @@ class Menu:
         else:
             mode_display = current_mode.replace("_", " ").title()
         message = f"Progress Bar:\n{mode_display}\n\nUp/Down: Change\nSelect: Confirm"
-        self.display.show_message("Progress Bar", message, (100, 150, 255), self.nav_items, self.selected_index)
+        self.display.show_message("Progress Bar", message, (100, 150, 255), self.nav_items, self.nav_selected_index)
     
     def handle_progress_bar_input(self, action):
         if action == 'up':
@@ -834,14 +808,14 @@ class Menu:
     def restart_program(self):
         """Restart the Timagotchi program"""
         try:
-            self.display.show_message("Restarting", "Program restarting...", (100, 200, 255), self.nav_items, self.selected_index)
+            self.display.show_message("Restarting", "Program restarting...", (100, 200, 255), self.nav_items, self.nav_selected_index)
             time.sleep(1)
             self.input_handler.cleanup()
             self.running = False
             # Use os.execv to replace current process with new one
             os.execv(sys.executable, [sys.executable] + sys.argv)
         except Exception as e:
-            self.display.show_message("Error", f"Restart failed: {str(e)[:30]}", (255, 100, 100), self.nav_items, self.selected_index)
+            self.display.show_message("Error", f"Restart failed: {str(e)[:30]}", (255, 100, 100), self.nav_items, self.nav_selected_index)
             time.sleep(2)
             self.current_screen = "settings"
             self.selected_index = self.settings_menu_items.index("Restart") if "Restart" in self.settings_menu_items else 2
@@ -850,7 +824,7 @@ class Menu:
     def sync_time_via_wifi(self):
         """Attempt to sync time via WiFi using timedatectl"""
         try:
-            self.display.show_message("Syncing...", "Getting time from\nwifi network...", (100, 200, 100), self.nav_items, self.selected_index)
+            self.display.show_message("Syncing...", "Getting time from\nwifi network...", (100, 200, 100), self.nav_items, self.nav_selected_index)
             
             try:
                 # Set timezone first (import from config)
@@ -876,17 +850,17 @@ class Menu:
                 
                 if "yes" in result.stdout.lower():
                     self.last_sync_error = None
-                    self.display.show_message("Time Synced", "WiFi sync\nsuccessful!", (100, 255, 100), self.nav_items, self.selected_index)
+                    self.display.show_message("Time Synced", "WiFi sync\nsuccessful!", (100, 255, 100), self.nav_items, self.nav_selected_index)
                 else:
                     self.last_sync_error = "NTP not synchronized"
-                    self.display.show_message("Sync Failed", "NTP sync pending", (255, 100, 100), self.nav_items, self.selected_index)
+                    self.display.show_message("Sync Failed", "NTP sync pending", (255, 100, 100), self.nav_items, self.nav_selected_index)
                 
             except subprocess.TimeoutExpired:
                 self.last_sync_error = "Sync timed out"
-                self.display.show_message("Sync Failed", "Operation timed out", (255, 100, 100), self.nav_items, self.selected_index)
+                self.display.show_message("Sync Failed", "Operation timed out", (255, 100, 100), self.nav_items, self.nav_selected_index)
             except Exception as e:
                 self.last_sync_error = str(e)
-                self.display.show_message("Sync Failed", str(e)[:40], (255, 100, 100), self.nav_items, self.selected_index)
+                self.display.show_message("Sync Failed", str(e)[:40], (255, 100, 100), self.nav_items, self.nav_selected_index)
             
             # Wait for display to be visible
             time.sleep(2)
@@ -896,7 +870,7 @@ class Menu:
                 self.input_handler.last_press[pin] = current_time
         except Exception as e:
             self.last_sync_error = str(e)
-            self.display.show_message("Error", str(e)[:40], (255, 100, 100), self.nav_items, self.selected_index)
+            self.display.show_message("Error", str(e)[:40], (255, 100, 100), self.nav_items, self.nav_selected_index)
             time.sleep(2)
             # Reset debounce timers
             current_time = time.time()
@@ -928,10 +902,10 @@ class Menu:
                 error_msg = result.stderr.strip()
                 if "ntp" in error_msg.lower() or "synchronized" in error_msg.lower():
                     self.last_sync_error = "Run: sudo timedatectl\nset-ntp false"
-                    self.display.show_message("Failed", self.last_sync_error, (255, 100, 100), self.nav_items, self.selected_index)
+                    self.display.show_message("Failed", self.last_sync_error, (255, 100, 100), self.nav_items, self.nav_selected_index)
                 else:
                     self.last_sync_error = error_msg if error_msg else "Failed to set time"
-                    self.display.show_message("Failed", self.last_sync_error[:40], (255, 100, 100), self.nav_items, self.selected_index)
+                    self.display.show_message("Failed", self.last_sync_error[:40], (255, 100, 100), self.nav_items, self.nav_selected_index)
             else:
                 self.last_sync_error = None
                 # Display time in the configured format
@@ -943,7 +917,7 @@ class Menu:
                         display_hour = 12
                     am_pm = "AM" if self.adjust_hour < 12 else "PM"
                     display_time = f"{display_hour:02d}:{self.adjust_minute:02d} {am_pm}"
-                self.display.show_message("Time Set", f"Set to {display_time}", (100, 255, 100), self.nav_items, self.selected_index)
+                self.display.show_message("Time Set", f"Set to {display_time}", (100, 255, 100), self.nav_items, self.nav_selected_index)
             
             # Wait for display to be visible
             time.sleep(2)
@@ -953,7 +927,7 @@ class Menu:
                 self.input_handler.last_press[pin] = current_time
         except subprocess.TimeoutExpired:
             self.last_sync_error = "Operation timed out"
-            self.display.show_message("Failed", "Timeout", (255, 100, 100), self.nav_items, self.selected_index)
+            self.display.show_message("Failed", "Timeout", (255, 100, 100), self.nav_items, self.nav_selected_index)
             time.sleep(2)
             # Reset debounce timers
             current_time = time.time()
@@ -961,7 +935,7 @@ class Menu:
                 self.input_handler.last_press[pin] = current_time
         except Exception as e:
             self.last_sync_error = str(e)
-            self.display.show_message("Error", str(e)[:40], (255, 100, 100), self.nav_items, self.selected_index)
+            self.display.show_message("Error", str(e)[:40], (255, 100, 100), self.nav_items, self.nav_selected_index)
             time.sleep(2)
             # Reset debounce timers
             current_time = time.time()
@@ -988,20 +962,18 @@ class Menu:
                 if action in ('key1', 'key2', 'key3'):
                     if action == 'key1':
                         self.current_screen = 'main'
-                        # highlight Main Page in sidebar
-                        self.selected_index = self.nav_items.index('Main Page') if 'Main Page' in self.nav_items else 0
+                        self.nav_selected_index = self.nav_items.index('Main Page') if 'Main Page' in self.nav_items else 0
                         self.show_main_menu()
                         continue
                     elif action == 'key2':
                         self.current_screen = 'grades'
-                        # highlight Grades in sidebar
-                        self.selected_index = self.nav_items.index('Grades') if 'Grades' in self.nav_items else 1
+                        self.nav_selected_index = self.nav_items.index('Grades') if 'Grades' in self.nav_items else 1
                         self.show_grades_menu()
                         continue
                     elif action == 'key3':
                         self.current_screen = 'settings'
-                        # highlight Settings in sidebar
-                        self.selected_index = self.nav_items.index('Settings') if 'Settings' in self.nav_items else 2
+                        self.nav_selected_index = self.nav_items.index('Settings') if 'Settings' in self.nav_items else 2
+                        self.selected_index = 0
                         self.show_settings_menu()
                         continue
                 if self.current_screen == "main":
