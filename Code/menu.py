@@ -31,7 +31,8 @@ class Menu:
         self.settings_menu_items = []
         if abday.lower() == "true":
             self.settings_menu_items.append("A/B Day")
-        self.settings_menu_items.extend(["WiFi", "Theme", "Progress Bar", "Set Time", "Schedule Presets", "Set Today Preset", "Restart", "Back"])
+        self.settings_menu_items.extend(["WiFi", "Theme", "Progress Bar", "Set Time", "Schedule Presets", "Set Today Preset", "Git Pull", "Restart", "Back"])
+        self.settings_scroll_offset = 0
         self.set_time_menu_items = ["WiFi Sync", "Manual Set", "Back"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
         self.adjust_hour = 0
@@ -358,7 +359,13 @@ class Menu:
             return "Error", 0
     
     def show_settings_menu(self):
-        self.display.show_menu(self.settings_menu_items, self.selected_index, "Settings", nav_items=self.nav_items, nav_selected_index=self.selected_index)
+        # Adjust scroll window to keep selection visible
+        max_visible = 6
+        if self.selected_index < self.settings_scroll_offset:
+            self.settings_scroll_offset = self.selected_index
+        elif self.selected_index >= self.settings_scroll_offset + max_visible:
+            self.settings_scroll_offset = self.selected_index - max_visible + 1
+        self.display.show_menu(self.settings_menu_items, self.selected_index, "Settings", nav_items=self.nav_items, nav_selected_index=self.selected_index, start_index=self.settings_scroll_offset, max_visible=max_visible)
 
     def _show_presets_menu(self):
         msg = f"Presets: {self.presets_count}\nUp/Down: 1 or 2\nSelect: Save"
@@ -606,13 +613,8 @@ class Menu:
             self.show_settings_menu()
     
     def handle_main_menu_input(self, action):
-        if action == 'up':
-            self.selected_index = (self.selected_index - 1) % len(self.nav_items)
-            self.show_main_menu()
-        elif action == 'down':
-            self.selected_index = (self.selected_index + 1) % len(self.nav_items)
-            self.show_main_menu()
-        elif action == 'select' or action == 'right':
+        # Sidebar is only accessible via key1/2/3; ignore up/down for nav
+        if action == 'select' or action == 'right':
             selected_item = self.nav_items[self.selected_index]
             if selected_item == "Main Page":
                 self.current_screen = "main"
@@ -673,8 +675,22 @@ class Menu:
             elif selected_item == "Set Today Preset":
                 self.current_screen = 'set_today'
                 self._show_set_today_preset()
+            elif selected_item == "Git Pull":
+                self._run_git_pull()
             elif selected_item == "Restart":
                 self.restart_program()
+            def _run_git_pull(self):
+                """Run a git pull and report the status."""
+                try:
+                    repo_dir = os.path.dirname(os.path.dirname(__file__))
+                    result = subprocess.run(['git', '-C', repo_dir, 'pull'], capture_output=True, text=True, timeout=20)
+                    if result.returncode == 0:
+                        self.display.show_message("Git Pull", "Pull successful", (100, 255, 100), self.nav_items, self.selected_index)
+                    else:
+                        err = result.stderr.strip()[:60] or "Push failed"
+                        self.display.show_message("Git Pull", err, (255, 100, 100), self.nav_items, self.selected_index)
+                except Exception as e:
+                    self.display.show_message("Git Pull", str(e)[:60], (255, 100, 100), self.nav_items, self.selected_index)
         elif action == 'left':
             self.current_screen = "main"
             self.selected_index = 0
@@ -952,16 +968,19 @@ class Menu:
                 if action in ('key1', 'key2', 'key3'):
                     if action == 'key1':
                         self.current_screen = 'settings'
+                        # highlight Settings in sidebar
                         self.selected_index = self.nav_items.index('Settings') if 'Settings' in self.nav_items else 2
                         self.show_settings_menu()
                         continue
                     elif action == 'key2':
                         self.current_screen = 'grades'
+                        # highlight Grades in sidebar
                         self.selected_index = self.nav_items.index('Grades') if 'Grades' in self.nav_items else 1
                         self.show_grades_menu()
                         continue
                     elif action == 'key3':
                         self.current_screen = 'main'
+                        # highlight Main Page in sidebar
                         self.selected_index = self.nav_items.index('Main Page') if 'Main Page' in self.nav_items else 0
                         self.show_main_menu()
                         continue

@@ -102,15 +102,23 @@ class WaveshareDisplay:
         if not nav_items:
             return
         secondary = self._get_text_secondary_color()
-        nav_x = self.width - 40
+        accent_sel = (255, 255, 0)
+        gutter = 40
+        nav_x = self.width - gutter
         nav_y = 4
+        # Draw vertical labels rotated 90 degrees, aligned to right gutter
         for i, item in enumerate(nav_items):
-            y = nav_y + i * 18
+            y = nav_y + i * 40  # more spacing for rotated text
+            # Create a small image for text, rotate -90 degrees
+            tmp = Image.new('RGBA', (100, 20), (0, 0, 0, 0))
+            dtmp = ImageDraw.Draw(tmp)
+            color = accent_sel if i == selected_index else secondary
+            dtmp.text((0, 0), item, font=self.font_tiny, fill=color)
+            rot = tmp.rotate(90, expand=True)
+            self.image.paste(rot, (nav_x, y), rot)
             if i == selected_index:
-                self.draw.rectangle((nav_x - 2, y - 2, self.width - 2, y + 14), outline=(255, 255, 0), width=1)
-                self.draw.text((nav_x, y), item, font=self.font_tiny, fill=(255, 255, 0))
-            else:
-                self.draw.text((nav_x, y), item, font=self.font_tiny, fill=secondary)
+                # simple highlight bar next to text
+                self.draw.rectangle((nav_x - 4, y, nav_x - 2, y + rot.size[1]), outline=accent_sel)
 
     def show_schedule(self, period, period_name, time_remaining, lunch_time, end_time, current_time_str, nav_items=None, selected_index=0):
         self.clear(self._get_bg_color())
@@ -149,7 +157,7 @@ class WaveshareDisplay:
         self._render_sidebar(nav_items or [], selected_index)
         self._render()
 
-    def show_menu(self, menu_items, selected_index, title="Menu", progress_label="", progress_value=0, nav_items=None, nav_selected_index=0):
+    def show_menu(self, menu_items, selected_index, title="Menu", progress_label="", progress_value=0, nav_items=None, nav_selected_index=0, start_index=0, max_visible=6):
         self.clear(self._get_bg_color())
         
         # Get colors from theme
@@ -161,13 +169,21 @@ class WaveshareDisplay:
         self.draw.text((2, y_offset), title, font=self.font_large, fill=title_color)
         y_offset += 22
 
-        for i, item in enumerate(menu_items):
-            if i == selected_index:
+        visible_items = menu_items[start_index:start_index + max_visible]
+        for i, item in enumerate(visible_items):
+            absolute_index = start_index + i
+            if absolute_index == selected_index:
                 self.draw.rectangle((1, y_offset - 1, self.width - 1, y_offset + 15), outline=selected_color, width=1)
                 self.draw.text((4, y_offset), f"> {item}", font=self.font_small, fill=selected_color)
             else:
                 self.draw.text((4, y_offset), f"  {item}", font=self.font_small, fill=unselected_color)
             y_offset += 18
+
+        # Scroll indicators
+        if start_index > 0:
+            self.draw.text((self.width - 50, 22), "↑", font=self.font_small, fill=unselected_color)
+        if start_index + max_visible < len(menu_items):
+            self.draw.text((self.width - 50, y_offset - 2), "↓", font=self.font_small, fill=unselected_color)
 
         # Draw progress bar at the bottom if progress_label is provided
         if progress_label:
@@ -228,7 +244,7 @@ class WaveshareDisplay:
         accent = self._get_accent_color()
         secondary = self._get_text_secondary_color()
 
-        self.draw.text((4, 2), "progress", font=self.font_small, fill=title_color)
+        # Progress bar spans full width until the right sidebar gutter
         bar_y = 18
         bar_x_start = 4
         bar_width = self.width - 8 - 40  # leave room for right nav gutter
@@ -237,7 +253,7 @@ class WaveshareDisplay:
         if progress_value > 0:
             fill_width = int((progress_value / 100.0) * bar_width)
             self.draw.rectangle((bar_x_start, bar_y, bar_x_start + fill_width, bar_y + bar_height), fill=accent)
-        self.draw.text((bar_x_start + 2, bar_y + 12), progress_label, font=self.font_tiny, fill=secondary)
+        self.draw.text((bar_x_start + 2, bar_y - 12), progress_label, font=self.font_tiny, fill=secondary)
 
         # Sidebar (drawn after main content as overlay)
         nav_x = self.width - 40
