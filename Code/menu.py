@@ -273,8 +273,8 @@ class Menu:
         date_str = now.strftime("%a %b %d")
         schedule_summary = self._get_schedule_summary()
         wifi_connected = self._get_wifi_connected()
-        bubble_text = "text"  # placeholder per sketch; can be dynamic later
-        self.display.show_main_page(label, progress, time_str, date_str, schedule_summary, wifi_connected, self.nav_items, self.nav_selected_index, bubble_text)
+        bubble_text = schedule_summary or ""  # show period/advisory/passing in bubble
+        self.display.show_main_page(label, progress, time_str, date_str, None, wifi_connected, self.nav_items, self.nav_selected_index, bubble_text)
     
     def get_progress_bar(self):
         """Calculate progress bar based on current mode."""

@@ -313,11 +313,10 @@ class WaveshareDisplay:
         bubble_h = int(center_h * 0.4)
         self.draw.rectangle((bubble_x, bubble_y, bubble_x + bubble_w, bubble_y + bubble_h), outline=accent)
         if bubble_text:
-            self.draw.text((bubble_x + 3, bubble_y + 3), bubble_text[:10], font=self.font_tiny, fill=primary)
+            # Allow a bit more text for schedule status
+            self.draw.text((bubble_x + 3, bubble_y + 3), bubble_text[:18], font=self.font_tiny, fill=primary)
 
-        # Schedule summary below character area
-        if schedule_summary:
-            self.draw.text((4, center_bottom - 2), schedule_summary[:20], font=self.font_tiny, fill=secondary)
+        # Schedule summary line removed; using bubble instead
 
         # === BOTTOM: Clock only (WiFi is in sidebar area) ===
         # Move up a bit to avoid overlap with summary/wifi
