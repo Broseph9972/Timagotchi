@@ -32,7 +32,7 @@ class Menu:
         self.settings_menu_items = []
         if abday.lower() == "true":
             self.settings_menu_items.append("A/B Day")
-        self.settings_menu_items.extend(["WiFi", "Theme", "Progress Bar", "Set Time", "Schedule Presets", "Set Today Preset", "Git Pull", "Restart", "Back"])
+        self.settings_menu_items.extend(["WiFi", "Theme", "Progress Bar", "Set Time", "Schedule Presets", "Set Today Preset", "Update", "Restart", "Back"])
         self.settings_scroll_offset = 0
         self.set_time_menu_items = ["WiFi Sync", "Manual Set", "Back"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
@@ -168,6 +168,7 @@ class Menu:
     def show_schedule_screen(self):
         current_time = datetime.datetime.now()
         period, time_remaining, is_lunch = self.get_current_period(current_time)
+        wifi_connected = self._get_wifi_connected()
         
         school_start = datetime.datetime.strptime(SCHOOL_START, "%H:%M").time()
         school_start = datetime.datetime.combine(datetime.date.today(), school_start)
@@ -182,10 +183,10 @@ class Menu:
         if current_time < school_start:
             time_until_start = self.get_time_until(SCHOOL_START, current_time)
             time_until_str = self.format_timedelta(time_until_start)
-            self.display.show_message("School Hasn't Started", f"Starts in {time_until_str}\nSchool @ {SCHOOL_START}", (200, 200, 200), self.nav_items, self.nav_selected_index)
+            self.display.show_message("School Hasn't Started", f"Starts in {time_until_str}\nSchool @ {SCHOOL_START}", (200, 200, 200), self.nav_items, self.nav_selected_index, wifi_connected)
             return
         elif current_time > school_end:
-            self.display.show_message("After School", "School day has ended", (200, 200, 200), self.nav_items, self.nav_selected_index)
+            self.display.show_message("After School", "School day has ended", (200, 200, 200), self.nav_items, self.nav_selected_index, wifi_connected)
             return
         
         period_name = ""
@@ -219,16 +220,17 @@ class Menu:
         
         time_remaining_str = self.format_timedelta(time_remaining) if time_remaining else None
         
-        self.display.show_schedule(period, period_name, time_remaining_str, lunch_time_str, end_time_str, current_time_str, self.nav_items, self.nav_selected_index)
+        self.display.show_schedule(period, period_name, time_remaining_str, lunch_time_str, end_time_str, current_time_str, self.nav_items, self.nav_selected_index, wifi_connected)
     
     def show_clock_screen(self):
         now = datetime.datetime.now()
+        wifi_connected = self._get_wifi_connected()
         if USE_24_HOUR:
             time_str = now.strftime("%H:%M:%S")
         else:
             time_str = now.strftime("%I:%M:%S %p")
         date_str = now.strftime("%A, %B %d")
-        self.display.show_clock(time_str, date_str, self.nav_items, self.nav_selected_index)
+        self.display.show_clock(time_str, date_str, self.nav_items, self.nav_selected_index, wifi_connected)
     
     def _get_wifi_connected(self):
         """Best-effort check for WiFi connectivity (nmcli); fallback to False."""
@@ -349,15 +351,17 @@ class Menu:
     def show_settings_menu(self):
         # Adjust scroll window to keep selection visible
         max_visible = 6
+        wifi_connected = self._get_wifi_connected()
         if self.selected_index < self.settings_scroll_offset:
             self.settings_scroll_offset = self.selected_index
         elif self.selected_index >= self.settings_scroll_offset + max_visible:
             self.settings_scroll_offset = self.selected_index - max_visible + 1
-        self.display.show_menu(self.settings_menu_items, self.selected_index, "Settings", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, start_index=self.settings_scroll_offset, max_visible=max_visible)
+        self.display.show_menu(self.settings_menu_items, self.selected_index, "Settings", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, start_index=self.settings_scroll_offset, max_visible=max_visible, wifi_connected=wifi_connected)
 
     def _show_presets_menu(self):
         msg = f"Presets: {self.presets_count}\nUp/Down: 1 or 2\nSelect: Save"
-        self.display.show_message("Schedule Presets", msg, (150, 200, 255), self.nav_items, self.nav_selected_index)
+        wifi_connected = self._get_wifi_connected()
+        self.display.show_message("Schedule Presets", msg, (150, 200, 255), self.nav_items, self.nav_selected_index, wifi_connected)
 
     def _handle_presets_input(self, action):
         if action == 'up':
@@ -376,7 +380,8 @@ class Menu:
     def _show_set_today_preset(self):
         label = 'A' if self.current_preset_index == 0 else 'B'
         msg = f"Today Preset: {label}\nUp/Down: Toggle\nSelect: Set & Auto-advance daily"
-        self.display.show_message("Set Today", msg, (150, 255, 200), self.nav_items, self.nav_selected_index)
+        wifi_connected = self._get_wifi_connected()
+        self.display.show_message("Set Today", msg, (150, 255, 200), self.nav_items, self.nav_selected_index, wifi_connected)
 
     def _handle_set_today_input(self, action):
         if action in ('up', 'down'):
@@ -474,7 +479,8 @@ class Menu:
         """Show WiFi network selection menu"""
         if not self.available_networks:
             if not self.scan_wifi_networks():
-                self.display.show_message("WiFi", "No networks found\nor scan failed", (255, 100, 100), self.nav_items, self.nav_selected_index)
+                wifi_connected = self._get_wifi_connected()
+                self.display.show_message("WiFi", "No networks found\nor scan failed", (255, 100, 100), self.nav_items, self.nav_selected_index, wifi_connected)
                 time.sleep(2)
                 return
         
@@ -483,7 +489,8 @@ class Menu:
     def show_wifi_network_list(self):
         """Display current WiFi network for selection"""
         if not self.available_networks:
-            self.display.show_message("WiFi", "No networks\nfound", (200, 100, 100), self.nav_items, self.nav_selected_index)
+            wifi_connected = self._get_wifi_connected()
+            self.display.show_message("WiFi", "No networks\nfound", (200, 100, 100), self.nav_items, self.nav_selected_index, wifi_connected)
             return
         
         network = self.available_networks[self.wifi_scan_index]
@@ -492,7 +499,8 @@ class Menu:
         status = "[OPEN]" if is_open else "[SECURED]"
         
         message = f"WiFi Network:\n{ssid}\n{status}\n\nUp/Down: Browse\nSelect: Connect"
-        self.display.show_message("WiFi", message, (100, 200, 255), self.nav_items, self.nav_selected_index)
+        wifi_connected = self._get_wifi_connected()
+        self.display.show_message("WiFi", message, (100, 200, 255), self.nav_items, self.nav_selected_index, wifi_connected)
     
     def show_ab_day_menu(self):
         if self.ab_day_mode == "auto":
@@ -500,10 +508,12 @@ class Menu:
         else:
             current = self.manual_ab_day.upper()
             message = f"A/B Day: {current}\n\nUp/Down: Toggle\nSelect: Confirm"
-        self.display.show_message("A/B Day", message, (200, 150, 255), self.nav_items, self.nav_selected_index)
+        wifi_connected = self._get_wifi_connected()
+        self.display.show_message("A/B Day", message, (200, 150, 255), self.nav_items, self.nav_selected_index, wifi_connected)
     
     def show_set_time_menu(self):
-        self.display.show_menu(self.set_time_menu_items, self.selected_index, "Set Time", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index)
+        wifi_connected = self._get_wifi_connected()
+        self.display.show_menu(self.set_time_menu_items, self.selected_index, "Set Time", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, wifi_connected=wifi_connected)
     
     def show_set_time_screen(self):
         if USE_24_HOUR:
@@ -519,7 +529,8 @@ class Menu:
             hour_str = f"{display_hour:02d}"
             minute_str = f"{self.adjust_minute:02d}"
             message = f"Set Time:\n{hour_str}:{minute_str} {am_pm}\n\nKey1: Hour+\nKey2: Min+\nKey3: Done"
-        self.display.show_message("Set Time", message, (255, 200, 100), self.nav_items, self.nav_selected_index)
+        wifi_connected = self._get_wifi_connected()
+        self.display.show_message("Set Time", message, (255, 200, 100), self.nav_items, self.nav_selected_index, wifi_connected)
     
     def handle_set_time_input(self, action):
         if action == 'key1':  # Increase hour
@@ -654,24 +665,25 @@ class Menu:
             elif selected_item == "Set Today Preset":
                 self.current_screen = 'set_today'
                 self._show_set_today_preset()
-            elif selected_item == "Git Pull":
-                self._run_git_pull()
+            elif selected_item == "Update":
+                self._run_update()
             elif selected_item == "Restart":
                 self.restart_program()
-    def _run_git_pull(self):
-        """Run a safe git pull (ff-only) and report status without crashing."""
+    def _run_update(self):
+        """Run a safe git pull (ff-only) from /home/pi/Timagothi and report status."""
         try:
-            repo_dir = os.path.dirname(os.path.dirname(__file__))
+            # Use the Pi repo path explicitly as requested
+            repo_dir = "/home/pi/Timagothi"
             # Verify git is available
             git_check = subprocess.run(['git', '--version'], capture_output=True, text=True, timeout=5)
             if git_check.returncode != 0:
-                self.display.show_message("Git Pull", "git not installed", (255, 100, 100), self.nav_items, self.nav_selected_index)
+                self.display.show_message("Update", "git not installed", (255, 100, 100), self.nav_items, self.nav_selected_index)
                 return
 
             # Ensure remote origin exists
             remote = subprocess.run(['git', '-C', repo_dir, 'config', '--get', 'remote.origin.url'], capture_output=True, text=True, timeout=5)
             if remote.returncode != 0 or not remote.stdout.strip():
-                self.display.show_message("Git Pull", "No remote origin", (255, 100, 100), self.nav_items, self.nav_selected_index)
+                self.display.show_message("Update", "No remote origin", (255, 100, 100), self.nav_items, self.nav_selected_index)
                 return
 
             # Get current branch
@@ -683,12 +695,12 @@ class Menu:
             result = subprocess.run(['git', '-C', repo_dir, 'pull', '--ff-only', 'origin', current_branch], capture_output=True, text=True, timeout=30)
             if result.returncode == 0:
                 msg = result.stdout.strip() or "Up to date"
-                self.display.show_message("Git Pull", msg[:60], (100, 255, 100), self.nav_items, self.nav_selected_index)
+                self.display.show_message("Update", msg[:60], (100, 255, 100), self.nav_items, self.nav_selected_index)
             else:
                 err = result.stderr.strip()[:80] or "Pull failed"
-                self.display.show_message("Git Pull", err, (255, 100, 100), self.nav_items, self.nav_selected_index)
+                self.display.show_message("Update", err, (255, 100, 100), self.nav_items, self.nav_selected_index)
         except Exception as e:
-            self.display.show_message("Git Pull", (str(e) or "error")[:80], (255, 100, 100), self.nav_items, self.nav_selected_index)
+            self.display.show_message("Update", (str(e) or "error")[:80], (255, 100, 100), self.nav_items, self.nav_selected_index)
 
     def show_grades_menu(self):
         # Placeholder for grades menu
@@ -749,7 +761,8 @@ class Menu:
             self.show_settings_menu()
     
     def show_theme_menu(self):
-        self.display.show_menu(self.theme_menu_items, self.selected_index, "Theme", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index)
+        wifi_connected = self._get_wifi_connected()
+        self.display.show_menu(self.theme_menu_items, self.selected_index, "Theme", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, wifi_connected=wifi_connected)
     
     def handle_theme_input(self, action):
         if action == 'up':
@@ -761,8 +774,9 @@ class Menu:
         elif action == 'select' or action == 'right':
             selected_theme = self.theme_menu_items[self.selected_index]
             self.theme_manager.set_theme(selected_theme)
+            wifi_connected = self._get_wifi_connected()
             self.display.show_message("Theme Set", f"Changed to\n{selected_theme.title()}", 
-                                     self.theme_manager.get_success(), self.nav_items, self.nav_selected_index)
+                                     self.theme_manager.get_success(), self.nav_items, self.nav_selected_index, wifi_connected)
             time.sleep(1)
             self.current_screen = "settings"
             # Find the Theme option index

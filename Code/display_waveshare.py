@@ -158,7 +158,7 @@ class WaveshareDisplay:
         color = (0, 200, 0) if wifi_connected else (200, 0, 0)
         self.draw.rectangle((sidebar_x, y0, self.width, self.height), fill=color)
 
-    def show_schedule(self, period, period_name, time_remaining, lunch_time, end_time, current_time_str, nav_items=None, selected_index=0):
+    def show_schedule(self, period, period_name, time_remaining, lunch_time, end_time, current_time_str, nav_items=None, selected_index=0, wifi_connected=False):
         self.clear(self._get_bg_color())
         
         y_offset = 2
@@ -191,11 +191,12 @@ class WaveshareDisplay:
         if end_time:
             self.draw.text((2, y_offset), f"Ends: {end_time}", font=self.font_small, fill=(255, 100, 100))
 
-        # Sidebar overlay
+        # Sidebar overlay + WiFi
         self._render_sidebar(nav_items or [], selected_index)
+        self._render_wifi_indicator(wifi_connected)
         self._render()
 
-    def show_menu(self, menu_items, selected_index, title="Menu", progress_label="", progress_value=0, nav_items=None, nav_selected_index=0, start_index=0, max_visible=5):
+    def show_menu(self, menu_items, selected_index, title="Menu", progress_label="", progress_value=0, nav_items=None, nav_selected_index=0, start_index=0, max_visible=5, wifi_connected=False):
         self.clear(self._get_bg_color())
         
         # Get colors from theme
@@ -228,11 +229,12 @@ class WaveshareDisplay:
         if start_index + max_visible < len(menu_items):
             self.draw.text((content_width - 10, y_offset - 4), "v", font=self.font_tiny, fill=unselected_color)
 
-        # Sidebar
+        # Sidebar + WiFi
         self._render_sidebar(nav_items or [], nav_selected_index)
+        self._render_wifi_indicator(wifi_connected)
         self._render()
 
-    def show_message(self, title, message, color=(255, 255, 255), nav_items=None, nav_selected_index=0):
+    def show_message(self, title, message, color=(255, 255, 255), nav_items=None, nav_selected_index=0, wifi_connected=False):
         self.clear(self._get_bg_color())
         
         content_width = self.width - self.SIDEBAR_WIDTH - 4
@@ -246,11 +248,12 @@ class WaveshareDisplay:
             self.draw.text((4, y_offset), display_line, font=self.font_tiny, fill=self._get_text_secondary_color())
             y_offset += 12
 
-        # Sidebar
+        # Sidebar + WiFi
         self._render_sidebar(nav_items or [], nav_selected_index)
+        self._render_wifi_indicator(wifi_connected)
         self._render()
 
-    def show_clock(self, time_str, date_str, nav_items=None, nav_selected_index=0):
+    def show_clock(self, time_str, date_str, nav_items=None, nav_selected_index=0, wifi_connected=False):
         self.clear(self._get_bg_color())
         
         content_width = self.width - self.SIDEBAR_WIDTH - 4
@@ -259,8 +262,9 @@ class WaveshareDisplay:
         self.draw.text((10, 40), time_str, font=self.font_large, fill=self._get_accent_color())
         self.draw.text((10, 65), date_str, font=self.font_small, fill=self._get_text_secondary_color())
 
-        # Sidebar
+        # Sidebar + WiFi
         self._render_sidebar(nav_items or [], nav_selected_index)
+        self._render_wifi_indicator(wifi_connected)
         self._render()
     
     def show_main_page(self, progress_label, progress_value, time_str, date_str, schedule_summary, wifi_connected, nav_items, selected_index, bubble_text=""):
