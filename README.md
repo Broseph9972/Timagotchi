@@ -71,9 +71,11 @@ chmod +x install.sh start.sh
 ./install.sh
 ```
 
+Reboot with ```sudo reboot``` 
+
 To customize your schedule run 
 ```bash
-python3 configure_schedule.py
+python3 Timagotchi/Code/configure_schedule.py
 ```
 **If install.sh and start.sh wont run, try ```dos2unix install.sh start.sh``` this happens when i sftp it over. If using git ignore this**
 
