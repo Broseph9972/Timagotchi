@@ -108,8 +108,9 @@ class WaveshareDisplay:
             try:
                 if os.path.exists(icon_path):
                     img = Image.open(icon_path)
-                    if img.mode != 'RGB':
-                        img = img.convert('RGB')
+                    # Keep RGBA to preserve transparency/alpha channel
+                    if img.mode != 'RGBA':
+                        img = img.convert('RGBA')
                     self.icon_cache[key] = img
             except Exception as e:
                 pass  # Silently skip icons that fail to load
@@ -187,7 +188,11 @@ class WaveshareDisplay:
                 # Center icon in the box
                 paste_x = sidebar_x + (self.SIDEBAR_WIDTH - icon_resized.width) // 2
                 paste_y = y_start + (item_height - icon_resized.height) // 2
-                self.image.paste(icon_resized, (paste_x, paste_y))
+                # Use alpha channel as mask for transparency
+                if icon_resized.mode == 'RGBA':
+                    self.image.paste(icon_resized, (paste_x, paste_y), icon_resized)
+                else:
+                    self.image.paste(icon_resized, (paste_x, paste_y))
             else:
                 # Fallback: draw placeholder box if icon not found
                 inner_margin = 1
@@ -369,7 +374,11 @@ class WaveshareDisplay:
                 # Center in box
                 paste_x = char_x + (char_w - icon_resized.width) // 2
                 paste_y = char_y + (char_h - icon_resized.height) // 2
-                self.image.paste(icon_resized, (paste_x, paste_y))
+                # Use alpha channel as mask for transparency
+                if icon_resized.mode == 'RGBA':
+                    self.image.paste(icon_resized, (paste_x, paste_y), icon_resized)
+                else:
+                    self.image.paste(icon_resized, (paste_x, paste_y))
             except Exception as e:
                 # Fallback text on any error
                 self.draw.text((char_x + 4, char_y + char_h // 2 - 5), "Home", font=self.font_tiny, fill=secondary)
@@ -426,7 +435,11 @@ class WaveshareDisplay:
                 icon_resized.thumbnail((icon_width - 4, 50), Image.LANCZOS)
                 paste_x = icon_x + (icon_width - icon_resized.width) // 2
                 paste_y = icon_y + (60 - icon_resized.height) // 2
-                self.image.paste(icon_resized, (paste_x, paste_y))
+                # Use alpha channel as mask for transparency
+                if icon_resized.mode == 'RGBA':
+                    self.image.paste(icon_resized, (paste_x, paste_y), icon_resized)
+                else:
+                    self.image.paste(icon_resized, (paste_x, paste_y))
             except Exception as e:
                 # Fallback text if icon fails
                 self.draw.text((icon_x + 6, icon_y + 20), "G", font=self.font_medium, fill=secondary)
