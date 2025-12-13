@@ -31,7 +31,7 @@ class Menu:
         self.settings_menu_items = []
         if abday.lower() == "true":
             self.settings_menu_items.append("A/B Day")
-        self.settings_menu_items.extend(["WiFi", "Theme", "Progress Bar", "Set Time", "Restart", "Back"])
+        self.settings_menu_items.extend(["WiFi", "Theme", "Progress Bar", "Set Time", "Schedule Presets", "Set Today Preset", "Restart", "Back"])
         self.set_time_menu_items = ["WiFi Sync", "Manual Set", "Back"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
         self.adjust_hour = 0
@@ -46,6 +46,14 @@ class Menu:
         self.progress_bar_modes = ["time_in_class", "time_in_day", "lunch_day"]
         self.progress_bar_mode = PROGRESS_BAR_MODE
         self.progress_bar_mode_index = self.progress_bar_modes.index(self.progress_bar_mode) if self.progress_bar_mode in self.progress_bar_modes else 0
+        
+        # Preset scheduling state (1=single schedule, 2=two presets that rotate daily)
+        self.state_path = os.path.join(os.path.dirname(__file__), 'schedule_state.json')
+        self.presets_count = 2  # default to 2 presets
+        self.current_preset_index = 0  # 0 = A_DAY_PERIODS, 1 = B_DAY_PERIODS
+        self.last_advance_date = None
+        self._load_state()
+        self._advance_preset_if_new_day()
     
 
     
@@ -54,20 +62,51 @@ class Menu:
         return today[0] in freetimedaus.lower().split(',')
     
     def get_current_ab_day(self):
-        """Get current A/B day based on mode"""
-        if abday.lower() != "true":
-            return "a"  # Default to A if A/B days are disabled
-        
-        if self.ab_day_mode == "auto":
-            # Auto mode: alternate daily starting with A on Monday
-            today = datetime.datetime.now()
-            days_since_monday = today.weekday()  # 0 = Monday, 6 = Sunday
-            # At start of week (Monday), we're on day 0 (A day)
-            # Every day, we switch. So: Mon=A, Tue=B, Wed=A, Thu=B, Fri=A
-            return "a" if days_since_monday % 2 == 0 else "b"
-        else:
-            # Manual mode
-            return self.manual_ab_day.lower()
+        """Return 'a' or 'b' based on preset index when presets_count==2; otherwise 'a'."""
+        if self.presets_count == 2:
+            return 'a' if self.current_preset_index == 0 else 'b'
+        return 'a'
+
+    def _load_state(self):
+        try:
+            if os.path.exists(self.state_path):
+                with open(self.state_path, 'r') as f:
+                    data = json.load(f)
+                self.presets_count = int(data.get('presets_count', 2))
+                self.current_preset_index = int(data.get('current_preset_index', 0))
+                self.last_advance_date = data.get('last_advance_date')
+        except Exception:
+            pass
+
+    def _save_state(self):
+        try:
+            data = {
+                'presets_count': self.presets_count,
+                'current_preset_index': self.current_preset_index,
+                'last_advance_date': self.last_advance_date,
+            }
+            with open(self.state_path, 'w') as f:
+                json.dump(data, f)
+        except Exception:
+            pass
+
+    def _advance_preset_if_new_day(self):
+        """Auto-advance preset once per calendar day when presets_count==2."""
+        try:
+            today_str = datetime.date.today().isoformat()
+            if self.presets_count == 2:
+                if self.last_advance_date != today_str:
+                    # advance
+                    self.current_preset_index = (self.current_preset_index + 1) % 2
+                    self.last_advance_date = today_str
+                    self._save_state()
+            else:
+                # single schedule; ensure index=0
+                if self.current_preset_index != 0:
+                    self.current_preset_index = 0
+                    self._save_state()
+        except Exception:
+            pass
     
     def get_current_period(self, current_time):
         lunch_start = datetime.datetime.strptime(LUNCH_START, "%H:%M").time()
@@ -79,37 +118,16 @@ class Menu:
             time_remaining = lunch_end - current_time
             return "LUNCH", time_remaining, True
         
-        # Check for advisory period
+        # Advisory every weekday before period 1 (ignore advisorydays)
         if advisory.lower() == "true":
-            advisory_start = datetime.datetime.strptime(ADVISORY_START, "%H:%M").time()
-            advisory_start_dt = datetime.datetime.combine(datetime.date.today(), advisory_start)
-            advisory_len = int(advisorylength)
-            advisory_end = advisory_start_dt + datetime.timedelta(minutes=advisory_len)
-            
-            # Check if today is an advisory day
-            today = datetime.date.today()
-            day_map = {"m": 0, "t": 1, "w": 2, "th": 3, "f": 4}
-            advisory_days_list = [day.strip() for day in advisorydays.lower().split(",")]
-            today_name = ["m", "t", "w", "th", "f"][today.weekday() if today.weekday() < 4 else 4]
-            
-            if today.weekday() < 5:  # Only check if it's a weekday
-                # Create proper day name based on weekday (0=Mon, 1=Tue, etc.)
-                weekday = today.weekday()
-                if weekday == 0:
-                    today_name = "m"
-                elif weekday == 1:
-                    today_name = "t"
-                elif weekday == 2:
-                    today_name = "w"
-                elif weekday == 3:
-                    today_name = "th"
-                elif weekday == 4:
-                    today_name = "f"
-                
-                if today_name in advisory_days_list:
-                    if advisory_start_dt <= current_time < advisory_end:
-                        time_remaining = advisory_end - current_time
-                        return "ADVISORY", time_remaining, False
+            if datetime.date.today().weekday() < 5:
+                advisory_start = datetime.datetime.strptime(ADVISORY_START, "%H:%M").time()
+                advisory_start_dt = datetime.datetime.combine(datetime.date.today(), advisory_start)
+                advisory_len = int(advisorylength)
+                advisory_end = advisory_start_dt + datetime.timedelta(minutes=advisory_len)
+                if advisory_start_dt <= current_time < advisory_end:
+                    time_remaining = advisory_end - current_time
+                    return "ADVISORY", time_remaining, False
         
         for period in range(1, 9):
             if period not in PERIODS:
@@ -174,21 +192,16 @@ class Menu:
         elif period == "LUNCH":
             period_name = "Lunch"
         elif period is not None and isinstance(period, int):
-            # Determine which period set to use (A or B day)
-            if abday.lower() == "true":
-                current_day = self.get_current_ab_day()
-                if current_day == "b" and period in B_DAY_PERIODS:
+            # Determine period name based on presets
+            if self.presets_count == 2:
+                if self.current_preset_index == 1 and period in B_DAY_PERIODS:
                     period_name = B_DAY_PERIODS[period]
                 elif period in A_DAY_PERIODS:
                     period_name = A_DAY_PERIODS[period]
                 else:
                     period_name = f"Period {period}"
             else:
-                # A/B days disabled, use A_DAY_PERIODS as default
-                if period in A_DAY_PERIODS:
-                    period_name = A_DAY_PERIODS[period]
-                else:
-                    period_name = f"Period {period}"
+                period_name = A_DAY_PERIODS.get(period, f"Period {period}")
         
         lunch_time_str = None
         lunch_start_dt = datetime.datetime.strptime(LUNCH_START, "%H:%M").time()
@@ -346,6 +359,50 @@ class Menu:
     
     def show_settings_menu(self):
         self.display.show_menu(self.settings_menu_items, self.selected_index, "Settings", nav_items=self.nav_items, nav_selected_index=self.selected_index)
+
+    def _show_presets_menu(self):
+        msg = f"Presets: {self.presets_count}\nUp/Down: 1 or 2\nSelect: Save"
+        self.display.show_message("Schedule Presets", msg, (150, 200, 255), self.nav_items, self.selected_index)
+
+    def _handle_presets_input(self, action):
+        if action == 'up':
+            self.presets_count = 1
+            self._show_presets_menu()
+        elif action == 'down':
+            self.presets_count = 2
+            self._show_presets_menu()
+        elif action in ('select', 'right'):
+            if self.presets_count == 1:
+                self.current_preset_index = 0
+            self._save_state()
+            self.current_screen = 'settings'
+            self.selected_index = self.settings_menu_items.index("Schedule Presets")
+            self.show_settings_menu()
+        elif action == 'left':
+            self.current_screen = 'settings'
+            self.selected_index = self.settings_menu_items.index("Schedule Presets")
+            self.show_settings_menu()
+
+    def _show_set_today_preset(self):
+        label = 'A' if self.current_preset_index == 0 else 'B'
+        msg = f"Today Preset: {label}\nUp/Down: Toggle\nSelect: Set & Auto-advance daily"
+        self.display.show_message("Set Today", msg, (150, 255, 200), self.nav_items, self.selected_index)
+
+    def _handle_set_today_input(self, action):
+        if action in ('up', 'down'):
+            self.current_preset_index = 1 - self.current_preset_index
+            self._show_set_today_preset()
+        elif action in ('select', 'right'):
+            # Set today; ensure last_advance_date = today to avoid immediate auto-advance
+            self.last_advance_date = datetime.date.today().isoformat()
+            self._save_state()
+            self.current_screen = 'settings'
+            self.selected_index = self.settings_menu_items.index("Set Today Preset")
+            self.show_settings_menu()
+        elif action == 'left':
+            self.current_screen = 'settings'
+            self.selected_index = self.settings_menu_items.index("Set Today Preset")
+            self.show_settings_menu()
     
     def scan_wifi_networks(self):
         """Scan for available WiFi networks using nmcli or iwlist"""
@@ -610,6 +667,12 @@ class Menu:
                 self.current_screen = "set_time_menu"
                 self.selected_index = 0
                 self.show_set_time_menu()
+            elif selected_item == "Schedule Presets":
+                self.current_screen = 'presets'
+                self._show_presets_menu()
+            elif selected_item == "Set Today Preset":
+                self.current_screen = 'set_today'
+                self._show_set_today_preset()
             elif selected_item == "Restart":
                 self.restart_program()
         elif action == 'left':
@@ -922,6 +985,10 @@ class Menu:
                     self.handle_set_time_menu_input(action)
                 elif self.current_screen == "set_time":
                     self.handle_set_time_input(action)
+                elif self.current_screen == "presets":
+                    self._handle_presets_input(action)
+                elif self.current_screen == "set_today":
+                    self._handle_set_today_input(action)
             
             current_time = time.time()
             if current_time - last_update > 1.0:
