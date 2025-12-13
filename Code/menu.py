@@ -680,17 +680,36 @@ class Menu:
             elif selected_item == "Restart":
                 self.restart_program()
             def _run_git_pull(self):
-                """Run a git pull and report the status."""
+                """Run a safe git pull (ff-only) and report status without crashing."""
                 try:
                     repo_dir = os.path.dirname(os.path.dirname(__file__))
-                    result = subprocess.run(['git', '-C', repo_dir, 'pull'], capture_output=True, text=True, timeout=20)
+                    # Verify git is available
+                    git_check = subprocess.run(['git', '--version'], capture_output=True, text=True, timeout=5)
+                    if git_check.returncode != 0:
+                        self.display.show_message("Git Pull", "git not installed", (255, 100, 100), self.nav_items, self.selected_index)
+                        return
+
+                    # Ensure remote origin exists
+                    remote = subprocess.run(['git', '-C', repo_dir, 'config', '--get', 'remote.origin.url'], capture_output=True, text=True, timeout=5)
+                    if remote.returncode != 0 or not remote.stdout.strip():
+                        self.display.show_message("Git Pull", "No remote origin", (255, 100, 100), self.nav_items, self.selected_index)
+                        return
+
+                    # Get current branch
+                    branch = subprocess.run(['git', '-C', repo_dir, 'rev-parse', '--abbrev-ref', 'HEAD'], capture_output=True, text=True, timeout=5)
+                    current_branch = branch.stdout.strip() or 'main'
+
+                    # Fetch and fast-forward only
+                    subprocess.run(['git', '-C', repo_dir, 'fetch', '--all', '--prune'], capture_output=True, text=True, timeout=20)
+                    result = subprocess.run(['git', '-C', repo_dir, 'pull', '--ff-only', 'origin', current_branch], capture_output=True, text=True, timeout=30)
                     if result.returncode == 0:
-                        self.display.show_message("Git Pull", "Pull successful", (100, 255, 100), self.nav_items, self.selected_index)
+                        msg = result.stdout.strip() or "Up to date"
+                        self.display.show_message("Git Pull", msg[:60], (100, 255, 100), self.nav_items, self.selected_index)
                     else:
-                        err = result.stderr.strip()[:60] or "Push failed"
+                        err = result.stderr.strip()[:80] or "Pull failed"
                         self.display.show_message("Git Pull", err, (255, 100, 100), self.nav_items, self.selected_index)
                 except Exception as e:
-                    self.display.show_message("Git Pull", str(e)[:60], (255, 100, 100), self.nav_items, self.selected_index)
+                    self.display.show_message("Git Pull", (str(e) or "error")[:80], (255, 100, 100), self.nav_items, self.selected_index)
         elif action == 'left':
             self.current_screen = "main"
             self.selected_index = 0
@@ -964,13 +983,13 @@ class Menu:
             action = self.input_handler.get_input()
             
             if action:
-                # Global key mapping: key1=Settings, key2=Grades, key3=Main Page
+                # Global key mapping: key1=Main Page, key2=Grades, key3=Settings
                 if action in ('key1', 'key2', 'key3'):
                     if action == 'key1':
-                        self.current_screen = 'settings'
-                        # highlight Settings in sidebar
-                        self.selected_index = self.nav_items.index('Settings') if 'Settings' in self.nav_items else 2
-                        self.show_settings_menu()
+                        self.current_screen = 'main'
+                        # highlight Main Page in sidebar
+                        self.selected_index = self.nav_items.index('Main Page') if 'Main Page' in self.nav_items else 0
+                        self.show_main_menu()
                         continue
                     elif action == 'key2':
                         self.current_screen = 'grades'
@@ -979,10 +998,10 @@ class Menu:
                         self.show_grades_menu()
                         continue
                     elif action == 'key3':
-                        self.current_screen = 'main'
-                        # highlight Main Page in sidebar
-                        self.selected_index = self.nav_items.index('Main Page') if 'Main Page' in self.nav_items else 0
-                        self.show_main_menu()
+                        self.current_screen = 'settings'
+                        # highlight Settings in sidebar
+                        self.selected_index = self.nav_items.index('Settings') if 'Settings' in self.nav_items else 2
+                        self.show_settings_menu()
                         continue
                 if self.current_screen == "main":
                     self.handle_main_menu_input(action)

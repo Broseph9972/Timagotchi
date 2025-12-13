@@ -98,12 +98,12 @@ class WaveshareDisplay:
         self.draw.rectangle((0, 0, self.width, self.height), fill=color)
 
     # Layout constants
-    SIDEBAR_WIDTH = 18  # narrow gutter for rotated text
+    SIDEBAR_WIDTH = 8  # ultra-narrow gutter for icon placeholders
     PROGRESS_BAR_HEIGHT = 8
     WIFI_BOX_SIZE = 8  # small wifi indicator box
 
     def _render_sidebar(self, nav_items, selected_index):
-        """Draw the right-side vertical navigation with 90° rotated labels, dividers, and filled boxes."""
+        """Draw the right-side vertical navigation as filled placeholder boxes with dividers (no text)."""
         if not nav_items:
             return
         secondary = self._get_text_secondary_color()
@@ -135,27 +135,19 @@ class WaveshareDisplay:
             if i > 0:
                 self.draw.line((sidebar_x, y_start, self.width, y_start), fill=divider_color, width=1)
             
-            # Create temp image for rotated text (smaller font)
-            tmp = Image.new('RGBA', (60, 10), (0, 0, 0, 0))
-            dtmp = ImageDraw.Draw(tmp)
-            # Use shorter labels
-            short_label = item[:6] if len(item) > 6 else item
-            dtmp.text((0, 0), short_label, font=self.font_tiny, fill=color)
-            # Crop to actual text size
-            bbox = tmp.getbbox()
-            if bbox:
-                tmp = tmp.crop(bbox)
-            rot = tmp.rotate(90, expand=True)
-            
-            # Center rotated text vertically in its slot
-            paste_x = sidebar_x + (self.SIDEBAR_WIDTH - rot.width) // 2
-            paste_y = y_center - rot.height // 2
-            self.image.paste(rot, (paste_x, max(0, paste_y)), rot)
+            # Placeholder icon area: solid box, no text
+            # Center a smaller inner box to suggest an icon placeholder
+            inner_margin = 1
+            inner_x0 = sidebar_x + inner_margin
+            inner_y0 = y_start + inner_margin
+            inner_x1 = self.width - inner_margin
+            inner_y1 = y_end - inner_margin
+            self.draw.rectangle((inner_x0, inner_y0, inner_x1, inner_y1), outline=divider_color)
             
             # Selection indicator: small bar to the left
             if i == selected_index:
                 bar_x = sidebar_x - 2
-                self.draw.line((bar_x, y_start + 4, bar_x, y_end - 4), fill=accent_sel, width=2)
+                self.draw.line((bar_x, y_start + 2, bar_x, y_end - 2), fill=accent_sel, width=2)
 
     def _render_wifi_indicator(self, wifi_connected):
         """Draw a small colored box in the bottom-right corner for WiFi status."""
