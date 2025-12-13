@@ -17,7 +17,7 @@ sudo apt install -y python3-pip python3-pil python3-numpy git
 #sudo apt install -y libretro-common || echo "Warning: libretro-common package not available"
 
 echo "Installing Python dependencies..."
-pip3 install --break-system-packages pillow numpy spidev RPi.GPIO
+pip3 install --break-system-packages pillow numpy spidev RPi.GPIO requests
 
 echo "Downloading Waveshare LCD driver..."
 GIT_TERMINAL_PROMPT=0 git clone --depth 1 https://github.com/waveshare/LCD_1in44.git /tmp/LCD_1in44
@@ -97,6 +97,20 @@ echo "To stop: sudo systemctl stop timagotchi"
 echo "To view logs: sudo journalctl -u timagotchi -f"
 
 echo ""
+echo "Setting up optional Canvas config (press Enter to skip)"
+read -p "Canvas base URL (e.g., https://aacps.instructure.com): " CANVAS_URL
+read -p "Canvas API token (e.g., 27449~xxxxx): " CANVAS_TOKEN
+
+if [ -n "$CANVAS_URL" ] && [ -n "$CANVAS_TOKEN" ]; then
+    CFG_PATH="$SCRIPT_DIR/canvas_config.json"
+    echo "{\"base_url\":\"$CANVAS_URL\",\"api_token\":\"$CANVAS_TOKEN\"}" > "$CFG_PATH"
+    chmod 600 "$CFG_PATH"
+    chown $USER:$USER "$CFG_PATH" 2>/dev/null || true
+    echo "✓ Canvas config saved to $CFG_PATH (permissions 600)"
+else
+    echo "Skipping Canvas config creation. You can add Code/canvas_config.json later."
+fi
+
 echo "Installation complete!"
 echo "Reboot required for GPIO permissions and autostart."
 echo ""
