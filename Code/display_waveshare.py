@@ -101,7 +101,9 @@ class WaveshareDisplay:
             'home': 'home.png',
             'icon': 'Icon.png',
             'settings': 'settings.png',
-            'grades': 'grades.png'
+            'grades': 'grades.png',
+            'textbox': 'textbox.png',
+            'speechbubble': 'speechbubble.png'
         }
         
         for key, filename in icon_files.items():
@@ -350,17 +352,16 @@ class WaveshareDisplay:
         # Label below bar
         self.draw.text((4, bar_h + 2), progress_label, font=self.font_tiny, fill=secondary)
 
-        # === CENTER: Character placeholder + speech bubble ===
+        # === CENTER: Character placeholder + text boxes ===
         center_top = bar_h + 16
         center_bottom = self.height - 24
         center_h = center_bottom - center_top
         
-        # Character box (left side)
+        # Character box (left side) - NO bounding box
         char_w = int(content_width * 0.4)
         char_h = int(center_h * 0.7)
         char_x = 4
         char_y = center_top + 10
-        self.draw.rectangle((char_x, char_y, char_x + char_w, char_y + char_h), outline=secondary)
         
         # Try to load and display icon (for main page, use Icon.png not home.png)
         page_icon = self._get_icon('icon')
@@ -381,23 +382,48 @@ class WaveshareDisplay:
                 else:
                     self.image.paste(icon_resized, (paste_x, paste_y))
             except Exception as e:
-                # Fallback text on any error
-                self.draw.text((char_x + 4, char_y + char_h // 2 - 5), "Home", font=self.font_tiny, fill=secondary)
-        else:
-            # Fallback text if icon not found
-            self.draw.text((char_x + 4, char_y + char_h // 2 - 5), "Home", font=self.font_tiny, fill=secondary)
+                pass
         
-        # Speech bubble (right of character)
-        bubble_x = char_x + char_w + 4
-        bubble_y = center_top
-        bubble_w = content_width - bubble_x - 4
-        bubble_h = int(center_h * 0.4)
-        self.draw.rectangle((bubble_x, bubble_y, bubble_x + bubble_w, bubble_y + bubble_h), outline=accent)
-        if bubble_text:
-            # Allow a bit more text for schedule status
-            self.draw.text((bubble_x + 3, bubble_y + 3), bubble_text[:18], font=self.font_tiny, fill=primary)
-
-        # Schedule summary line removed; using bubble instead
+        # Text box area (right of character) - 2 boxes: textbox and speechbubble
+        box_x = char_x + char_w + 4
+        box_width = content_width - box_x - 4
+        box_top = center_top
+        
+        # Top box: textbox.png with class/time info
+        textbox_height = int(center_h * 0.45)
+        textbox_y = box_top
+        textbox = self._get_icon('textbox')
+        if textbox:
+            try:
+                textbox_resized = textbox.copy()
+                textbox_resized.thumbnail((box_width, textbox_height), Image.LANCZOS)
+                paste_x = box_x + (box_width - textbox_resized.width) // 2
+                if textbox_resized.mode == 'RGBA':
+                    self.image.paste(textbox_resized, (paste_x, textbox_y), textbox_resized)
+                else:
+                    self.image.paste(textbox_resized, (paste_x, textbox_y))
+            except Exception:
+                pass
+        # Draw text for class/time info on textbox
+        self.draw.text((box_x + 3, textbox_y + 3), bubble_text[:18] if bubble_text else "", font=self.font_tiny, fill=primary)
+        
+        # Bottom box: speechbubble.png with thoughts (for later configuration)
+        speechbubble_height = int(center_h * 0.45)
+        speechbubble_y = textbox_y + textbox_height + 2
+        speechbubble = self._get_icon('speechbubble')
+        if speechbubble:
+            try:
+                speechbubble_resized = speechbubble.copy()
+                speechbubble_resized.thumbnail((box_width, speechbubble_height), Image.LANCZOS)
+                paste_x = box_x + (box_width - speechbubble_resized.width) // 2
+                if speechbubble_resized.mode == 'RGBA':
+                    self.image.paste(speechbubble_resized, (paste_x, speechbubble_y), speechbubble_resized)
+                else:
+                    self.image.paste(speechbubble_resized, (paste_x, speechbubble_y))
+            except Exception:
+                pass
+        # Space for thought text (will be configured later)
+        self.draw.text((box_x + 3, speechbubble_y + 3), "", font=self.font_tiny, fill=primary)
 
         # === BOTTOM: Clock only (WiFi is in sidebar area) ===
         # Move up a bit to avoid overlap with summary/wifi
