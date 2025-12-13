@@ -65,6 +65,7 @@ class Menu:
         self.current_course_id = None
         self.grades_selected_index = 0
         self.assign_selected_index = 0
+        self.grades_scroll_offset = 0
         # Stopwatch state
         self.stopwatch_running = False
         self.stopwatch_start_ts = 0.0
@@ -774,22 +775,36 @@ class Menu:
         except Exception as e:
             self.display.show_message("Update", (str(e) or "error")[:80], (255, 100, 100), self.nav_items, self.nav_selected_index)
 
-    def show_grades_menu(self):
-        cfg = self._canvas_load_config()
-        if not cfg:
-            self.display.show_message("Canvas", "Set URL & API key", (255, 150, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
-            return
-        self.display.show_message("Canvas", "Loading courses...", (100, 200, 255), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
-        courses = self._canvas_fetch_courses(cfg)
-        if courses is None:
-            self.display.show_message("Canvas", "Fetch failed", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
-            return
-        if not courses:
+    def show_grades_menu(self, fetch=True):
+        """Display grades menu. fetch=True to fetch from API, False to redraw cached list."""
+        if fetch:
+            cfg = self._canvas_load_config()
+            if not cfg:
+                self.display.show_message("Canvas", "Set URL & API key", (255, 150, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                return
+            self.display.show_message("Canvas", "Loading courses...", (100, 200, 255), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+            courses = self._canvas_fetch_courses(cfg)
+            if courses is None:
+                self.display.show_message("Canvas", "Fetch failed", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                return
+            if not courses:
+                self.display.show_message("Canvas", "No courses", (200, 200, 200), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                return
+            self._courses_list = courses
+        
+        # Use cached list; adjust scroll if needed
+        if not hasattr(self, '_courses_list') or not self._courses_list:
             self.display.show_message("Canvas", "No courses", (200, 200, 200), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
             return
-        items = [f"{c['name'][:10]} {self._format_percent(c['percent'])}" for c in courses]
-        self._courses_list = courses
-        self.display.show_menu(items, self.grades_selected_index, title="Grades", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, start_index=0, max_visible=6, wifi_connected=self._get_wifi_connected())
+        
+        max_visible = 6
+        if self.grades_selected_index < self.grades_scroll_offset:
+            self.grades_scroll_offset = self.grades_selected_index
+        elif self.grades_selected_index >= self.grades_scroll_offset + max_visible:
+            self.grades_scroll_offset = self.grades_selected_index - max_visible + 1
+        
+        items = [f"{c['name'][:10]} {self._format_percent(c['percent'])}" for c in self._courses_list]
+        self.display.show_menu(items, self.grades_selected_index, title="Grades", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, start_index=self.grades_scroll_offset, max_visible=max_visible, wifi_connected=self._get_wifi_connected())
     
     def connect_to_wifi(self, network):
         """Attempt to connect to an open WiFi network"""
@@ -828,14 +843,14 @@ class Menu:
 
     def handle_grades_input(self, action):
         if not hasattr(self, '_courses_list') or not self._courses_list:
-            self.show_grades_menu()
+            self.show_grades_menu(fetch=True)
             return
         if action == 'up':
             self.grades_selected_index = (self.grades_selected_index - 1) % len(self._courses_list)
-            self.show_grades_menu()
+            self.show_grades_menu(fetch=False)
         elif action == 'down':
             self.grades_selected_index = (self.grades_selected_index + 1) % len(self._courses_list)
-            self.show_grades_menu()
+            self.show_grades_menu(fetch=False)
         elif action in ('select', 'right'):
             course = self._courses_list[self.grades_selected_index]
             self.current_course_id = course['id']
