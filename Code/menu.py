@@ -672,7 +672,9 @@ class Menu:
             elif selected_item == "Restart":
                 self.restart_program()
     def _run_update(self):
-        """Run a safe git pull (ff-only) from /home/pi/Timagothi and report status."""
+        """Run a safe git pull (ff-only) from /home/pi/Timagotchi and report status.
+        Auto-add remote origin if missing.
+        """
         try:
             # Use the Pi repo path explicitly as requested
             repo_dir = "/home/pi/Timagotchi"
@@ -682,15 +684,21 @@ class Menu:
                 self.display.show_message("Update", "git not installed", (255, 100, 100), self.nav_items, self.nav_selected_index)
                 return
 
-            # Ensure remote origin exists
+            # Ensure remote origin exists; add if missing
             remote = subprocess.run(['git', '-C', repo_dir, 'config', '--get', 'remote.origin.url'], capture_output=True, text=True, timeout=5)
             if remote.returncode != 0 or not remote.stdout.strip():
-                self.display.show_message("Update", "No remote origin", (255, 100, 100), self.nav_items, self.nav_selected_index)
-                return
+                origin_url = 'https://github.com/broseph9972/Timagotchi'
+                add_remote = subprocess.run(['git', '-C', repo_dir, 'remote', 'add', 'origin', origin_url], capture_output=True, text=True, timeout=10)
+                if add_remote.returncode != 0:
+                    err = add_remote.stderr.strip()[:80] or "Failed to add origin"
+                    self.display.show_message("Update", err, (255, 100, 100), self.nav_items, self.nav_selected_index)
+                    return
 
-            # Get current branch
+            # Get current branch (default to main if detached)
             branch = subprocess.run(['git', '-C', repo_dir, 'rev-parse', '--abbrev-ref', 'HEAD'], capture_output=True, text=True, timeout=5)
             current_branch = branch.stdout.strip() or 'main'
+            if current_branch in ('HEAD', ''):
+                current_branch = 'main'
 
             # Fetch and fast-forward only
             subprocess.run(['git', '-C', repo_dir, 'fetch', '--all', '--prune'], capture_output=True, text=True, timeout=20)
