@@ -35,9 +35,9 @@ class Menu:
         self.settings_menu_items = []
         if abday.lower() == "true":
             self.settings_menu_items.append("A/B Day")
-        self.settings_menu_items.extend(["WiFi", "Theme", "Progress Bar", "Set Time", "Schedule Presets", "Set Today Preset", "Stopwatch", "Update", "Restart", "Back"])
+        self.settings_menu_items.extend(["WiFi", "Theme", "Progress Bar", "Set Time", "Schedule Presets", "Set Today Preset", "Stopwatch", "Update", "Restart"])
         self.settings_scroll_offset = 0
-        self.set_time_menu_items = ["WiFi Sync", "Manual Set", "Back"]
+        self.set_time_menu_items = ["WiFi Sync", "Manual Set"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
         self.adjust_hour = 0
         self.adjust_minute = 0
@@ -65,6 +65,7 @@ class Menu:
         self.current_course_id = None
         self.grades_selected_index = 0
         self.assign_selected_index = 0
+        self.assign_scroll_offset = 0
         self.grades_scroll_offset = 0
         # Stopwatch state
         self.stopwatch_running = False
@@ -585,14 +586,10 @@ class Menu:
                 self.adjust_hour = now.hour
                 self.adjust_minute = now.minute
                 self.show_set_time_screen()
-            elif selected_item == "Back":
-                self.current_screen = "main"
-                self.selected_index = 0
-                self.show_main_menu()
         elif action == 'left':
-            self.current_screen = "main"
+            self.current_screen = "settings"
             self.selected_index = 0
-            self.show_main_menu()
+            self.show_settings_menu()
     
     def handle_ab_day_input(self, action):
         if action == 'up':
@@ -654,11 +651,7 @@ class Menu:
             self.show_settings_menu()
         elif action == 'select' or action == 'right':
             selected_item = self.settings_menu_items[self.selected_index]
-            if selected_item == "Back":
-                self.current_screen = "main"
-                self.selected_index = 0
-                self.show_main_menu()
-            elif selected_item == "A/B Day":
+            if selected_item == "A/B Day":
                 self.current_screen = "ab_day"
                 self.show_ab_day_menu()
             elif selected_item == "WiFi":
@@ -688,6 +681,10 @@ class Menu:
                 self._run_update()
             elif selected_item == "Restart":
                 self.restart_program()
+        elif action == 'left':
+            self.current_screen = "main"
+            self.selected_index = 0
+            self.show_main_menu()
 
     def _format_stopwatch_time(self):
         total = self.stopwatch_elapsed
@@ -702,7 +699,7 @@ class Menu:
         wifi_connected = self._get_wifi_connected()
         status = "Stop" if self.stopwatch_running else "Start"
         elapsed_txt = self._format_stopwatch_time()
-        msg = f"{elapsed_txt}\nUp: Reset\nSelect: {status}\nLeft: Back"
+        msg = f"{elapsed_txt}\nUp: Reset\nSelect: {status}"
         self.display.show_message("Stopwatch", msg, (150, 200, 255), self.nav_items, self.nav_selected_index, wifi_connected)
 
     def handle_stopwatch_input(self, action):
@@ -861,43 +858,57 @@ class Menu:
             self.current_screen = 'main'
             self.show_main_menu()
 
-    def show_assignments_menu(self):
-        cfg = self._canvas_load_config()
-        if not cfg or self.current_course_id is None:
-            self.display.show_message("Canvas", "Missing course/config", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
-            return
-        self.display.show_message("Canvas", "Loading assigns...", (100, 200, 255), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
-        assigns = self._canvas_fetch_assignments(cfg, self.current_course_id)
-        if assigns is None:
-            self.display.show_message("Canvas", "Fetch failed", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
-            return
-        if not assigns:
+    def show_assignments_menu(self, fetch=True):
+        """Display assignments menu. fetch=True to fetch from API, False to redraw cached list."""
+        if fetch:
+            cfg = self._canvas_load_config()
+            if not cfg or self.current_course_id is None:
+                self.display.show_message("Canvas", "Missing course/config", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                return
+            self.display.show_message("Canvas", "Loading assigns...", (100, 200, 255), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+            assigns = self._canvas_fetch_assignments(cfg, self.current_course_id)
+            if assigns is None:
+                self.display.show_message("Canvas", "Fetch failed", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                return
+            if not assigns:
+                self.display.show_message("Canvas", "No assignments", (200, 200, 200), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                return
+            self._assign_list = assigns
+        
+        # Use cached list; adjust scroll if needed
+        if not hasattr(self, '_assign_list') or not self._assign_list:
             self.display.show_message("Canvas", "No assignments", (200, 200, 200), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
             return
-        self._assign_list = assigns
-        items = [self._format_assignment_item(a) for a in assigns]
+        
+        max_visible = 6
+        if self.assign_selected_index < self.assign_scroll_offset:
+            self.assign_scroll_offset = self.assign_selected_index
+        elif self.assign_selected_index >= self.assign_scroll_offset + max_visible:
+            self.assign_scroll_offset = self.assign_selected_index - max_visible + 1
+        
+        items = [self._format_assignment_item(a) for a in self._assign_list]
         course = next((c for c in getattr(self, '_courses_list', []) if c['id'] == self.current_course_id), None)
         course_title = (course['name'] if course else 'Assignments')
         title = f"{course_title[:10]} {self._format_percent(course.get('percent') if course else None)}"
-        self.display.show_menu(items, self.assign_selected_index, title=title, nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, start_index=0, max_visible=6, wifi_connected=self._get_wifi_connected())
+        self.display.show_menu(items, self.assign_selected_index, title=title, nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, start_index=self.assign_scroll_offset, max_visible=max_visible, wifi_connected=self._get_wifi_connected())
 
     def handle_assignments_input(self, action):
         if not hasattr(self, '_assign_list') or not self._assign_list:
-            self.show_assignments_menu()
+            self.show_assignments_menu(fetch=True)
             return
         if action == 'up':
             self.assign_selected_index = (self.assign_selected_index - 1) % len(self._assign_list)
-            self.show_assignments_menu()
+            self.show_assignments_menu(fetch=False)
         elif action == 'down':
             self.assign_selected_index = (self.assign_selected_index + 1) % len(self._assign_list)
-            self.show_assignments_menu()
+            self.show_assignments_menu(fetch=False)
         elif action in ('select', 'right'):
             a = self._assign_list[self.assign_selected_index]
             msg = f"Score: {self._format_score(a)}\nStatus: {a.get('status','--')}\nDue: {a.get('due','--')}"
             self.display.show_message("Assignment", msg, (150, 200, 255), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
         elif action == 'left':
             self.current_screen = 'grades'
-            self.show_grades_menu()
+            self.show_grades_menu(fetch=False)
 
     def _format_percent(self, p):
         try:
@@ -992,7 +1003,7 @@ class Menu:
         c_entry = cache.get('courses')
         if c_entry and now_ts < c_entry.get('expires', 0):
             return c_entry.get('data', [])
-        data = self._canvas_request(cfg, 'users/self/courses', params={'include[]':'enrollments','enrollment_state':'active','per_page':50})
+        data = self._canvas_request(cfg, 'users/self/courses', params={'include[]':['enrollments','total_scores'],'enrollment_state':'active','per_page':50})
         if data is None:
             return None
         courses = []
@@ -1000,22 +1011,32 @@ class Menu:
             name = c.get('name') or c.get('course_code') or 'Course'
             percent = None
             grade_text = None
+            
+            # Try to get score from enrollments first
             for e in c.get('enrollments', []):
-                if 'computed_current_score' in e and e['computed_current_score'] is not None:
+                if e.get('computed_current_score') is not None:
                     percent = e['computed_current_score']
                     break
-                g = e.get('grades') or {}
-                if g.get('current_score') is not None:
-                    percent = g['current_score']
+                if e.get('current_score') is not None:
+                    percent = e['current_score']
                     break
-                if 'computed_final_score' in e and e['computed_final_score'] is not None:
+                if e.get('computed_final_score') is not None:
                     percent = e['computed_final_score']
                     break
-                if g.get('final_score') is not None:
-                    percent = g['final_score']
+                if e.get('final_score') is not None:
+                    percent = e['final_score']
                     break
+                # Fallback to letter grade
                 if grade_text is None:
-                    grade_text = e.get('computed_current_grade') or g.get('current_grade') or e.get('computed_final_grade') or g.get('final_grade')
+                    grade_text = e.get('computed_current_grade') or e.get('current_grade') or e.get('computed_final_grade') or e.get('final_grade')
+            
+            # If no score in enrollments, try course-level grades
+            if percent is None:
+                g = c.get('grades') or {}
+                percent = g.get('current_score') or g.get('final_score')
+                if grade_text is None:
+                    grade_text = g.get('current_grade') or g.get('final_grade')
+            
             courses.append({'id': c.get('id'), 'name': name, 'percent': percent if percent is not None else grade_text})
         cache['courses'] = {'data': courses, 'expires': now_ts + 600}
         self._write_cache(cache)
