@@ -97,28 +97,48 @@ class WaveshareDisplay:
     def clear(self, color=(0, 0, 0)):
         self.draw.rectangle((0, 0, self.width, self.height), fill=color)
 
+    # Layout constants
+    SIDEBAR_WIDTH = 18  # narrow gutter for rotated text
+    PROGRESS_BAR_HEIGHT = 8
+
     def _render_sidebar(self, nav_items, selected_index):
-        """Overlay the right vertical sidebar on top of current content."""
+        """Draw the right-side vertical navigation with 90° rotated labels."""
         if not nav_items:
             return
         secondary = self._get_text_secondary_color()
         accent_sel = (255, 255, 0)
-        gutter = 40
-        nav_x = self.width - gutter
-        nav_y = 4
-        # Draw vertical labels rotated 90 degrees, aligned to right gutter
+        bg = self._get_bg_color()
+        
+        # Clear sidebar area
+        sidebar_x = self.width - self.SIDEBAR_WIDTH
+        self.draw.rectangle((sidebar_x, 0, self.width, self.height), fill=bg)
+        
+        # Distribute items evenly along sidebar height
+        item_height = self.height // len(nav_items)
+        
         for i, item in enumerate(nav_items):
-            y = nav_y + i * 40  # more spacing for rotated text
-            # Create a small image for text, rotate -90 degrees
-            tmp = Image.new('RGBA', (100, 20), (0, 0, 0, 0))
-            dtmp = ImageDraw.Draw(tmp)
+            y_center = i * item_height + item_height // 2
             color = accent_sel if i == selected_index else secondary
+            
+            # Create temp image for rotated text
+            tmp = Image.new('RGBA', (80, 14), (0, 0, 0, 0))
+            dtmp = ImageDraw.Draw(tmp)
             dtmp.text((0, 0), item, font=self.font_tiny, fill=color)
+            # Crop to actual text size
+            bbox = tmp.getbbox()
+            if bbox:
+                tmp = tmp.crop(bbox)
             rot = tmp.rotate(90, expand=True)
-            self.image.paste(rot, (nav_x, y), rot)
+            
+            # Center rotated text vertically in its slot
+            paste_x = sidebar_x + (self.SIDEBAR_WIDTH - rot.width) // 2
+            paste_y = y_center - rot.height // 2
+            self.image.paste(rot, (paste_x, max(0, paste_y)), rot)
+            
+            # Selection indicator: small bar to the left
             if i == selected_index:
-                # simple highlight bar next to text
-                self.draw.rectangle((nav_x - 4, y, nav_x - 2, y + rot.size[1]), outline=accent_sel)
+                bar_x = sidebar_x - 2
+                self.draw.line((bar_x, i * item_height + 4, bar_x, (i + 1) * item_height - 4), fill=accent_sel, width=2)
 
     def show_schedule(self, period, period_name, time_remaining, lunch_time, end_time, current_time_str, nav_items=None, selected_index=0):
         self.clear(self._get_bg_color())
@@ -157,136 +177,135 @@ class WaveshareDisplay:
         self._render_sidebar(nav_items or [], selected_index)
         self._render()
 
-    def show_menu(self, menu_items, selected_index, title="Menu", progress_label="", progress_value=0, nav_items=None, nav_selected_index=0, start_index=0, max_visible=6):
+    def show_menu(self, menu_items, selected_index, title="Menu", progress_label="", progress_value=0, nav_items=None, nav_selected_index=0, start_index=0, max_visible=5):
         self.clear(self._get_bg_color())
         
         # Get colors from theme
         title_color = self._get_accent_color()
-        selected_color = (255, 255, 0)  # Yellow highlight for selection
+        selected_color = (255, 255, 0)
         unselected_color = self._get_text_secondary_color()
         
-        y_offset = 2
-        self.draw.text((2, y_offset), title, font=self.font_large, fill=title_color)
-        y_offset += 22
+        # Content area (left of sidebar)
+        content_width = self.width - self.SIDEBAR_WIDTH - 4
+        
+        y_offset = 4
+        self.draw.text((4, y_offset), title, font=self.font_medium, fill=title_color)
+        y_offset += 18
 
         visible_items = menu_items[start_index:start_index + max_visible]
         for i, item in enumerate(visible_items):
             absolute_index = start_index + i
+            # Truncate item if too long
+            display_item = item[:14] if len(item) > 14 else item
             if absolute_index == selected_index:
-                self.draw.rectangle((1, y_offset - 1, self.width - 1, y_offset + 15), outline=selected_color, width=1)
-                self.draw.text((4, y_offset), f"> {item}", font=self.font_small, fill=selected_color)
+                self.draw.rectangle((2, y_offset - 1, content_width, y_offset + 13), outline=selected_color, width=1)
+                self.draw.text((6, y_offset), f">{display_item}", font=self.font_small, fill=selected_color)
             else:
-                self.draw.text((4, y_offset), f"  {item}", font=self.font_small, fill=unselected_color)
-            y_offset += 18
+                self.draw.text((6, y_offset), f" {display_item}", font=self.font_small, fill=unselected_color)
+            y_offset += 16
 
-        # Scroll indicators
+        # Scroll indicators (only when needed)
         if start_index > 0:
-            self.draw.text((self.width - 50, 22), "↑", font=self.font_small, fill=unselected_color)
+            self.draw.text((content_width - 10, 18), "^", font=self.font_tiny, fill=unselected_color)
         if start_index + max_visible < len(menu_items):
-            self.draw.text((self.width - 50, y_offset - 2), "↓", font=self.font_small, fill=unselected_color)
+            self.draw.text((content_width - 10, y_offset - 4), "v", font=self.font_tiny, fill=unselected_color)
 
-        # Draw progress bar at the bottom if progress_label is provided
-        if progress_label:
-            # Progress bar background
-            bar_y = self.height - 12
-            bar_x_start = 2
-            bar_width = self.width - 4
-            bar_height = 10
-            
-            # Draw bar background
-            self.draw.rectangle((bar_x_start, bar_y, bar_x_start + bar_width, bar_y + bar_height), 
-                               fill=(50, 50, 50), outline=(100, 100, 100))
-            
-            # Draw filled portion based on progress
-            if progress_value > 0:
-                fill_width = int((progress_value / 100.0) * bar_width)
-                self.draw.rectangle((bar_x_start, bar_y, bar_x_start + fill_width, bar_y + bar_height), 
-                                   fill=self._get_accent_color())
-            
-            # Draw progress text
-            text_color = self._get_text_secondary_color()
-            self.draw.text((bar_x_start + 2, bar_y + 0), progress_label, font=self.font_tiny, fill=text_color)
-
-        # Sidebar overlay
+        # Sidebar
         self._render_sidebar(nav_items or [], nav_selected_index)
         self._render()
 
     def show_message(self, title, message, color=(255, 255, 255), nav_items=None, nav_selected_index=0):
         self.clear(self._get_bg_color())
+        
+        content_width = self.width - self.SIDEBAR_WIDTH - 4
 
-        self.draw.text((2, 20), title, font=self.font_large, fill=color if color else self._get_accent_color())
+        self.draw.text((4, 8), title, font=self.font_medium, fill=color if color else self._get_accent_color())
 
-        y_offset = 40
+        y_offset = 28
         for line in message.split("\n"):
-            self.draw.text((2, y_offset), line, font=self.font_tiny, fill=self._get_text_secondary_color())
-            y_offset += 14
+            # Truncate long lines
+            display_line = line[:18] if len(line) > 18 else line
+            self.draw.text((4, y_offset), display_line, font=self.font_tiny, fill=self._get_text_secondary_color())
+            y_offset += 12
 
-        # Sidebar overlay
+        # Sidebar
         self._render_sidebar(nav_items or [], nav_selected_index)
         self._render()
 
     def show_clock(self, time_str, date_str, nav_items=None, nav_selected_index=0):
         self.clear(self._get_bg_color())
+        
+        content_width = self.width - self.SIDEBAR_WIDTH - 4
 
-        self.draw.text((5, 45), time_str, font=self.font_medium, fill=self._get_accent_color())
-        self.draw.text((5, 70), date_str, font=self.font_tiny, fill=self._get_text_secondary_color())
+        # Center clock in content area
+        self.draw.text((10, 40), time_str, font=self.font_large, fill=self._get_accent_color())
+        self.draw.text((10, 65), date_str, font=self.font_small, fill=self._get_text_secondary_color())
 
-        # Sidebar overlay
+        # Sidebar
         self._render_sidebar(nav_items or [], nav_selected_index)
         self._render()
     
     def show_main_page(self, progress_label, progress_value, time_str, date_str, schedule_summary, wifi_connected, nav_items, selected_index, bubble_text=""):
-        """Render the main page per sketch: top progress, center art+speech bubble, right vertical nav, bottom wifi indicator and clock."""
+        """Render the main page per sketch: progress bar at very top spanning to sidebar, center character+speech bubble, right sidebar, bottom clock and wifi."""
         self.clear(self._get_bg_color())
 
-        # Top bar: progress label and bar
-        title_color = self._get_text_primary_color()
         accent = self._get_accent_color()
         secondary = self._get_text_secondary_color()
+        primary = self._get_text_primary_color()
+        
+        content_width = self.width - self.SIDEBAR_WIDTH
 
-        # Progress bar spans full width until the right sidebar gutter
-        bar_y = 18
-        bar_x_start = 4
-        bar_width = self.width - 8 - 40  # leave room for right nav gutter
-        bar_height = 10
-        self.draw.rectangle((bar_x_start, bar_y, bar_x_start + bar_width, bar_y + bar_height), fill=(50, 50, 50), outline=(100, 100, 100))
+        # === TOP: Progress bar from corner to sidebar ===
+        bar_x = 0
+        bar_y = 0
+        bar_w = content_width
+        bar_h = self.PROGRESS_BAR_HEIGHT
+        # Background
+        self.draw.rectangle((bar_x, bar_y, bar_x + bar_w, bar_y + bar_h), fill=(40, 40, 40))
+        # Fill
         if progress_value > 0:
-            fill_width = int((progress_value / 100.0) * bar_width)
-            self.draw.rectangle((bar_x_start, bar_y, bar_x_start + fill_width, bar_y + bar_height), fill=accent)
-        self.draw.text((bar_x_start + 2, bar_y - 12), progress_label, font=self.font_tiny, fill=secondary)
+            fill_w = int((progress_value / 100.0) * bar_w)
+            self.draw.rectangle((bar_x, bar_y, bar_x + fill_w, bar_y + bar_h), fill=accent)
+        # Label below bar
+        self.draw.text((4, bar_h + 2), progress_label, font=self.font_tiny, fill=secondary)
 
-        # Sidebar (drawn after main content as overlay)
-        nav_x = self.width - 40
-        nav_y = 4
-
-        # Center: character placeholder and speech bubble
-        center_x0 = 6
-        center_y0 = 34
-        center_w = nav_x - 12
-        center_h = self.height - 56
-        self.draw.rectangle((center_x0, center_y0 + 24, center_x0 + int(center_w * 0.45), center_y0 + 24 + int(center_h * 0.5)), outline=secondary)
-        # speech bubble as rounded rectangle
-        bubble_x0 = center_x0 + int(center_w * 0.5)
-        bubble_y0 = center_y0
-        bubble_w = int(center_w * 0.45)
-        bubble_h = int(center_h * 0.35)
-        self.draw.rectangle((bubble_x0, bubble_y0, bubble_x0 + bubble_w, bubble_y0 + bubble_h), outline=accent)
+        # === CENTER: Character placeholder + speech bubble ===
+        center_top = bar_h + 16
+        center_bottom = self.height - 24
+        center_h = center_bottom - center_top
+        
+        # Character box (left side)
+        char_w = int(content_width * 0.4)
+        char_h = int(center_h * 0.7)
+        char_x = 4
+        char_y = center_top + 10
+        self.draw.rectangle((char_x, char_y, char_x + char_w, char_y + char_h), outline=secondary)
+        # Placeholder text
+        self.draw.text((char_x + 4, char_y + char_h // 2 - 5), "Art", font=self.font_tiny, fill=secondary)
+        
+        # Speech bubble (right of character)
+        bubble_x = char_x + char_w + 4
+        bubble_y = center_top
+        bubble_w = content_width - bubble_x - 4
+        bubble_h = int(center_h * 0.4)
+        self.draw.rectangle((bubble_x, bubble_y, bubble_x + bubble_w, bubble_y + bubble_h), outline=accent)
         if bubble_text:
-            self.draw.text((bubble_x0 + 4, bubble_y0 + 4), bubble_text, font=self.font_tiny, fill=secondary)
+            self.draw.text((bubble_x + 3, bubble_y + 3), bubble_text[:10], font=self.font_tiny, fill=primary)
 
-        # Schedule summary under bubble
+        # Schedule summary below character area
         if schedule_summary:
-            self.draw.text((center_x0, center_y0 + center_h - 12), schedule_summary, font=self.font_tiny, fill=secondary)
+            self.draw.text((4, center_bottom - 2), schedule_summary[:20], font=self.font_tiny, fill=secondary)
 
-        # Bottom: clock and Wi-Fi indicator
-        clock_y = self.height - 18
-        self.draw.text((6, clock_y), time_str, font=self.font_tiny, fill=accent)
-        self.draw.text((6, clock_y + 10), date_str, font=self.font_tiny, fill=secondary)
-        wifi_color = (100, 255, 100) if wifi_connected else (255, 100, 100)
-        wifi_text = "WiFi" if wifi_connected else "No WiFi"
-        self.draw.text((self.width - 46, self.height - 18), wifi_text, font=self.font_tiny, fill=wifi_color)
+        # === BOTTOM: Clock and WiFi ===
+        bottom_y = self.height - 20
+        self.draw.text((4, bottom_y), time_str, font=self.font_small, fill=accent)
+        self.draw.text((4, bottom_y + 12), date_str, font=self.font_tiny, fill=secondary)
+        
+        wifi_color = (100, 255, 100) if wifi_connected else (255, 80, 80)
+        wifi_text = "WiFi" if wifi_connected else "NoWiFi"
+        self.draw.text((content_width - 36, bottom_y + 4), wifi_text, font=self.font_tiny, fill=wifi_color)
 
-        # Sidebar overlay
+        # === RIGHT SIDEBAR ===
         self._render_sidebar(nav_items or [], selected_index)
         self._render()
     
