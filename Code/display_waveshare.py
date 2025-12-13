@@ -104,7 +104,7 @@ class WaveshareDisplay:
             'grades': 'grades.png',
             'textbox': 'textbox.png',
             'speechbubble': 'speechbubble.png',
-            'thoughtbubble': 'thoughtbubble.png'
+            'thoughtbubble': 'Thoughtbubble.png'
         }
         
         for key, filename in icon_files.items():
