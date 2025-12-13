@@ -79,6 +79,24 @@ class ThemeManager:
     def get_menu_highlight(self):
         return self.get_color('menu_highlight', (100, 100, 100))
     
+    # Sidebar and UI element colors
+    def get_sidebar_box(self):
+        # Default to menu highlight if not defined
+        return self.get_color('sidebar_box', self.get_menu_highlight())
+    
+    def get_sidebar_box_selected(self):
+        # Slightly brighter default based on menu highlight
+        mh = self.get_menu_highlight()
+        default_sel = (min(mh[0] + 40, 255), min(mh[1] + 40, 255), min(mh[2] + 40, 255))
+        return self.get_color('sidebar_box_selected', default_sel)
+    
+    def get_divider(self):
+        # Subtle divider line color
+        return self.get_color('divider', (80, 80, 80))
+    
+    def get_progress_bg(self):
+        return self.get_color('progress_bg', (40, 40, 40))
+    
     def get_success(self):
         return self.get_color('success', (100, 255, 100))
     
@@ -98,6 +116,10 @@ class ThemeManager:
                 "text_secondary": [80, 80, 80],
                 "text_accent": [100, 150, 255],
                 "menu_highlight": [200, 200, 200],
+                "sidebar_box": [220, 220, 220],
+                "sidebar_box_selected": [240, 240, 240],
+                "divider": [150, 150, 150],
+                "progress_bg": [220, 220, 220],
                 "success": [100, 255, 100],
                 "error": [255, 100, 100],
                 "warning": [255, 200, 100]
@@ -109,6 +131,10 @@ class ThemeManager:
                 "text_secondary": [180, 180, 180],
                 "text_accent": [100, 200, 255],
                 "menu_highlight": [60, 60, 60],
+                "sidebar_box": [30, 30, 30],
+                "sidebar_box_selected": [60, 60, 40],
+                "divider": [80, 80, 80],
+                "progress_bg": [40, 40, 40],
                 "success": [100, 255, 100],
                 "error": [255, 100, 100],
                 "warning": [255, 200, 100]
@@ -120,6 +146,10 @@ class ThemeManager:
                 "text_secondary": [150, 180, 220],
                 "text_accent": [100, 200, 255],
                 "menu_highlight": [30, 80, 140],
+                "sidebar_box": [20, 50, 90],
+                "sidebar_box_selected": [40, 90, 150],
+                "divider": [60, 110, 170],
+                "progress_bg": [25, 60, 110],
                 "success": [100, 255, 150],
                 "error": [255, 120, 100],
                 "warning": [255, 200, 80]
@@ -131,6 +161,10 @@ class ThemeManager:
                 "text_secondary": [180, 220, 160],
                 "text_accent": [150, 255, 150],
                 "menu_highlight": [50, 100, 50],
+                "sidebar_box": [30, 70, 30],
+                "sidebar_box_selected": [60, 120, 50],
+                "divider": [80, 140, 80],
+                "progress_bg": [35, 80, 35],
                 "success": [150, 255, 100],
                 "error": [255, 100, 100],
                 "warning": [255, 200, 100]
@@ -142,6 +176,10 @@ class ThemeManager:
                 "text_secondary": [240, 180, 140],
                 "text_accent": [255, 180, 100],
                 "menu_highlight": [100, 50, 40],
+                "sidebar_box": [80, 40, 35],
+                "sidebar_box_selected": [120, 70, 50],
+                "divider": [140, 80, 60],
+                "progress_bg": [90, 45, 35],
                 "success": [200, 255, 150],
                 "error": [255, 100, 80],
                 "warning": [255, 200, 80]
@@ -153,6 +191,10 @@ class ThemeManager:
                 "text_secondary": [100, 255, 200],
                 "text_accent": [255, 0, 255],
                 "menu_highlight": [0, 100, 100],
+                "sidebar_box": [20, 20, 60],
+                "sidebar_box_selected": [40, 40, 90],
+                "divider": [80, 80, 160],
+                "progress_bg": [30, 30, 80],
                 "success": [0, 255, 100],
                 "error": [255, 0, 100],
                 "warning": [255, 200, 0]

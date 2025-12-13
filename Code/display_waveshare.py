@@ -109,9 +109,10 @@ class WaveshareDisplay:
         secondary = self._get_text_secondary_color()
         accent_sel = (255, 255, 0)
         bg = self._get_bg_color()
-        box_fill = (30, 30, 30)  # dark fill for boxes
-        box_fill_sel = (60, 60, 40)  # slightly lighter for selected
-        divider_color = (80, 80, 80)
+        # Theme-driven colors
+        box_fill = self.theme_manager.get_sidebar_box() if self.theme_manager else (30, 30, 30)
+        box_fill_sel = self.theme_manager.get_sidebar_box_selected() if self.theme_manager else (60, 60, 40)
+        divider_color = self.theme_manager.get_divider() if self.theme_manager else (80, 80, 80)
         
         # Clear sidebar area
         sidebar_x = self.width - self.SIDEBAR_WIDTH
@@ -278,7 +279,8 @@ class WaveshareDisplay:
         bar_w = content_width
         bar_h = self.PROGRESS_BAR_HEIGHT
         # Background
-        self.draw.rectangle((bar_x, bar_y, bar_x + bar_w, bar_y + bar_h), fill=(40, 40, 40))
+        progress_bg = self.theme_manager.get_progress_bg() if self.theme_manager else (40, 40, 40)
+        self.draw.rectangle((bar_x, bar_y, bar_x + bar_w, bar_y + bar_h), fill=progress_bg)
         # Fill
         if progress_value > 0:
             fill_w = int((progress_value / 100.0) * bar_w)
@@ -314,9 +316,10 @@ class WaveshareDisplay:
             self.draw.text((4, center_bottom - 2), schedule_summary[:20], font=self.font_tiny, fill=secondary)
 
         # === BOTTOM: Clock only (WiFi is in sidebar area) ===
-        bottom_y = self.height - 20
-        self.draw.text((4, bottom_y), time_str, font=self.font_small, fill=accent)
-        self.draw.text((4, bottom_y + 12), date_str, font=self.font_tiny, fill=secondary)
+        # Move up a bit to avoid overlap with summary/wifi
+        bottom_y = self.height - (self.WIFI_BOX_SIZE + 18)
+        self.draw.text((4, bottom_y - 2), time_str, font=self.font_small, fill=accent)
+        self.draw.text((4, bottom_y + 10), date_str, font=self.font_tiny, fill=secondary)
 
         # === RIGHT SIDEBAR ===
         self._render_sidebar(nav_items or [], selected_index)
