@@ -807,7 +807,7 @@ class Menu:
             self.grades_scroll_offset = self.grades_selected_index - max_visible + 1
         
         items = [f"{c['name'][:10]} {self._format_percent(c['percent'])}" for c in self._courses_list]
-        self.display.show_menu(items, self.grades_selected_index, title="Grades", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, start_index=self.grades_scroll_offset, max_visible=max_visible, wifi_connected=self._get_wifi_connected())
+        self.display.show_grades_menu(items, self.grades_selected_index, title="Grades", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, start_index=self.grades_scroll_offset, max_visible=max_visible, wifi_connected=self._get_wifi_connected())
     
     def connect_to_wifi(self, network):
         """Attempt to connect to an open WiFi network"""
@@ -862,6 +862,7 @@ class Menu:
             self.show_assignments_menu()
         elif action == 'left':
             self.current_screen = 'main'
+            self.nav_selected_index = 0  # Set to Main Page
             self.show_main_menu()
 
     def show_assignments_menu(self, fetch=True):

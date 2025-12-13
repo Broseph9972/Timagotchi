@@ -89,6 +89,43 @@ class WaveshareDisplay:
             self.font_medium = ImageFont.load_default()
             self.font_small = ImageFont.load_default()
             self.font_tiny = ImageFont.load_default()
+        
+        # Icon cache for sidebar and main menu
+        self.icon_cache = {}
+        self._load_icons()
+    
+    def _load_icons(self):
+        """Load icons from the Icons folder and cache them."""
+        icons_dir = os.path.join(os.path.dirname(__file__), 'Icons')
+        icon_files = {
+            'home': 'home.png',
+            'settings': 'settings.png',
+            'grades': 'grades.png'
+        }
+        
+        for key, filename in icon_files.items():
+            icon_path = os.path.join(icons_dir, filename)
+            try:
+                if os.path.exists(icon_path):
+                    img = Image.open(icon_path)
+                    if img.mode != 'RGB':
+                        img = img.convert('RGB')
+                    self.icon_cache[key] = img
+            except Exception as e:
+                pass  # Silently skip icons that fail to load
+    
+    def _get_icon(self, icon_name):
+        """Get a cached icon by name."""
+        return self.icon_cache.get(icon_name)
+    
+    def _get_nav_item_icon_name(self, nav_item):
+        """Map nav item name to icon name."""
+        nav_map = {
+            "Main Page": "home",
+            "Grades": "grades",
+            "Settings": "settings"
+        }
+        return nav_map.get(nav_item, None)
 
     def _render(self):
         """Push the PIL image to the LCD."""
@@ -103,7 +140,7 @@ class WaveshareDisplay:
     WIFI_BOX_SIZE = 8  # height of wifi indicator bar at sidebar bottom
 
     def _render_sidebar(self, nav_items, selected_index):
-        """Draw the right-side vertical navigation as filled placeholder boxes with dividers (no text)."""
+        """Draw the right-side vertical navigation with icons."""
         if not nav_items:
             return
         secondary = self._get_text_secondary_color()
@@ -136,14 +173,29 @@ class WaveshareDisplay:
             if i > 0:
                 self.draw.line((sidebar_x, y_start, self.width, y_start), fill=divider_color, width=1)
             
-            # Placeholder icon area: solid box, no text
-            # Center a smaller inner box to suggest an icon placeholder
-            inner_margin = 1
-            inner_x0 = sidebar_x + inner_margin
-            inner_y0 = y_start + inner_margin
-            inner_x1 = self.width - inner_margin
-            inner_y1 = y_end - inner_margin
-            self.draw.rectangle((inner_x0, inner_y0, inner_x1, inner_y1), outline=divider_color)
+            # Try to display icon for this nav item
+            icon_name = self._get_nav_item_icon_name(item)
+            icon = self._get_icon(icon_name) if icon_name else None
+            
+            if icon:
+                # Resize icon to fit in sidebar box
+                margin = 1
+                max_size = self.SIDEBAR_WIDTH - 2 * margin
+                icon_resized = icon.copy()
+                icon_resized.thumbnail((max_size, item_height - 2 * margin), Image.LANCZOS)
+                
+                # Center icon in the box
+                paste_x = sidebar_x + (self.SIDEBAR_WIDTH - icon_resized.width) // 2
+                paste_y = y_start + (item_height - icon_resized.height) // 2
+                self.image.paste(icon_resized, (paste_x, paste_y))
+            else:
+                # Fallback: draw placeholder box if icon not found
+                inner_margin = 1
+                inner_x0 = sidebar_x + inner_margin
+                inner_y0 = y_start + inner_margin
+                inner_x1 = self.width - inner_margin
+                inner_y1 = y_end - inner_margin
+                self.draw.rectangle((inner_x0, inner_y0, inner_x1, inner_y1), outline=divider_color)
             
             # Selection indicator: small bar to the left
             if i == selected_index:
@@ -303,26 +355,27 @@ class WaveshareDisplay:
         char_x = 4
         char_y = center_top + 10
         self.draw.rectangle((char_x, char_y, char_x + char_w, char_y + char_h), outline=secondary)
-        # Try to load and display character image
-        try:
-            char_path = os.path.join(os.path.dirname(__file__), '..', 'Pics', 'character.png')
-            if os.path.exists(char_path):
-                char_img = Image.open(char_path)
-                # Resize to fit character box (with margin)
+        
+        # Try to load and display home icon
+        home_icon = self._get_icon('home')
+        if home_icon:
+            try:
+                # Resize icon to fit character box (with margin)
                 margin = 2
                 max_w = char_w - 2*margin
                 max_h = char_h - 2*margin
-                char_img.thumbnail((max_w, max_h), Image.LANCZOS)
+                icon_resized = home_icon.copy()
+                icon_resized.thumbnail((max_w, max_h), Image.LANCZOS)
                 # Center in box
-                paste_x = char_x + (char_w - char_img.width) // 2
-                paste_y = char_y + (char_h - char_img.height) // 2
-                self.image.paste(char_img, (paste_x, paste_y))
-            else:
-                # Fallback text if image not found
-                self.draw.text((char_x + 4, char_y + char_h // 2 - 5), "Art", font=self.font_tiny, fill=secondary)
-        except Exception:
-            # Fallback text on any error
-            self.draw.text((char_x + 4, char_y + char_h // 2 - 5), "Art", font=self.font_tiny, fill=secondary)
+                paste_x = char_x + (char_w - icon_resized.width) // 2
+                paste_y = char_y + (char_h - icon_resized.height) // 2
+                self.image.paste(icon_resized, (paste_x, paste_y))
+            except Exception as e:
+                # Fallback text on any error
+                self.draw.text((char_x + 4, char_y + char_h // 2 - 5), "Home", font=self.font_tiny, fill=secondary)
+        else:
+            # Fallback text if icon not found
+            self.draw.text((char_x + 4, char_y + char_h // 2 - 5), "Home", font=self.font_tiny, fill=secondary)
         
         # Speech bubble (right of character)
         bubble_x = char_x + char_w + 4
@@ -348,6 +401,68 @@ class WaveshareDisplay:
         # === WIFI indicator box in very bottom right ===
         self._render_wifi_indicator(wifi_connected)
         
+        self._render()
+    
+    def show_grades_menu(self, menu_items, selected_index, title="Grades", nav_items=None, nav_selected_index=0, start_index=0, max_visible=5, wifi_connected=False):
+        """Display grades menu with grades icon on the left and menu items on the right."""
+        self.clear(self._get_bg_color())
+        
+        # Get colors from theme
+        title_color = self._get_accent_color()
+        selected_color = (255, 255, 0)
+        unselected_color = self._get_text_secondary_color()
+        secondary = self._get_text_secondary_color()
+        
+        # Icon on left side
+        icon_width = 40
+        icon_x = 4
+        icon_y = 10
+        
+        # Display grades icon
+        grades_icon = self._get_icon('grades')
+        if grades_icon:
+            try:
+                icon_resized = grades_icon.copy()
+                icon_resized.thumbnail((icon_width - 4, 50), Image.LANCZOS)
+                paste_x = icon_x + (icon_width - icon_resized.width) // 2
+                paste_y = icon_y + (60 - icon_resized.height) // 2
+                self.image.paste(icon_resized, (paste_x, paste_y))
+            except Exception as e:
+                # Fallback text if icon fails
+                self.draw.text((icon_x + 6, icon_y + 20), "G", font=self.font_medium, fill=secondary)
+        else:
+            # Fallback text if icon not found
+            self.draw.text((icon_x + 6, icon_y + 20), "G", font=self.font_medium, fill=secondary)
+        
+        # Menu items on right side
+        content_x = icon_x + icon_width + 4
+        content_width = self.width - self.SIDEBAR_WIDTH - content_x - 2
+        
+        y_offset = 4
+        self.draw.text((content_x, y_offset), title, font=self.font_medium, fill=title_color)
+        y_offset += 18
+        
+        visible_items = menu_items[start_index:start_index + max_visible]
+        for i, item in enumerate(visible_items):
+            absolute_index = start_index + i
+            # Truncate item if too long
+            display_item = item[:14] if len(item) > 14 else item
+            if absolute_index == selected_index:
+                self.draw.rectangle((content_x - 2, y_offset - 1, content_x + content_width - 2, y_offset + 13), outline=selected_color, width=1)
+                self.draw.text((content_x + 2, y_offset), f">{display_item}", font=self.font_small, fill=selected_color)
+            else:
+                self.draw.text((content_x + 2, y_offset), f" {display_item}", font=self.font_small, fill=unselected_color)
+            y_offset += 16
+        
+        # Scroll indicators (only when needed)
+        if start_index > 0:
+            self.draw.text((content_x + content_width - 12, 18), "^", font=self.font_tiny, fill=unselected_color)
+        if start_index + max_visible < len(menu_items):
+            self.draw.text((content_x + content_width - 12, y_offset - 4), "v", font=self.font_tiny, fill=unselected_color)
+        
+        # Sidebar + WiFi
+        self._render_sidebar(nav_items or [], nav_selected_index)
+        self._render_wifi_indicator(wifi_connected)
         self._render()
     
     # Theme color helper methods
