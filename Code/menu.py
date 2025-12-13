@@ -399,7 +399,8 @@ class Menu:
     def scan_wifi_networks(self):
         """Scan for available WiFi networks using nmcli or iwlist."""
         try:
-            self.display.show_message("WiFi", "Scanning for\nnetworks...", (100, 200, 255), self.nav_items, self.nav_selected_index)
+            wifi_connected = self._get_wifi_connected()
+            self.display.show_message("WiFi", "Scanning for\nnetworks...", (100, 200, 255), self.nav_items, self.nav_selected_index, wifi_connected)
             # Try using nmcli (NetworkManager)
             try:
                 result = subprocess.run(
@@ -432,7 +433,8 @@ class Menu:
 
             return False
         except Exception as e:
-            self.display.show_message("Error", f"Scan failed: {str(e)[:30]}", (255, 100, 100), self.nav_items, self.nav_selected_index)
+            wifi_connected = self._get_wifi_connected()
+            self.display.show_message("Error", f"Scan failed: {str(e)[:30]}", (255, 100, 100), self.nav_items, self.nav_selected_index, wifi_connected)
             time.sleep(2)
             return False
     
@@ -673,7 +675,7 @@ class Menu:
         """Run a safe git pull (ff-only) from /home/pi/Timagothi and report status."""
         try:
             # Use the Pi repo path explicitly as requested
-            repo_dir = "/home/pi/Timagothi"
+            repo_dir = "/home/pi/Timagotchi"
             # Verify git is available
             git_check = subprocess.run(['git', '--version'], capture_output=True, text=True, timeout=5)
             if git_check.returncode != 0:
