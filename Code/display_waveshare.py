@@ -384,46 +384,47 @@ class WaveshareDisplay:
             except Exception as e:
                 pass
         
-        # Text box area (right of character) - 2 boxes: textbox and speechbubble
+        # Text bubble area (right of character)
         box_x = char_x + char_w + 4
         box_width = content_width - box_x - 4
         box_top = center_top
-        
-        # Top box: textbox.png with class/time info
-        textbox_height = int(center_h * 0.45)
-        textbox_y = box_top
-        textbox = self._get_icon('textbox')
-        if textbox:
-            try:
-                textbox_resized = textbox.copy()
-                textbox_resized.thumbnail((box_width, textbox_height), Image.LANCZOS)
-                paste_x = box_x + (box_width - textbox_resized.width) // 2
-                if textbox_resized.mode == 'RGBA':
-                    self.image.paste(textbox_resized, (paste_x, textbox_y), textbox_resized)
-                else:
-                    self.image.paste(textbox_resized, (paste_x, textbox_y))
-            except Exception:
-                pass
-        # Draw text for class/time info on textbox
-        self.draw.text((box_x + 3, textbox_y + 3), bubble_text[:18] if bubble_text else "", font=self.font_tiny, fill=primary)
-        
-        # Bottom box: speechbubble.png with thoughts (for later configuration)
-        speechbubble_height = int(center_h * 0.45)
-        speechbubble_y = textbox_y + textbox_height + 2
+
+        # Top: speechbubble.png with class/time info (what the character is saying)
+        speechbubble_height = int(center_h * 0.38)
+        speechbubble_y = box_top
         speechbubble = self._get_icon('speechbubble')
         if speechbubble:
             try:
-                speechbubble_resized = speechbubble.copy()
-                speechbubble_resized.thumbnail((box_width, speechbubble_height), Image.LANCZOS)
-                paste_x = box_x + (box_width - speechbubble_resized.width) // 2
-                if speechbubble_resized.mode == 'RGBA':
-                    self.image.paste(speechbubble_resized, (paste_x, speechbubble_y), speechbubble_resized)
+                sb_resized = speechbubble.copy()
+                sb_resized.thumbnail((box_width, speechbubble_height), Image.LANCZOS)
+                paste_x = box_x + (box_width - sb_resized.width) // 2
+                if sb_resized.mode == 'RGBA':
+                    self.image.paste(sb_resized, (paste_x, speechbubble_y), sb_resized)
                 else:
-                    self.image.paste(speechbubble_resized, (paste_x, speechbubble_y))
+                    self.image.paste(sb_resized, (paste_x, speechbubble_y))
             except Exception:
                 pass
-        # Space for thought text (will be configured later)
-        self.draw.text((box_x + 3, speechbubble_y + 3), "", font=self.font_tiny, fill=primary)
+        # Draw main text in black on the speech bubble
+        if bubble_text:
+            self.draw.text((box_x + 6, speechbubble_y + 6), bubble_text[:22], font=self.font_tiny, fill=(0, 0, 0))
+
+        # Bottom: textbox.png as a thought bubble with placeholder text
+        thought_height = int(center_h * 0.38)
+        thought_y = speechbubble_y + speechbubble_height + 4
+        textbox = self._get_icon('textbox')
+        if textbox:
+            try:
+                tb_resized = textbox.copy()
+                tb_resized.thumbnail((box_width, thought_height), Image.LANCZOS)
+                paste_x = box_x + (box_width - tb_resized.width) // 2
+                if tb_resized.mode == 'RGBA':
+                    self.image.paste(tb_resized, (paste_x, thought_y), tb_resized)
+                else:
+                    self.image.paste(tb_resized, (paste_x, thought_y))
+            except Exception:
+                pass
+        # Placeholder thought text in black
+        self.draw.text((box_x + 6, thought_y + 6), "placeholder text", font=self.font_tiny, fill=(0, 0, 0))
 
         # === BOTTOM: Clock only (WiFi is in sidebar area) ===
         # Move up a bit to avoid overlap with summary/wifi
