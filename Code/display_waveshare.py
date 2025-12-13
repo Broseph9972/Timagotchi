@@ -98,7 +98,7 @@ class WaveshareDisplay:
         """Load icons from the Icons folder and cache them."""
         icons_dir = os.path.join(os.path.dirname(__file__), 'Icons')
         icon_files = {
-            'home': 'home.png',
+            'icon': 'Icon.png',
             'settings': 'settings.png',
             'grades': 'grades.png'
         }
@@ -122,7 +122,7 @@ class WaveshareDisplay:
     def _get_nav_item_icon_name(self, nav_item):
         """Map nav item name to icon name."""
         nav_map = {
-            "Main Page": "home",
+            "Main Page": "icon",
             "Grades": "grades",
             "Settings": "settings"
         }
@@ -361,15 +361,15 @@ class WaveshareDisplay:
         char_y = center_top + 10
         self.draw.rectangle((char_x, char_y, char_x + char_w, char_y + char_h), outline=secondary)
         
-        # Try to load and display home icon
-        home_icon = self._get_icon('home')
-        if home_icon:
+        # Try to load and display icon
+        page_icon = self._get_icon('icon')
+        if page_icon:
             try:
                 # Resize icon to fit character box (with margin)
                 margin = 2
                 max_w = char_w - 2*margin
                 max_h = char_h - 2*margin
-                icon_resized = home_icon.copy()
+                icon_resized = page_icon.copy()
                 icon_resized.thumbnail((max_w, max_h), Image.LANCZOS)
                 # Center in box
                 paste_x = char_x + (char_w - icon_resized.width) // 2
