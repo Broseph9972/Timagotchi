@@ -303,8 +303,26 @@ class WaveshareDisplay:
         char_x = 4
         char_y = center_top + 10
         self.draw.rectangle((char_x, char_y, char_x + char_w, char_y + char_h), outline=secondary)
-        # Placeholder text
-        self.draw.text((char_x + 4, char_y + char_h // 2 - 5), "Art", font=self.font_tiny, fill=secondary)
+        # Try to load and display character image
+        try:
+            char_path = os.path.join(os.path.dirname(__file__), '..', 'Pics', 'character.png')
+            if os.path.exists(char_path):
+                char_img = Image.open(char_path)
+                # Resize to fit character box (with margin)
+                margin = 2
+                max_w = char_w - 2*margin
+                max_h = char_h - 2*margin
+                char_img.thumbnail((max_w, max_h), Image.LANCZOS)
+                # Center in box
+                paste_x = char_x + (char_w - char_img.width) // 2
+                paste_y = char_y + (char_h - char_img.height) // 2
+                self.image.paste(char_img, (paste_x, paste_y))
+            else:
+                # Fallback text if image not found
+                self.draw.text((char_x + 4, char_y + char_h // 2 - 5), "Art", font=self.font_tiny, fill=secondary)
+        except Exception:
+            # Fallback text on any error
+            self.draw.text((char_x + 4, char_y + char_h // 2 - 5), "Art", font=self.font_tiny, fill=secondary)
         
         # Speech bubble (right of character)
         bubble_x = char_x + char_w + 4
