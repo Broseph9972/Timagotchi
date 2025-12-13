@@ -35,7 +35,7 @@ class Menu:
         self.settings_menu_items = []
         if abday.lower() == "true":
             self.settings_menu_items.append("A/B Day")
-        self.settings_menu_items.extend(["WiFi", "Theme", "Progress Bar", "Set Time", "Schedule Presets", "Set Today Preset", "Stopwatch", "Update", "Restart"])
+        self.settings_menu_items.extend(["WiFi", "Theme", "Progress Bar", "Set Time", "Stopwatch", "Update", "Restart"])
         self.settings_scroll_offset = 0
         self.set_time_menu_items = ["WiFi Sync", "Manual Set"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
@@ -526,11 +526,8 @@ class Menu:
         self.display.show_message("WiFi", message, (100, 200, 255), self.nav_items, self.nav_selected_index, wifi_connected)
     
     def show_ab_day_menu(self):
-        if self.ab_day_mode == "auto":
-            message = "A/B Day: Auto\n\nUp/Down: Change\nSelect: Confirm"
-        else:
-            current = self.manual_ab_day.upper()
-            message = f"A/B Day: {current}\n\nUp/Down: Toggle\nSelect: Confirm"
+        label = 'A' if self.current_preset_index == 0 else 'B'
+        message = f"A/B Day: {label}\n\nUp/Down: Toggle\nSelect: Done"
         wifi_connected = self._get_wifi_connected()
         self.display.show_message("A/B Day", message, (200, 150, 255), self.nav_items, self.nav_selected_index, wifi_connected)
     
@@ -598,25 +595,13 @@ class Menu:
             self.show_settings_menu()
     
     def handle_ab_day_input(self, action):
-        if action == 'up':
-            if self.ab_day_mode == "auto":
-                self.ab_day_mode = "manual"
-                self.manual_ab_day = "b"
-            else:
-                self.manual_ab_day = "b" if self.manual_ab_day == "a" else "a"
+        if action in ('up', 'down'):
+            # Toggle between A and B
+            self.current_preset_index = 0 if self.current_preset_index == 1 else 1
+            self.last_advance_date = datetime.date.today().isoformat()
+            self._save_state()
             self.show_ab_day_menu()
-        elif action == 'down':
-            if self.ab_day_mode == "auto":
-                self.ab_day_mode = "manual"
-                self.manual_ab_day = "a"
-            else:
-                self.manual_ab_day = "b" if self.manual_ab_day == "a" else "a"
-            self.show_ab_day_menu()
-        elif action == 'select' or action == 'right':
-            self.current_screen = "settings"
-            self.selected_index = 0
-            self.show_settings_menu()
-        elif action == 'left':
+        elif action in ('select', 'right', 'left'):
             self.current_screen = "settings"
             self.selected_index = 0
             self.show_settings_menu()
@@ -674,12 +659,6 @@ class Menu:
                 self.current_screen = "set_time_menu"
                 self.selected_index = 0
                 self.show_set_time_menu()
-            elif selected_item == "Schedule Presets":
-                self.current_screen = 'presets'
-                self._show_presets_menu()
-            elif selected_item == "Set Today Preset":
-                self.current_screen = 'set_today'
-                self._show_set_today_preset()
             elif selected_item == "Stopwatch":
                 self.current_screen = 'stopwatch'
                 self.show_stopwatch()
@@ -1344,10 +1323,6 @@ class Menu:
                     self.handle_set_time_menu_input(action)
                 elif self.current_screen == "set_time":
                     self.handle_set_time_input(action)
-                elif self.current_screen == "presets":
-                    self._handle_presets_input(action)
-                elif self.current_screen == "set_today":
-                    self._handle_set_today_input(action)
                 elif self.current_screen == "grades":
                     self.handle_grades_input(action)
                 elif self.current_screen == "assignments":
