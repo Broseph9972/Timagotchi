@@ -62,6 +62,12 @@ class Menu:
         # Canvas state
         self.canvas_config_path = os.path.join(os.path.dirname(__file__), 'canvas_config.json')
         self.canvas_cache_path = os.path.join(os.path.dirname(__file__), 'canvas_cache.json')
+        # Clear canvas cache on every reboot
+        try:
+            if os.path.exists(self.canvas_cache_path):
+                os.remove(self.canvas_cache_path)
+        except Exception:
+            pass
         self.current_course_id = None
         self.grades_selected_index = 0
         self.assign_selected_index = 0
