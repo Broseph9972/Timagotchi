@@ -391,41 +391,52 @@ class WaveshareDisplay:
         box_top = center_top
 
         # Top: speechbubble.png with class/time info (what the character is saying)
-        speechbubble_height = int(center_h * 0.38)
         speechbubble_y = box_top
+        sb_text = (bubble_text or "")[:22]
+        # Measure text to ensure bubble height fits
+        try:
+            bbox = self.draw.textbbox((0, 0), sb_text, font=self.font_tiny)
+            text_h = bbox[3] - bbox[1]
+        except Exception:
+            # Fallback if textbbox not available
+            text_h = self.font_tiny.getsize(sb_text)[1] if sb_text else 10
+        base_sb_height = int(center_h * 0.42)
+        speechbubble_height = max(base_sb_height, text_h + 16)
         speechbubble = self._get_icon('speechbubble')
+        sb_paste_x = box_x + 4
         if speechbubble:
             try:
                 sb_resized = speechbubble.copy()
                 sb_resized.thumbnail((box_width, speechbubble_height), Image.LANCZOS)
-                paste_x = box_x + (box_width - sb_resized.width) // 2
+                sb_paste_x = box_x + (box_width - sb_resized.width) // 2
                 if sb_resized.mode == 'RGBA':
-                    self.image.paste(sb_resized, (paste_x, speechbubble_y), sb_resized)
+                    self.image.paste(sb_resized, (sb_paste_x, speechbubble_y), sb_resized)
                 else:
-                    self.image.paste(sb_resized, (paste_x, speechbubble_y))
+                    self.image.paste(sb_resized, (sb_paste_x, speechbubble_y))
             except Exception:
                 pass
-        # Draw main text in black on the speech bubble
-        if bubble_text:
-            self.draw.text((box_x + 6, speechbubble_y + 6), bubble_text[:22], font=self.font_tiny, fill=(0, 0, 0))
+        # Draw main text in black on the speech bubble, relative to bubble
+        if sb_text:
+            self.draw.text((sb_paste_x + 6, speechbubble_y + 6), sb_text, font=self.font_tiny, fill=(0, 0, 0))
 
         # Bottom: thoughtbubble.png with placeholder text
-        thought_height = int(center_h * 0.38)
+        thought_height = int(center_h * 0.42)
         thought_y = speechbubble_y + speechbubble_height + 4
         thoughtbubble = self._get_icon('thoughtbubble') or self._get_icon('textbox')
+        tb_paste_x = box_x + 4
         if thoughtbubble:
             try:
                 tb_resized = thoughtbubble.copy()
                 tb_resized.thumbnail((box_width, thought_height), Image.LANCZOS)
-                paste_x = box_x + (box_width - tb_resized.width) // 2
+                tb_paste_x = box_x + (box_width - tb_resized.width) // 2
                 if tb_resized.mode == 'RGBA':
-                    self.image.paste(tb_resized, (paste_x, thought_y), tb_resized)
+                    self.image.paste(tb_resized, (tb_paste_x, thought_y), tb_resized)
                 else:
-                    self.image.paste(tb_resized, (paste_x, thought_y))
+                    self.image.paste(tb_resized, (tb_paste_x, thought_y))
             except Exception:
                 pass
         # Placeholder thought text in black
-        self.draw.text((box_x + 6, thought_y + 6), "placeholder text", font=self.font_tiny, fill=(0, 0, 0))
+        self.draw.text((tb_paste_x + 6, thought_y + 6), "placeholder text", font=self.font_tiny, fill=(0, 0, 0))
 
         # === BOTTOM: Clock only (WiFi is in sidebar area) ===
         # Move up a bit to avoid overlap with summary/wifi
