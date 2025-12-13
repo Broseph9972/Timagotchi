@@ -103,7 +103,8 @@ class WaveshareDisplay:
             'settings': 'settings.png',
             'grades': 'grades.png',
             'textbox': 'textbox.png',
-            'speechbubble': 'speechbubble.png'
+            'speechbubble': 'speechbubble.png',
+            'thoughtbubble': 'thoughtbubble.png'
         }
         
         for key, filename in icon_files.items():
@@ -408,13 +409,13 @@ class WaveshareDisplay:
         if bubble_text:
             self.draw.text((box_x + 6, speechbubble_y + 6), bubble_text[:22], font=self.font_tiny, fill=(0, 0, 0))
 
-        # Bottom: textbox.png as a thought bubble with placeholder text
+        # Bottom: thoughtbubble.png with placeholder text
         thought_height = int(center_h * 0.38)
         thought_y = speechbubble_y + speechbubble_height + 4
-        textbox = self._get_icon('textbox')
-        if textbox:
+        thoughtbubble = self._get_icon('thoughtbubble') or self._get_icon('textbox')
+        if thoughtbubble:
             try:
-                tb_resized = textbox.copy()
+                tb_resized = thoughtbubble.copy()
                 tb_resized.thumbnail((box_width, thought_height), Image.LANCZOS)
                 paste_x = box_x + (box_width - tb_resized.width) // 2
                 if tb_resized.mode == 'RGBA':
