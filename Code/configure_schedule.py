@@ -35,7 +35,7 @@ def get_period_names(day_label, num_periods=6):
         if name:
             periods[i] = name
     return periods
-
+c
 def main():
     print("School Schedule Configuration\n")
 

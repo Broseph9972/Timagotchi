@@ -35,7 +35,7 @@ class Menu:
         self.settings_menu_items = []
         if abday.lower() == "true":
             self.settings_menu_items.append("A/B Day")
-        self.settings_menu_items.extend(["WiFi", "Theme", "Progress Bar", "Set Time", "Schedule Presets", "Set Today Preset", "Update", "Restart", "Back"])
+        self.settings_menu_items.extend(["WiFi", "Theme", "Progress Bar", "Set Time", "Schedule Presets", "Set Today Preset", "Stopwatch", "Update", "Restart", "Back"])
         self.settings_scroll_offset = 0
         self.set_time_menu_items = ["WiFi Sync", "Manual Set", "Back"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
@@ -65,6 +65,10 @@ class Menu:
         self.current_course_id = None
         self.grades_selected_index = 0
         self.assign_selected_index = 0
+        # Stopwatch state
+        self.stopwatch_running = False
+        self.stopwatch_start_ts = 0.0
+        self.stopwatch_elapsed = 0.0
     
 
     
@@ -676,10 +680,50 @@ class Menu:
             elif selected_item == "Set Today Preset":
                 self.current_screen = 'set_today'
                 self._show_set_today_preset()
+            elif selected_item == "Stopwatch":
+                self.current_screen = 'stopwatch'
+                self.show_stopwatch()
             elif selected_item == "Update":
                 self._run_update()
             elif selected_item == "Restart":
                 self.restart_program()
+
+    def _format_stopwatch_time(self):
+        total = self.stopwatch_elapsed
+        if self.stopwatch_running:
+            total += time.time() - self.stopwatch_start_ts
+        minutes = int(total // 60)
+        seconds = int(total % 60)
+        tenths = int((total - int(total)) * 10)
+        return f"{minutes:02d}:{seconds:02d}.{tenths}"
+
+    def show_stopwatch(self):
+        wifi_connected = self._get_wifi_connected()
+        status = "Stop" if self.stopwatch_running else "Start"
+        elapsed_txt = self._format_stopwatch_time()
+        msg = f"{elapsed_txt}\nUp: Reset\nSelect: {status}\nLeft: Back"
+        self.display.show_message("Stopwatch", msg, (150, 200, 255), self.nav_items, self.nav_selected_index, wifi_connected)
+
+    def handle_stopwatch_input(self, action):
+        if action == 'up':
+            # Reset elapsed time, keep running state unchanged
+            self.stopwatch_elapsed = 0.0
+            if self.stopwatch_running:
+                self.stopwatch_start_ts = time.time()
+            self.show_stopwatch()
+        elif action in ('select', 'right'):
+            # Toggle start/stop
+            if self.stopwatch_running:
+                self.stopwatch_elapsed += time.time() - self.stopwatch_start_ts
+                self.stopwatch_running = False
+            else:
+                self.stopwatch_start_ts = time.time()
+                self.stopwatch_running = True
+            self.show_stopwatch()
+        elif action == 'left':
+            self.current_screen = 'settings'
+            self.selected_index = self.settings_menu_items.index("Stopwatch") if "Stopwatch" in self.settings_menu_items else 0
+            self.show_settings_menu()
     def _run_update(self):
         """Run a safe git pull (ff-only) from /home/pi/Timagotchi and report status.
         Auto-add remote origin if missing.
@@ -1265,6 +1309,8 @@ class Menu:
                     self.handle_grades_input(action)
                 elif self.current_screen == "assignments":
                     self.handle_assignments_input(action)
+                elif self.current_screen == "stopwatch":
+                    self.handle_stopwatch_input(action)
             
             current_time = time.time()
             if current_time - last_update > 1.0:
@@ -1274,6 +1320,8 @@ class Menu:
                     self.show_clock_screen()
                 elif self.current_screen == "main":
                     self.show_main_menu()
+                elif self.current_screen == "stopwatch":
+                    self.show_stopwatch()
                 last_update = current_time
             
             # Handle periodic time sync if enabled
