@@ -100,30 +100,47 @@ class WaveshareDisplay:
     # Layout constants
     SIDEBAR_WIDTH = 18  # narrow gutter for rotated text
     PROGRESS_BAR_HEIGHT = 8
+    WIFI_BOX_SIZE = 8  # small wifi indicator box
 
     def _render_sidebar(self, nav_items, selected_index):
-        """Draw the right-side vertical navigation with 90° rotated labels."""
+        """Draw the right-side vertical navigation with 90° rotated labels, dividers, and filled boxes."""
         if not nav_items:
             return
         secondary = self._get_text_secondary_color()
         accent_sel = (255, 255, 0)
         bg = self._get_bg_color()
+        box_fill = (30, 30, 30)  # dark fill for boxes
+        box_fill_sel = (60, 60, 40)  # slightly lighter for selected
+        divider_color = (80, 80, 80)
         
         # Clear sidebar area
         sidebar_x = self.width - self.SIDEBAR_WIDTH
         self.draw.rectangle((sidebar_x, 0, self.width, self.height), fill=bg)
         
-        # Distribute items evenly along sidebar height
-        item_height = self.height // len(nav_items)
+        # Distribute items evenly along sidebar height (leave room for wifi box at bottom)
+        usable_height = self.height - self.WIFI_BOX_SIZE - 2
+        item_height = usable_height // len(nav_items)
         
         for i, item in enumerate(nav_items):
-            y_center = i * item_height + item_height // 2
+            y_start = i * item_height
+            y_end = (i + 1) * item_height
+            y_center = y_start + item_height // 2
             color = accent_sel if i == selected_index else secondary
+            fill = box_fill_sel if i == selected_index else box_fill
             
-            # Create temp image for rotated text
-            tmp = Image.new('RGBA', (80, 14), (0, 0, 0, 0))
+            # Fill box for this item
+            self.draw.rectangle((sidebar_x + 1, y_start + 1, self.width - 1, y_end - 1), fill=fill)
+            
+            # Divider line between items
+            if i > 0:
+                self.draw.line((sidebar_x, y_start, self.width, y_start), fill=divider_color, width=1)
+            
+            # Create temp image for rotated text (smaller font)
+            tmp = Image.new('RGBA', (60, 10), (0, 0, 0, 0))
             dtmp = ImageDraw.Draw(tmp)
-            dtmp.text((0, 0), item, font=self.font_tiny, fill=color)
+            # Use shorter labels
+            short_label = item[:6] if len(item) > 6 else item
+            dtmp.text((0, 0), short_label, font=self.font_tiny, fill=color)
             # Crop to actual text size
             bbox = tmp.getbbox()
             if bbox:
@@ -138,7 +155,15 @@ class WaveshareDisplay:
             # Selection indicator: small bar to the left
             if i == selected_index:
                 bar_x = sidebar_x - 2
-                self.draw.line((bar_x, i * item_height + 4, bar_x, (i + 1) * item_height - 4), fill=accent_sel, width=2)
+                self.draw.line((bar_x, y_start + 4, bar_x, y_end - 4), fill=accent_sel, width=2)
+
+    def _render_wifi_indicator(self, wifi_connected):
+        """Draw a small colored box in the bottom-right corner for WiFi status."""
+        box_size = self.WIFI_BOX_SIZE
+        x = self.width - box_size - 2
+        y = self.height - box_size - 2
+        color = (0, 200, 0) if wifi_connected else (200, 0, 0)
+        self.draw.rectangle((x, y, x + box_size, y + box_size), fill=color)
 
     def show_schedule(self, period, period_name, time_remaining, lunch_time, end_time, current_time_str, nav_items=None, selected_index=0):
         self.clear(self._get_bg_color())
@@ -296,17 +321,17 @@ class WaveshareDisplay:
         if schedule_summary:
             self.draw.text((4, center_bottom - 2), schedule_summary[:20], font=self.font_tiny, fill=secondary)
 
-        # === BOTTOM: Clock and WiFi ===
+        # === BOTTOM: Clock only (WiFi is in sidebar area) ===
         bottom_y = self.height - 20
         self.draw.text((4, bottom_y), time_str, font=self.font_small, fill=accent)
         self.draw.text((4, bottom_y + 12), date_str, font=self.font_tiny, fill=secondary)
-        
-        wifi_color = (100, 255, 100) if wifi_connected else (255, 80, 80)
-        wifi_text = "WiFi" if wifi_connected else "NoWiFi"
-        self.draw.text((content_width - 36, bottom_y + 4), wifi_text, font=self.font_tiny, fill=wifi_color)
 
         # === RIGHT SIDEBAR ===
         self._render_sidebar(nav_items or [], selected_index)
+        
+        # === WIFI indicator box in very bottom right ===
+        self._render_wifi_indicator(wifi_connected)
+        
         self._render()
     
     # Theme color helper methods
