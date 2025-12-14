@@ -93,6 +93,35 @@ class WaveshareDisplay:
         # Icon cache for sidebar and main menu
         self.icon_cache = {}
         self._load_icons()
+
+        # ASCII faces (borrowed from pwnagotchi set)
+        self.faces = {
+            "look_r": "( ⚆_⚆)",
+            "look_l": "(☉_☉ )",
+            "look_r_happy": "( ◕‿◕)",
+            "look_l_happy": "(◕‿◕ )",
+            "sleep": "(⇀‿‿↼)",
+            "sleep2": "(≖‿‿≖)",
+            "awake": "(◕‿‿◕)",
+            "bored": "(-__-)",
+            "intense": "(°▃▃°)",
+            "cool": "(⌐■_■)",
+            "happy": "(•‿‿•)",
+            "excited": "(ᵔ◡◡ᵔ)",
+            "grateful": "(^‿‿^)",
+            "motivated": "(☼‿‿☼)",
+            "demotivated": "(≖__≖)",
+            "smart": "(✜‿‿✜)",
+            "lonely": "(ب__ب)",
+            "sad": "(╥☁╥ )",
+            "angry": "(-_-')",
+            "friend": "(♥‿‿♥)",
+            "broken": "(☓‿‿☓)",
+            "debug": "(#__#)",
+            "upload": "(1__0)",
+            "upload1": "(1__1)",
+            "upload2": "(0__1)",
+        }
     
     def _load_icons(self):
         """Load icons from the Icons folder and cache them."""
@@ -131,6 +160,11 @@ class WaveshareDisplay:
             "Settings": "settings"
         }
         return nav_map.get(nav_item, None)
+
+    def _get_face(self, name: str):
+        if not name:
+            return self.faces.get("awake", "(◕‿‿◕)")
+        return self.faces.get(name, self.faces.get("awake", "(◕‿‿◕)"))
 
     def _render(self):
         """Push the PIL image to the LCD."""
@@ -327,9 +361,42 @@ class WaveshareDisplay:
         self._render_sidebar(nav_items or [], nav_selected_index)
         self._render_wifi_indicator(wifi_connected)
         self._render()
+
+    def show_face_message(self, title, message, face_name="awake", color=(255, 255, 255), nav_items=None, nav_selected_index=0, wifi_connected=False):
+        """Display a message with a large ASCII face centered."""
+        self.clear(self._get_bg_color())
+
+        # Title
+        self.draw.text((4, 6), title, font=self.font_medium, fill=color if color else self._get_accent_color())
+
+        # Face centered
+        face_text = self._get_face(face_name)
+        face_font = self.font_large
+        try:
+            bbox = self.draw.textbbox((0, 0), face_text, font=face_font)
+            face_w = bbox[2] - bbox[0]
+            face_h = bbox[3] - bbox[1]
+        except Exception:
+            face_w, face_h = face_font.getsize(face_text)
+
+        content_width = self.width - self.SIDEBAR_WIDTH - 4
+        face_x = (content_width - face_w) // 2
+        face_y = 28
+        self.draw.text((face_x, face_y), face_text, font=face_font, fill=color if color else self._get_text_primary_color())
+
+        # Message lines under face
+        y_offset = face_y + face_h + 6
+        for line in (message or "").split("\n"):
+            self.draw.text((4, y_offset), line[:18], font=self.font_tiny, fill=self._get_text_secondary_color())
+            y_offset += 12
+
+        # Sidebar + WiFi
+        self._render_sidebar(nav_items or [], nav_selected_index)
+        self._render_wifi_indicator(wifi_connected)
+        self._render()
     
-    def show_main_page(self, progress_label, progress_value, time_str, date_str, schedule_summary, wifi_connected, nav_items, selected_index, bubble_text=""):
-        """Render the main page per sketch: progress bar at very top spanning to sidebar, center character+speech bubble, right sidebar, bottom clock and wifi."""
+    def show_main_page(self, progress_label, progress_value, time_str, date_str, schedule_summary, wifi_connected, nav_items, selected_index, face_name="awake"):
+        """Render the main page with an ASCII face, progress bar, clock, sidebar, wifi."""
         self.clear(self._get_bg_color())
 
         accent = self._get_accent_color()
@@ -353,90 +420,24 @@ class WaveshareDisplay:
         # Label below bar
         self.draw.text((4, bar_h + 2), progress_label, font=self.font_tiny, fill=secondary)
 
-        # === CENTER: Character placeholder + text boxes ===
+        # === CENTER: Face ===
         center_top = bar_h + 16
         center_bottom = self.height - 24
         center_h = center_bottom - center_top
-        
-        # Character box (left side) - NO bounding box
-        char_w = int(content_width * 0.4)
-        char_h = int(center_h * 0.7)
-        char_x = 4
-        char_y = center_top + 10
-        
-        # Try to load and display icon (for main page, use Icon.png not home.png)
-        page_icon = self._get_icon('icon')
-        if page_icon:
-            try:
-                # Resize icon to fit character box (with margin)
-                margin = 2
-                max_w = char_w - 2*margin
-                max_h = char_h - 2*margin
-                icon_resized = page_icon.copy()
-                icon_resized.thumbnail((max_w, max_h), Image.LANCZOS)
-                # Center in box
-                paste_x = char_x + (char_w - icon_resized.width) // 2
-                paste_y = char_y + (char_h - icon_resized.height) // 2
-                # Use alpha channel as mask for transparency
-                if icon_resized.mode == 'RGBA':
-                    self.image.paste(icon_resized, (paste_x, paste_y), icon_resized)
-                else:
-                    self.image.paste(icon_resized, (paste_x, paste_y))
-            except Exception as e:
-                pass
-        
-        # Text bubble area (right of character)
-        box_x = char_x + char_w + 4
-        box_width = content_width - box_x - 4
-        box_top = center_top
 
-        # Top: speechbubble.png with class/time info (what the character is saying)
-        speechbubble_y = box_top
-        sb_text = (bubble_text or "")[:22]
-        # Measure text to ensure bubble height fits
+        face_text = self._get_face(face_name)
+        # Choose font size that fits nicely
+        face_font = self.font_large
         try:
-            bbox = self.draw.textbbox((0, 0), sb_text, font=self.font_tiny)
-            text_h = bbox[3] - bbox[1]
+            bbox = self.draw.textbbox((0, 0), face_text, font=face_font)
+            face_w = bbox[2] - bbox[0]
+            face_h = bbox[3] - bbox[1]
         except Exception:
-            # Fallback if textbbox not available
-            text_h = self.font_tiny.getsize(sb_text)[1] if sb_text else 10
-        base_sb_height = int(center_h * 0.42)
-        speechbubble_height = max(base_sb_height, text_h + 16)
-        speechbubble = self._get_icon('speechbubble')
-        sb_paste_x = box_x + 4
-        if speechbubble:
-            try:
-                sb_resized = speechbubble.copy()
-                sb_resized.thumbnail((box_width, speechbubble_height), Image.LANCZOS)
-                sb_paste_x = box_x + (box_width - sb_resized.width) // 2
-                if sb_resized.mode == 'RGBA':
-                    self.image.paste(sb_resized, (sb_paste_x, speechbubble_y), sb_resized)
-                else:
-                    self.image.paste(sb_resized, (sb_paste_x, speechbubble_y))
-            except Exception:
-                pass
-        # Draw main text in black on the speech bubble, relative to bubble
-        if sb_text:
-            self.draw.text((sb_paste_x + 6, speechbubble_y + 6), sb_text, font=self.font_tiny, fill=(0, 0, 0))
+            face_w, face_h = face_font.getsize(face_text)
 
-        # Bottom: thoughtbubble.png with placeholder text
-        thought_height = int(center_h * 0.42)
-        thought_y = speechbubble_y + speechbubble_height + 4
-        thoughtbubble = self._get_icon('thoughtbubble') or self._get_icon('textbox')
-        tb_paste_x = box_x + 4
-        if thoughtbubble:
-            try:
-                tb_resized = thoughtbubble.copy()
-                tb_resized.thumbnail((box_width, thought_height), Image.LANCZOS)
-                tb_paste_x = box_x + (box_width - tb_resized.width) // 2
-                if tb_resized.mode == 'RGBA':
-                    self.image.paste(tb_resized, (tb_paste_x, thought_y), tb_resized)
-                else:
-                    self.image.paste(tb_resized, (tb_paste_x, thought_y))
-            except Exception:
-                pass
-        # Placeholder thought text in black
-        self.draw.text((tb_paste_x + 6, thought_y + 6), "placeholder text", font=self.font_tiny, fill=(0, 0, 0))
+        face_x = (content_width - face_w) // 2
+        face_y = center_top + (center_h - face_h) // 2
+        self.draw.text((face_x, face_y), face_text, font=face_font, fill=primary)
 
         # === BOTTOM: Clock only (WiFi is in sidebar area) ===
         # Move up a bit to avoid overlap with summary/wifi

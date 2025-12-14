@@ -294,8 +294,19 @@ class Menu:
         date_str = now.strftime("%a %b %d")
         schedule_summary = self._get_schedule_summary()
         wifi_connected = self._get_wifi_connected()
-        bubble_text = schedule_summary or ""  # show period/advisory/passing in bubble
-        self.display.show_main_page(label, progress, time_str, date_str, None, wifi_connected, self.nav_items, self.nav_selected_index, bubble_text)
+        # Pick a face based on state
+        face_name = "awake"
+        summary_lower = (schedule_summary or "").lower()
+        if "lunch" in summary_lower:
+            face_name = "happy"
+        elif "passing" in summary_lower:
+            face_name = "look_r"
+        elif "advisory" in summary_lower:
+            face_name = "smart"
+        elif not schedule_summary:
+            face_name = "bored"
+
+        self.display.show_main_page(label, progress, time_str, date_str, None, wifi_connected, self.nav_items, self.nav_selected_index, face_name)
     
     def get_progress_bar(self):
         """Calculate progress bar based on current mode."""
@@ -1151,7 +1162,11 @@ class Menu:
     def sync_time_via_wifi(self):
         """Attempt to sync time via WiFi using timedatectl"""
         try:
-            self.display.show_message("Syncing...", "Getting time from\nwifi network...", (100, 200, 100), self.nav_items, self.nav_selected_index)
+            # Animated faces during sync
+            faces_seq = ["sleep", "sleep2", "look_l", "look_r", "awake"]
+            for f in faces_seq:
+                self.display.show_face_message("Syncing...", "Getting time from\nwifi network...", f, (100, 200, 100), self.nav_items, self.nav_selected_index)
+                time.sleep(0.4)
             
             try:
                 # Set timezone first (import from config)
@@ -1177,17 +1192,17 @@ class Menu:
                 
                 if "yes" in result.stdout.lower():
                     self.last_sync_error = None
-                    self.display.show_message("Time Synced", "WiFi sync\nsuccessful!", (100, 255, 100), self.nav_items, self.nav_selected_index)
+                    self.display.show_face_message("Time Synced", "WiFi sync\nsuccessful!", "happy", (100, 255, 100), self.nav_items, self.nav_selected_index)
                 else:
                     self.last_sync_error = "NTP not synchronized"
-                    self.display.show_message("Sync Failed", "NTP sync pending", (255, 100, 100), self.nav_items, self.nav_selected_index)
+                    self.display.show_face_message("Sync Failed", "NTP sync pending", "bored", (255, 100, 100), self.nav_items, self.nav_selected_index)
                 
             except subprocess.TimeoutExpired:
                 self.last_sync_error = "Sync timed out"
-                self.display.show_message("Sync Failed", "Operation timed out", (255, 100, 100), self.nav_items, self.nav_selected_index)
+                self.display.show_face_message("Sync Failed", "Operation timed out", "sad", (255, 100, 100), self.nav_items, self.nav_selected_index)
             except Exception as e:
                 self.last_sync_error = str(e)
-                self.display.show_message("Sync Failed", str(e)[:40], (255, 100, 100), self.nav_items, self.nav_selected_index)
+                self.display.show_face_message("Sync Failed", str(e)[:40], "angry", (255, 100, 100), self.nav_items, self.nav_selected_index)
             
             # Wait for display to be visible
             time.sleep(2)
