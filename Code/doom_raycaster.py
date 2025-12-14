@@ -451,10 +451,15 @@ class DoomRenderer:
             draw.line((face_x + 5, face_y + 13, face_x + 13, face_y + 13), fill=(100, 50, 50))
 
 
-def run_doom(display, input_handler):
+def run_raycaster(display, input_handler):
     """
-    Run Doom-style game on the Waveshare display.
+    Run Doom-style raycaster on the Waveshare display.
     Returns the exit key pressed ('key1', 'key2', 'key3') or None.
     """
     renderer = DoomRenderer(display, input_handler)
     return renderer.start()
+
+
+# Backwards compatibility
+def run_doom(display, input_handler):
+    return run_raycaster(display, input_handler)

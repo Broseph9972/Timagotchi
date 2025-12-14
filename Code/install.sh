@@ -18,7 +18,7 @@ sudo apt install -y chocolate-doom xvfb xdotool || echo "Note: Doom packages opt
 #sudo apt install -y libretro-common || echo "Warning: libretro-common package not available"
 
 echo "Installing Python dependencies..."
-pip3 install --break-system-packages pillow numpy spidev RPi.GPIO requests pygame mss
+pip3 install --break-system-packages pillow numpy spidev RPi.GPIO requests pygame mss Cython
 
 echo "Downloading Waveshare LCD driver..."
 GIT_TERMINAL_PROMPT=0 git clone --depth 1 https://github.com/waveshare/LCD_1in44.git /tmp/LCD_1in44

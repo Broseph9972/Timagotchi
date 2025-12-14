@@ -928,12 +928,12 @@ class Menu:
             self.show_main_menu()
 
     def launch_mini_doom(self):
-        """Launch real Chocolate Doom on the Waveshare display."""
+        """Launch Doom - tries PyDoom first, falls back to raycaster."""
         self.display.show_message("Doom", "Starting...", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
         time.sleep(0.3)
         
         try:
-            from doom_waveshare import run_doom
+            from doom_wrapper import run_doom
             
             # Run doom - it returns the exit key pressed
             exit_key = run_doom(self.display, self.input_handler)
