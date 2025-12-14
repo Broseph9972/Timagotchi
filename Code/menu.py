@@ -890,51 +890,95 @@ class Menu:
                 self._konami_index = 1 if action == self._konami_code[0] else 0
 
     def launch_tetris_pygame(self):
-        self.display.show_message("Tetris", "Launching...", (100, 200, 255), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+        """Launch Tetris directly on the Waveshare display."""
+        self.display.show_message("Tetris", "Starting...", (100, 200, 255), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+        time.sleep(0.3)
+        
         try:
-            # Run the pygame script
-            tetris_path = os.path.join(os.path.dirname(__file__), 'tetris.py')
-            result = subprocess.Popen([sys.executable, tetris_path], 
-                                     stdout=subprocess.PIPE, 
-                                     stderr=subprocess.PIPE)
-            time.sleep(0.5)  # Brief delay to let pygame initialize
+            from tetris_waveshare import run_tetris
             
-            # Check if process is still running
-            poll = result.poll()
-            if poll is not None:
-                # Process already exited - likely an error
-                stderr = result.stderr.read().decode('utf-8', errors='ignore')
-                self.display.show_message("Tetris", f"Error: {stderr[:60]}", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
-                time.sleep(3)
+            # Run tetris - it returns the exit key pressed
+            exit_key = run_tetris(self.display, self.input_handler)
+            
+            # Navigate based on which key was pressed to exit
+            if exit_key == 'key1':
+                self.current_screen = 'main'
+                self.nav_selected_index = self.nav_items.index('Main Page') if 'Main Page' in self.nav_items else 0
+                self.show_main_menu()
+            elif exit_key == 'key2':
+                self.current_screen = 'grades'
+                self.nav_selected_index = self.nav_items.index('Grades') if 'Grades' in self.nav_items else 1
+                self.show_grades_menu()
+            elif exit_key == 'key3':
+                self.current_screen = 'settings'
+                self.nav_selected_index = self.nav_items.index('Settings') if 'Settings' in self.nav_items else 2
+                self.selected_index = 0
+                self.show_settings_menu()
             else:
-                # Game is running, show success briefly
-                self.display.show_message("Tetris", "Started!", (100, 255, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
-                time.sleep(1)
-            
-            self.current_screen = 'main'
-            self.nav_selected_index = self.nav_items.index('Main Page') if 'Main Page' in self.nav_items else 0
-            self.show_main_menu()
+                self.current_screen = 'main'
+                self.nav_selected_index = self.nav_items.index('Main Page') if 'Main Page' in self.nav_items else 0
+                self.show_main_menu()
+                
         except Exception as e:
-            self.display.show_message("Tetris", f"Launch failed: {str(e)[:40]}", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
-            time.sleep(3)
+            self.display.show_message("Tetris", f"Error: {str(e)[:50]}", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+            time.sleep(2)
             self.current_screen = 'main'
             self.show_main_menu()
 
 
     def launch_custom_script(self):
-        # Looks for Code/custom_script.py; show error if missing
+        """
+        Run custom_script.py directly with access to display and input.
+        The script should have a run(display, input_handler) function.
+        It should return 'key1', 'key2', or 'key3' to navigate on exit.
+        """
         path = os.path.join(os.path.dirname(__file__), 'custom_script.py')
         if not os.path.exists(path):
             self.display.show_message("Custom Script", "Place custom_script.py in Code/", (255, 150, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+            time.sleep(2)
             return
-        self.display.show_message("Custom Script", "Launching...", (100, 200, 255), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+        
+        self.display.show_message("Custom Script", "Starting...", (100, 200, 255), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+        time.sleep(0.3)
+        
         try:
-            subprocess.Popen([sys.executable, path])
-            self.current_screen = 'main'
-            self.nav_selected_index = self.nav_items.index('Main Page') if 'Main Page' in self.nav_items else 0
-            self.show_main_menu()
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("custom_script", path)
+            custom_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(custom_module)
+            
+            # Call the run function if it exists
+            if hasattr(custom_module, 'run'):
+                exit_key = custom_module.run(self.display, self.input_handler)
+            else:
+                self.display.show_message("Custom Script", "No run() function found", (255, 150, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                time.sleep(2)
+                exit_key = None
+            
+            # Navigate based on which key was pressed to exit
+            if exit_key == 'key1':
+                self.current_screen = 'main'
+                self.nav_selected_index = self.nav_items.index('Main Page') if 'Main Page' in self.nav_items else 0
+                self.show_main_menu()
+            elif exit_key == 'key2':
+                self.current_screen = 'grades'
+                self.nav_selected_index = self.nav_items.index('Grades') if 'Grades' in self.nav_items else 1
+                self.show_grades_menu()
+            elif exit_key == 'key3':
+                self.current_screen = 'settings'
+                self.nav_selected_index = self.nav_items.index('Settings') if 'Settings' in self.nav_items else 2
+                self.selected_index = 0
+                self.show_settings_menu()
+            else:
+                self.current_screen = 'main'
+                self.nav_selected_index = self.nav_items.index('Main Page') if 'Main Page' in self.nav_items else 0
+                self.show_main_menu()
+                
         except Exception as e:
-            self.display.show_message("Custom Script", f"Launch failed: {str(e)[:60]}", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+            self.display.show_message("Custom Script", f"Error: {str(e)[:50]}", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+            time.sleep(2)
+            self.current_screen = 'main'
+            self.show_main_menu()
 
     def show_assignments_menu(self, fetch=True):
         """Display assignments menu. fetch=True to fetch from API, False to redraw cached list."""
