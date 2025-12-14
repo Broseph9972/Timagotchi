@@ -41,7 +41,8 @@ class InputHandler:
         for pin in self.pins:
             self.last_press[pin] = 0
         
-        self.debounce_time = 0.05
+        # Keep debounce short so taps are captured without holding
+        self.debounce_time = 0.02
     
     def check_button(self, pin):
         if self.using_rpi_gpio:

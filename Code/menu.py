@@ -1218,7 +1218,6 @@ class Menu:
             current_time = time.time()
             for pin in self.input_handler.pins:
                 self.input_handler.last_press[pin] = current_time
-                time.sleep(0.05)
     
     def apply_manual_time(self):
         """Apply the manually set time"""
@@ -1364,6 +1363,6 @@ class Menu:
                     self.sync_time_via_wifi()
                     self.last_sync_time = current_time
             
-            time.sleep(0.05)
+            time.sleep(0.01)
         
         self.input_handler.cleanup()
