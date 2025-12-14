@@ -319,7 +319,10 @@ class Menu:
                 "lowk lock in",
                 "No, I'm not a bomb.",
             ]
-            speech_lines = [random.choice(passing_lines)]
+            # Change message every 5 minutes using a time bucket
+            bucket = int(now.timestamp() // 300)
+            rng = random.Random(bucket)
+            speech_lines = [rng.choice(passing_lines)]
 
         self.display.show_main_page(label, progress, time_str, date_str, None, wifi_connected, self.nav_items, self.nav_selected_index, face_name, speech_lines)
     

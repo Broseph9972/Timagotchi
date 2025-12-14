@@ -436,18 +436,31 @@ class WaveshareDisplay:
         face_y = max(bar_h + 12, bottom_y - face_h - 6)
         self.draw.text((face_x, face_y), face_text, font=face_font, fill=primary)
 
-        # Single speech line (if any), drawn above the face, left aligned
+        # Single speech line (if any), centered above the face; draw "<┛" to the right of head
         speech_lines = speech_lines or []
         if speech_lines:
             line = speech_lines[0]
-            msg = f"______{line}______"
             try:
-                tb = self.draw.textbbox((0, 0), msg, font=self.font_tiny)
+                tb = self.draw.textbbox((0, 0), line, font=self.font_tiny)
+                msg_w = tb[2] - tb[0]
                 msg_h = tb[3] - tb[1]
             except Exception:
-                msg_h = self.font_tiny.getsize(msg)[1]
-            text_y = max(bar_h + 8, face_y - msg_h - 4)
-            self.draw.text((face_x, text_y), msg[:28], font=self.font_tiny, fill=primary)
+                msg_w, msg_h = self.font_tiny.getsize(line)
+            text_y = max(bar_h + 8, face_y - msg_h - 6)
+            # Center text within content area (excluding sidebar)
+            content_w = self.width - self.SIDEBAR_WIDTH
+            text_x = max(0, (content_w - msg_w) // 2)
+            self.draw.text((text_x, text_y), line[:28], font=self.font_tiny, fill=primary)
+            # Pointer to the right of the face
+            arrow = "<┛"
+            try:
+                ab = self.draw.textbbox((0, 0), arrow, font=self.font_tiny)
+                arrow_h = ab[3] - ab[1]
+            except Exception:
+                arrow_h = self.font_tiny.getsize(arrow)[1]
+            arrow_x = face_x + face_w + 2
+            arrow_y = face_y + max(0, (face_h - arrow_h) // 2)
+            self.draw.text((arrow_x, arrow_y), arrow, font=self.font_tiny, fill=primary)
 
         # === BOTTOM: Clock only (WiFi is in sidebar area) ===
         # Move up a bit to avoid overlap with summary/wifi
