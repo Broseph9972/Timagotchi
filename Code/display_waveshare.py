@@ -440,17 +440,28 @@ class WaveshareDisplay:
         speech_lines = speech_lines or []
         if speech_lines:
             line = speech_lines[0]
+            
+            # Truncate to last full word if longer than 22 chars
+            if len(line) > 22:
+                truncated = line[:22]
+                # Find last space to break at word boundary
+                last_space = truncated.rfind(' ')
+                if last_space > 0:
+                    line = line[:last_space]
+                else:
+                    line = truncated
+            
             try:
                 tb = self.draw.textbbox((0, 0), line, font=self.font_tiny)
                 msg_w = tb[2] - tb[0]
                 msg_h = tb[3] - tb[1]
             except Exception:
                 msg_w, msg_h = self.font_tiny.getsize(line)
-            text_y = max(bar_h + 8, face_y - msg_h - 6)
+            text_y = max(bar_h + 8, face_y - msg_h - 12)  # Move up 1 more bar (6px)
             # Center text within content area (excluding sidebar)
             content_w = self.width - self.SIDEBAR_WIDTH
             text_x = max(0, (content_w - msg_w) // 2)
-            self.draw.text((text_x, text_y), line[:28], font=self.font_tiny, fill=primary)
+            self.draw.text((text_x, text_y), line, font=self.font_tiny, fill=primary)
             # Pointer to the right of the face
             arrow = "<┛"
             try:
