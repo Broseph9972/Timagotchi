@@ -81,7 +81,7 @@ class Menu:
         # Secret/Konami state (shorter sequence for Developer screen)
         self._konami_code = ['up', 'up', 'down', 'down', 'left', 'right', 'left', 'right']
         self._konami_index = 0
-        self.secret_menu_items = ["Start Tetris", "Run Custom Script"]
+        self.secret_menu_items = ["Start Tetris", "Mini Doom", "Run Custom Script"]
     
     def _load_phrases(self):
         """Load phrases from Phrases.json file."""
@@ -845,6 +845,8 @@ class Menu:
             choice = self.secret_menu_items[self.selected_index]
             if choice == "Start Tetris":
                 self.launch_tetris_pygame()
+            elif choice == "Mini Doom":
+                self.launch_mini_doom()
             elif choice == "Run Custom Script":
                 self.launch_custom_script()
         elif action == 'left':
@@ -925,6 +927,41 @@ class Menu:
             self.current_screen = 'main'
             self.show_main_menu()
 
+    def launch_mini_doom(self):
+        """Launch Mini Doom raycaster directly on the Waveshare display."""
+        self.display.show_message("Mini Doom", "Starting...", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+        time.sleep(0.3)
+        
+        try:
+            from doom_waveshare import run_doom
+            
+            # Run doom - it returns the exit key pressed
+            exit_key = run_doom(self.display, self.input_handler)
+            
+            # Navigate based on which key was pressed to exit
+            if exit_key == 'key1':
+                self.current_screen = 'main'
+                self.nav_selected_index = self.nav_items.index('Main Page') if 'Main Page' in self.nav_items else 0
+                self.show_main_menu()
+            elif exit_key == 'key2':
+                self.current_screen = 'grades'
+                self.nav_selected_index = self.nav_items.index('Grades') if 'Grades' in self.nav_items else 1
+                self.show_grades_menu()
+            elif exit_key == 'key3':
+                self.current_screen = 'settings'
+                self.nav_selected_index = self.nav_items.index('Settings') if 'Settings' in self.nav_items else 2
+                self.selected_index = 0
+                self.show_settings_menu()
+            else:
+                self.current_screen = 'main'
+                self.nav_selected_index = self.nav_items.index('Main Page') if 'Main Page' in self.nav_items else 0
+                self.show_main_menu()
+                
+        except Exception as e:
+            self.display.show_message("Mini Doom", f"Error: {str(e)[:50]}", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+            time.sleep(2)
+            self.current_screen = 'main'
+            self.show_main_menu()
 
     def launch_custom_script(self):
         """
