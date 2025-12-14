@@ -81,7 +81,7 @@ class Menu:
         # Secret/Konami state (shorter sequence for Developer screen)
         self._konami_code = ['up', 'up', 'down', 'down', 'left', 'right', 'left', 'right']
         self._konami_index = 0
-        self.secret_menu_items = ["Start Tetris", "Mini Doom", "Run Custom Script"]
+        self.secret_menu_items = ["Start Tetris", "Doom", "Run Custom Script"]
     
     def _load_phrases(self):
         """Load phrases from Phrases.json file."""
@@ -845,7 +845,7 @@ class Menu:
             choice = self.secret_menu_items[self.selected_index]
             if choice == "Start Tetris":
                 self.launch_tetris_pygame()
-            elif choice == "Mini Doom":
+            elif choice == "Doom":
                 self.launch_mini_doom()
             elif choice == "Run Custom Script":
                 self.launch_custom_script()
@@ -928,8 +928,8 @@ class Menu:
             self.show_main_menu()
 
     def launch_mini_doom(self):
-        """Launch Mini Doom raycaster directly on the Waveshare display."""
-        self.display.show_message("Mini Doom", "Starting...", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+        """Launch real Chocolate Doom on the Waveshare display."""
+        self.display.show_message("Doom", "Starting...", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
         time.sleep(0.3)
         
         try:
@@ -958,7 +958,7 @@ class Menu:
                 self.show_main_menu()
                 
         except Exception as e:
-            self.display.show_message("Mini Doom", f"Error: {str(e)[:50]}", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+            self.display.show_message("Doom", f"Error: {str(e)[:50]}", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
             time.sleep(2)
             self.current_screen = 'main'
             self.show_main_menu()

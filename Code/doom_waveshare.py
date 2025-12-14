@@ -1,318 +1,336 @@
 """
-Mini Doom-style raycaster for Waveshare 128x128 LCD.
-Simple Wolfenstein 3D-style rendering directly to PIL.
+Real Doom on Waveshare 128x128 LCD.
+Runs Chocolate Doom in a virtual X display and captures/scales frames to the LCD.
 Press KEY1, KEY2, or KEY3 to exit and return to menu.
+
+Requirements (install via apt):
+  sudo apt install chocolate-doom xvfb xdotool python3-mss
+  
+You also need a doom.wad file (shareware or full) in ~/timagotchi/roms/
 """
 
-import math
+import os
+import subprocess
 import time
+import threading
 
-# Map: 1 = wall, 0 = empty
-MAP = [
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,1,1,0,0,0,0,0,1,1,1,0,0,1],
-    [1,0,1,0,0,0,0,0,0,0,0,0,1,0,0,1],
-    [1,0,1,0,0,0,0,0,0,0,0,0,1,0,0,1],
-    [1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,1],
-    [1,0,1,0,0,0,0,0,0,0,0,0,1,0,0,1],
-    [1,0,1,0,0,0,0,0,0,0,0,0,1,0,0,1],
-    [1,0,1,1,1,0,0,0,0,0,1,1,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,1,1,1,0,1,1,1,0,0,0,0,1],
-    [1,0,0,0,1,0,0,0,0,0,1,0,0,0,0,1],
-    [1,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+try:
+    import mss
+    HAS_MSS = True
+except ImportError:
+    HAS_MSS = False
+
+from PIL import Image
+
+# Path to DOOM WAD file
+# Check same directory as this script first
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DOOM_WAD_PATHS = [
+    os.path.join(_SCRIPT_DIR, "doom1.wad"),
+    os.path.join(_SCRIPT_DIR, "doom.wad"),
+    os.path.join(_SCRIPT_DIR, "DOOM1.WAD"),
+    os.path.join(_SCRIPT_DIR, "DOOM.WAD"),
+    os.path.expanduser("~/timagotchi/roms/doom.wad"),
+    os.path.expanduser("~/timagotchi/roms/doom1.wad"),
+    "/usr/share/games/doom/doom1.wad",
+    "/usr/share/doom/doom1.wad",
 ]
 
-MAP_WIDTH = len(MAP[0])
-MAP_HEIGHT = len(MAP)
-
-# Wall colors based on direction (N/S vs E/W)
-WALL_COLOR_NS = (180, 60, 60)   # Red-ish for N/S walls
-WALL_COLOR_EW = (120, 40, 40)   # Darker for E/W walls
-CEILING_COLOR = (40, 40, 60)
-FLOOR_COLOR = (60, 60, 40)
+# Virtual display settings
+VIRTUAL_DISPLAY = ":99"
+DOOM_WIDTH = 320
+DOOM_HEIGHT = 200
 
 
-class RaycasterGame:
-    def __init__(self):
-        # Player position and direction
-        self.player_x = 2.5
-        self.player_y = 2.5
-        self.player_angle = 0.0  # Radians
-        
-        # Field of view
-        self.fov = math.pi / 3  # 60 degrees
-        
-        # Rendering resolution (will be scaled to display)
-        self.render_width = 64
-        self.render_height = 48
-        
-        # Movement speed
-        self.move_speed = 0.15
-        self.rot_speed = 0.12
-    
-    def move_forward(self):
-        new_x = self.player_x + math.cos(self.player_angle) * self.move_speed
-        new_y = self.player_y + math.sin(self.player_angle) * self.move_speed
-        # Collision detection
-        if MAP[int(self.player_y)][int(new_x)] == 0:
-            self.player_x = new_x
-        if MAP[int(new_y)][int(self.player_x)] == 0:
-            self.player_y = new_y
-    
-    def move_backward(self):
-        new_x = self.player_x - math.cos(self.player_angle) * self.move_speed
-        new_y = self.player_y - math.sin(self.player_angle) * self.move_speed
-        if MAP[int(self.player_y)][int(new_x)] == 0:
-            self.player_x = new_x
-        if MAP[int(new_y)][int(self.player_x)] == 0:
-            self.player_y = new_y
-    
-    def strafe_left(self):
-        strafe_angle = self.player_angle - math.pi / 2
-        new_x = self.player_x + math.cos(strafe_angle) * self.move_speed
-        new_y = self.player_y + math.sin(strafe_angle) * self.move_speed
-        if MAP[int(self.player_y)][int(new_x)] == 0:
-            self.player_x = new_x
-        if MAP[int(new_y)][int(self.player_x)] == 0:
-            self.player_y = new_y
-    
-    def strafe_right(self):
-        strafe_angle = self.player_angle + math.pi / 2
-        new_x = self.player_x + math.cos(strafe_angle) * self.move_speed
-        new_y = self.player_y + math.sin(strafe_angle) * self.move_speed
-        if MAP[int(self.player_y)][int(new_x)] == 0:
-            self.player_x = new_x
-        if MAP[int(new_y)][int(self.player_x)] == 0:
-            self.player_y = new_y
-    
-    def turn_left(self):
-        self.player_angle -= self.rot_speed
-    
-    def turn_right(self):
-        self.player_angle += self.rot_speed
-    
-    def cast_ray(self, ray_angle):
-        """Cast a single ray and return distance to wall and wall side."""
-        # Normalize angle
-        ray_angle = ray_angle % (2 * math.pi)
-        
-        # Ray direction
-        ray_dir_x = math.cos(ray_angle)
-        ray_dir_y = math.sin(ray_angle)
-        
-        # Current map position
-        map_x = int(self.player_x)
-        map_y = int(self.player_y)
-        
-        # Length of ray from one x/y side to next
-        delta_dist_x = abs(1 / ray_dir_x) if ray_dir_x != 0 else 1e30
-        delta_dist_y = abs(1 / ray_dir_y) if ray_dir_y != 0 else 1e30
-        
-        # Step direction and initial side distance
-        if ray_dir_x < 0:
-            step_x = -1
-            side_dist_x = (self.player_x - map_x) * delta_dist_x
-        else:
-            step_x = 1
-            side_dist_x = (map_x + 1.0 - self.player_x) * delta_dist_x
-        
-        if ray_dir_y < 0:
-            step_y = -1
-            side_dist_y = (self.player_y - map_y) * delta_dist_y
-        else:
-            step_y = 1
-            side_dist_y = (map_y + 1.0 - self.player_y) * delta_dist_y
-        
-        # DDA algorithm
-        hit = False
-        side = 0  # 0 = N/S wall, 1 = E/W wall
-        max_depth = 20
-        
-        for _ in range(max_depth):
-            if side_dist_x < side_dist_y:
-                side_dist_x += delta_dist_x
-                map_x += step_x
-                side = 0
-            else:
-                side_dist_y += delta_dist_y
-                map_y += step_y
-                side = 1
-            
-            if 0 <= map_x < MAP_WIDTH and 0 <= map_y < MAP_HEIGHT:
-                if MAP[map_y][map_x] > 0:
-                    hit = True
-                    break
-        
-        if not hit:
-            return max_depth, side
-        
-        # Calculate perpendicular distance (avoids fisheye)
-        if side == 0:
-            perp_dist = (map_x - self.player_x + (1 - step_x) / 2) / ray_dir_x if ray_dir_x != 0 else max_depth
-        else:
-            perp_dist = (map_y - self.player_y + (1 - step_y) / 2) / ray_dir_y if ray_dir_y != 0 else max_depth
-        
-        return abs(perp_dist), side
-    
-    def render_frame(self):
-        """Render a frame and return pixel data as list of (x, y, color) tuples."""
-        pixels = []
-        
-        for x in range(self.render_width):
-            # Calculate ray angle for this column
-            ray_angle = self.player_angle - self.fov / 2 + (x / self.render_width) * self.fov
-            
-            # Cast ray
-            distance, side = self.cast_ray(ray_angle)
-            
-            # Calculate wall height
-            if distance > 0:
-                wall_height = int(self.render_height / distance)
-            else:
-                wall_height = self.render_height
-            
-            wall_height = min(wall_height, self.render_height)
-            
-            # Calculate wall top/bottom
-            wall_top = (self.render_height - wall_height) // 2
-            wall_bottom = wall_top + wall_height
-            
-            # Draw column
-            for y in range(self.render_height):
-                if y < wall_top:
-                    color = CEILING_COLOR
-                elif y < wall_bottom:
-                    # Shade based on distance
-                    shade = max(0.3, 1.0 - distance / 10)
-                    if side == 0:
-                        base = WALL_COLOR_NS
-                    else:
-                        base = WALL_COLOR_EW
-                    color = (int(base[0] * shade), int(base[1] * shade), int(base[2] * shade))
-                else:
-                    color = FLOOR_COLOR
-                
-                pixels.append((x, y, color))
-        
-        return pixels
+def find_doom_wad():
+    """Find a DOOM WAD file."""
+    for path in DOOM_WAD_PATHS:
+        if os.path.exists(path):
+            return path
+    return None
 
 
-class DoomWaveshare:
-    """Doom-style raycaster that renders to Waveshare 128x128 display."""
+def find_chocolate_doom():
+    """Find chocolate-doom executable."""
+    candidates = [
+        "chocolate-doom",
+        "/usr/games/chocolate-doom",
+        "/usr/local/bin/chocolate-doom",
+    ]
+    for cmd in candidates:
+        try:
+            result = subprocess.run(["which", cmd], capture_output=True, text=True)
+            if result.returncode == 0:
+                return result.stdout.strip()
+        except:
+            pass
+    return None
+
+
+class RealDoom:
+    """Runs actual Chocolate Doom and displays on Waveshare LCD."""
     
     def __init__(self, display, input_handler):
         self.display = display
         self.input_handler = input_handler
         self.running = False
-        self.game = RaycasterGame()
+        self.doom_process = None
+        self.xvfb_process = None
+        self.capture_thread = None
+        self.current_frame = None
+        self.frame_lock = threading.Lock()
         
-        # Scale factors (render 64x48, display at 128x96 centered)
-        self.scale_x = 2
-        self.scale_y = 2
-        self.offset_x = 0
-        self.offset_y = 10
-    
     def start(self):
-        """Start the game loop."""
-        self.running = True
+        """Start Doom and the display loop."""
+        # Check dependencies
+        if not HAS_MSS:
+            self._show_error("Missing mss module\nsudo pip3 install mss")
+            return 'key1'
+        
+        doom_exe = find_chocolate_doom()
+        if not doom_exe:
+            self._show_error("chocolate-doom not found\nsudo apt install\nchocolate-doom")
+            return 'key1'
+        
+        wad_path = find_doom_wad()
+        if not wad_path:
+            self._show_error("doom.wad not found\nPlace in:\n~/timagotchi/roms/")
+            return 'key1'
+        
+        # Check for xvfb
+        try:
+            subprocess.run(["which", "Xvfb"], capture_output=True, check=True)
+        except:
+            self._show_error("Xvfb not found\nsudo apt install xvfb")
+            return 'key1'
+        
+        # Check for xdotool
+        try:
+            subprocess.run(["which", "xdotool"], capture_output=True, check=True)
+        except:
+            self._show_error("xdotool not found\nsudo apt install xdotool")
+            return 'key1'
+        
+        self._show_status("Starting Doom...")
+        
+        try:
+            # Start virtual X display
+            self.xvfb_process = subprocess.Popen(
+                ["Xvfb", VIRTUAL_DISPLAY, "-screen", "0", f"{DOOM_WIDTH}x{DOOM_HEIGHT}x24"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            time.sleep(0.5)
+            
+            # Set DISPLAY environment
+            env = os.environ.copy()
+            env["DISPLAY"] = VIRTUAL_DISPLAY
+            
+            # Start Chocolate Doom
+            self.doom_process = subprocess.Popen(
+                [
+                    doom_exe,
+                    "-iwad", wad_path,
+                    "-width", str(DOOM_WIDTH),
+                    "-height", str(DOOM_HEIGHT),
+                    "-window",
+                    "-nogui",
+                    "-nomouse",
+                ],
+                env=env,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            time.sleep(1.5)  # Give Doom time to start
+            
+            # Check if Doom started
+            if self.doom_process.poll() is not None:
+                self._show_error("Doom failed to start\nCheck WAD file")
+                self._cleanup()
+                return 'key1'
+            
+            self._show_status("Doom running!")
+            time.sleep(0.5)
+            
+            # Start capture thread
+            self.running = True
+            self.capture_thread = threading.Thread(target=self._capture_loop, daemon=True)
+            self.capture_thread.start()
+            
+            # Main input/display loop
+            exit_key = self._main_loop()
+            
+            return exit_key
+            
+        except Exception as e:
+            self._show_error(f"Error: {str(e)[:40]}")
+            time.sleep(2)
+            return 'key1'
+        finally:
+            self._cleanup()
+    
+    def _capture_loop(self):
+        """Background thread that captures frames from Doom."""
+        os.environ["DISPLAY"] = VIRTUAL_DISPLAY
+        
+        with mss.mss(display=VIRTUAL_DISPLAY) as sct:
+            monitor = {"top": 0, "left": 0, "width": DOOM_WIDTH, "height": DOOM_HEIGHT}
+            
+            while self.running:
+                try:
+                    # Capture screen
+                    screenshot = sct.grab(monitor)
+                    
+                    # Convert to PIL Image
+                    img = Image.frombytes("RGB", screenshot.size, screenshot.bgra, "raw", "BGRX")
+                    
+                    # Scale to display size (maintain aspect ratio)
+                    # Doom is 320x200, display is 128x128
+                    # Scale to 128x80 and center vertically
+                    scaled = img.resize((128, 80), Image.NEAREST)
+                    
+                    with self.frame_lock:
+                        self.current_frame = scaled
+                    
+                except Exception:
+                    pass
+                
+                time.sleep(0.033)  # ~30 FPS capture
+    
+    def _main_loop(self):
+        """Main loop handling input and display."""
+        last_render = 0
+        render_interval = 0.05  # 20 FPS to display
         
         while self.running:
-            # Handle input
+            # Check for exit keys
             action = self.input_handler.get_input()
             
-            # Check for exit keys
             if action in ('key1', 'key2', 'key3'):
                 self.running = False
                 return action
             
-            # Movement controls
-            if action == 'up':
-                self.game.move_forward()
-            elif action == 'down':
-                self.game.move_backward()
-            elif action == 'left':
-                self.game.turn_left()
-            elif action == 'right':
-                self.game.turn_right()
-            elif action == 'select':
-                # Strafe mode: could toggle or use differently
-                pass
+            # Send input to Doom via xdotool
+            self._handle_input(action)
             
-            # Render
-            self.render()
-            time.sleep(0.03)  # ~30 FPS target
+            # Render frame to display
+            current_time = time.time()
+            if current_time - last_render > render_interval:
+                self._render_frame()
+                last_render = current_time
+            
+            time.sleep(0.016)  # ~60 Hz input polling
         
-        return None
+        return 'key1'
     
-    def render(self):
-        """Render the game to the display."""
+    def _handle_input(self, action):
+        """Send keyboard input to Doom via xdotool."""
+        env = os.environ.copy()
+        env["DISPLAY"] = VIRTUAL_DISPLAY
+        
+        # Map GPIO buttons to Doom keys
+        key_map = {
+            'up': 'Up',        # Move forward
+            'down': 'Down',    # Move backward  
+            'left': 'Left',    # Turn left
+            'right': 'Right',  # Turn right
+            'select': 'ctrl',  # Fire
+        }
+        
+        if action and action in key_map:
+            try:
+                subprocess.Popen(
+                    ["xdotool", "key", "--delay", "50", key_map[action]],
+                    env=env,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
+            except:
+                pass
+    
+    def _render_frame(self):
+        """Render captured frame to the Waveshare display."""
         self.display.clear((0, 0, 0))
-        draw = self.display.draw
         
-        # Get rendered frame from raycaster
-        pixels = self.game.render_frame()
+        with self.frame_lock:
+            frame = self.current_frame
         
-        # Draw scaled pixels to display
-        for x, y, color in pixels:
-            # Scale up
-            sx = self.offset_x + x * self.scale_x
-            sy = self.offset_y + y * self.scale_y
-            # Draw scaled pixel as rectangle
-            draw.rectangle(
-                (sx, sy, sx + self.scale_x - 1, sy + self.scale_y - 1),
-                fill=color
+        if frame:
+            # Center the 128x80 frame vertically on 128x128 display
+            y_offset = (128 - 80) // 2
+            self.display.image.paste(frame, (0, y_offset))
+        else:
+            # No frame yet - show loading
+            self.display.draw.text(
+                (30, 55), "Loading...",
+                font=self.display.font_medium,
+                fill=(255, 100, 100)
             )
         
-        # Draw "DOOM" title at top
-        draw.text((2, 0), "MINI DOOM", font=self.display.font_tiny, fill=(255, 100, 100))
+        # Draw title bar
+        self.display.draw.rectangle((0, 0, 128, 10), fill=(40, 0, 0))
+        self.display.draw.text((2, 0), "DOOM", font=self.display.font_tiny, fill=(255, 100, 100))
+        self.display.draw.text((90, 0), "K1-3:Exit", font=self.display.font_tiny, fill=(150, 150, 150))
         
-        # Draw minimap in corner
-        self._draw_minimap()
-        
-        # Draw controls hint at bottom
-        draw.text((2, 118), "^v Move <> Turn", font=self.display.font_tiny, fill=(100, 100, 100))
-        
-        # Push to display
         self.display._render()
     
-    def _draw_minimap(self):
-        """Draw a tiny minimap in the corner."""
-        draw = self.display.draw
-        map_x = 100
-        map_y = 2
-        cell_size = 1
+    def _show_status(self, message):
+        """Show a status message."""
+        self.display.clear((20, 0, 0))
+        self.display.draw.text((10, 50), "DOOM", font=self.display.font_large, fill=(255, 50, 50))
+        self.display.draw.text((10, 75), message, font=self.display.font_small, fill=(200, 200, 200))
+        self.display._render()
+    
+    def _show_error(self, message):
+        """Show an error message."""
+        self.display.clear((40, 0, 0))
+        self.display.draw.text((10, 20), "DOOM Error", font=self.display.font_medium, fill=(255, 100, 100))
         
-        # Draw map cells around player
-        view_range = 8
-        px, py = int(self.game.player_x), int(self.game.player_y)
+        # Multi-line message
+        y = 45
+        for line in message.split('\n'):
+            self.display.draw.text((10, y), line, font=self.display.font_small, fill=(255, 255, 255))
+            y += 14
         
-        for dy in range(-view_range // 2, view_range // 2):
-            for dx in range(-view_range // 2, view_range // 2):
-                mx, my = px + dx, py + dy
-                if 0 <= mx < MAP_WIDTH and 0 <= my < MAP_HEIGHT:
-                    if MAP[my][mx] == 1:
-                        color = (100, 100, 100)
-                    else:
-                        color = (30, 30, 30)
-                    sx = map_x + (dx + view_range // 2) * cell_size
-                    sy = map_y + (dy + view_range // 2) * cell_size
-                    draw.rectangle((sx, sy, sx + cell_size - 1, sy + cell_size - 1), fill=color)
+        self.display.draw.text((10, 110), "Press any key", font=self.display.font_tiny, fill=(150, 150, 150))
+        self.display._render()
         
-        # Draw player position
-        player_sx = map_x + view_range // 2 * cell_size
-        player_sy = map_y + view_range // 2 * cell_size
-        draw.rectangle((player_sx, player_sy, player_sx + cell_size, player_sy + cell_size), fill=(0, 255, 0))
+        # Wait for any key
+        while True:
+            action = self.input_handler.get_input()
+            if action:
+                break
+            time.sleep(0.1)
+    
+    def _cleanup(self):
+        """Clean up processes."""
+        self.running = False
+        
+        if self.doom_process:
+            try:
+                self.doom_process.terminate()
+                self.doom_process.wait(timeout=2)
+            except:
+                try:
+                    self.doom_process.kill()
+                except:
+                    pass
+        
+        if self.xvfb_process:
+            try:
+                self.xvfb_process.terminate()
+                self.xvfb_process.wait(timeout=2)
+            except:
+                try:
+                    self.xvfb_process.kill()
+                except:
+                    pass
 
 
 def run_doom(display, input_handler):
     """
-    Run the Doom-style raycaster on the Waveshare display.
+    Run real Doom on the Waveshare display.
     Returns the exit key pressed ('key1', 'key2', 'key3') or None.
     """
-    game = DoomWaveshare(display, input_handler)
+    game = RealDoom(display, input_handler)
     return game.start()

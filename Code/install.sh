@@ -14,10 +14,11 @@ fi
 echo "Installing system packages..."
 sudo apt-get update
 sudo apt install -y python3-pip python3-pil python3-numpy git
+sudo apt install -y chocolate-doom xvfb xdotool || echo "Note: Doom packages optional"
 #sudo apt install -y libretro-common || echo "Warning: libretro-common package not available"
 
 echo "Installing Python dependencies..."
-pip3 install --break-system-packages pillow numpy spidev RPi.GPIO requests pygame
+pip3 install --break-system-packages pillow numpy spidev RPi.GPIO requests pygame mss
 
 echo "Downloading Waveshare LCD driver..."
 GIT_TERMINAL_PROMPT=0 git clone --depth 1 https://github.com/waveshare/LCD_1in44.git /tmp/LCD_1in44
