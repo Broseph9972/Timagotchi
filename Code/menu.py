@@ -853,7 +853,7 @@ class Menu:
 
     def show_developer_menu(self):
         wifi_connected = self._get_wifi_connected()
-        message = "Developer Menu\n\nEnter code to unlock\nsecret features..."
+        message = ""
         self.display.show_message("Developer", message, (150, 100, 200), self.nav_items, self.nav_selected_index, wifi_connected)
 
     def handle_developer_input(self, action):
@@ -870,12 +870,6 @@ class Menu:
                     return
             else:
                 self._konami_index = 1 if action == self._konami_code[0] else 0
-        
-        if action == 'left':
-            self._konami_index = 0
-            self.current_screen = 'settings'
-            self.selected_index = self.settings_menu_items.index("Developer") if "Developer" in self.settings_menu_items else 0
-            self.show_settings_menu()
 
     def launch_tetris_pygame(self):
         self.display.show_message("Tetris", "Launching...", (100, 200, 255), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
