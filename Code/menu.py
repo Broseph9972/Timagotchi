@@ -781,19 +781,25 @@ class Menu:
             result = subprocess.run(['sudo', '-n', 'git', '-C', repo_dir, 'pull', '--ff-only', 'origin', current_branch], capture_output=True, text=True, timeout=30)
 
             if result.returncode == 0:
-                msg = result.stdout.strip() or "Up to date"
-                self.display.show_face_message("Update", msg[:60], "happy", (100, 255, 100), self.nav_items, self.nav_selected_index)
+                stdout_msg = result.stdout.strip() or "Up to date"
+                updated = "already up to date" not in stdout_msg.lower()
+                self.display.show_face_message("Update", stdout_msg[:60], "happy", (100, 255, 100), self.nav_items, self.nav_selected_index)
+                time.sleep(1.0)
+                if updated:
+                    self.restart_program()
+                    return
             else:
                 err = result.stderr.strip()[:80] or "Pull failed"
                 self.display.show_face_message("Update", err, "broken", (255, 100, 100), self.nav_items, self.nav_selected_index)
         except Exception as e:
             self.display.show_face_message("Update", (str(e) or "error")[:80], "broken", (255, 100, 100), self.nav_items, self.nav_selected_index)
         finally:
-            # Brief pause so user sees the face, then return to settings
-            time.sleep(1.5)
-            self.current_screen = 'settings'
-            self.selected_index = self.settings_menu_items.index("Update") if "Update" in self.settings_menu_items else 0
-            self.show_settings_menu()
+            # Brief pause so user sees the face, then return to settings (if not restarting)
+            if self.running:
+                time.sleep(1.5)
+                self.current_screen = 'settings'
+                self.selected_index = self.settings_menu_items.index("Update") if "Update" in self.settings_menu_items else 0
+                self.show_settings_menu()
 
     def show_grades_menu(self, fetch=True):
         """Display grades menu. fetch=True to fetch from API, False to redraw cached list."""
