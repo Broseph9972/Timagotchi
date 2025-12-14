@@ -29,6 +29,7 @@ class Menu:
         # Initialize theme manager
         self.theme_manager = ThemeManager()
         
+                return_to_main = False
         # Right-nav items as per sketch
         self.nav_items = ["Main Page", "Grades", "Settings"]
         self.nav_selected_index = 0
@@ -59,23 +60,17 @@ class Menu:
         self.current_preset_index = 0  # 0 = A_DAY_PERIODS, 1 = B_DAY_PERIODS
         self.last_advance_date = None
         self._load_state()
-        self._advance_preset_if_new_day()
-        # Canvas state
-        self.canvas_config_path = os.path.join(os.path.dirname(__file__), 'canvas_config.json')
+                        return_to_main = True
         self.canvas_cache_path = os.path.join(os.path.dirname(__file__), 'canvas_cache.json')
         # Clear canvas cache on every reboot
-        try:
-            if os.path.exists(self.canvas_cache_path):
-                os.remove(self.canvas_cache_path)
-        except Exception:
-            pass
+                    # Treat timeout as no WiFi: show broken face; return after usual delay
+                    self.display.show_face_message("Sync Failed", "Operation timed out", "broken", (255, 100, 100), self.nav_items, self.nav_selected_index)
+                    return_to_main = True
         self.current_course_id = None
         self.grades_selected_index = 0
-        self.assign_selected_index = 0
-        self.assign_scroll_offset = 0
-        self.grades_scroll_offset = 0
-        # Stopwatch state
-        self.stopwatch_running = False
+                    # General failure: show broken face; return after usual delay
+                    self.display.show_face_message("Sync Failed", str(e)[:40], "broken", (255, 100, 100), self.nav_items, self.nav_selected_index)
+                    return_to_main = True
         self.stopwatch_start_ts = 0.0
         self.stopwatch_elapsed = 0.0
     
@@ -83,6 +78,9 @@ class Menu:
     
     def is_freetime_day(self):
         today = datetime.datetime.now().strftime('%a').lower()
+                if return_to_main:
+                    self.current_screen = "main"
+                    self.show_main_menu()
         return today[0] in freetimedaus.lower().split(',')
     
     def get_current_ab_day(self):
@@ -1210,17 +1208,29 @@ class Menu:
                 
                 if "yes" in result.stdout.lower():
                     self.last_sync_error = None
-                    self.display.show_face_message("Time Synced", "WiFi sync\nsuccessful!", "happy", (100, 255, 100), self.nav_items, self.nav_selected_index)
+                    # Success: show grateful face on boot sync
+                    self.display.show_face_message("Time Synced", "WiFi sync successful!", "grateful", (100, 255, 100), self.nav_items, self.nav_selected_index)
                 else:
                     self.last_sync_error = "NTP not synchronized"
-                    self.display.show_face_message("Sync Failed", "NTP sync pending", "bored", (255, 100, 100), self.nav_items, self.nav_selected_index)
+                    # No WiFi / not synced: show broken face, then return to main menu
+                    self.display.show_face_message("Sync Failed", "No WiFi / NTP pending", "broken", (255, 100, 100), self.nav_items, self.nav_selected_index)
+                    time.sleep(2)
+                    self.current_screen = "main"
+                    self.show_main_menu()
                 
             except subprocess.TimeoutExpired:
                 self.last_sync_error = "Sync timed out"
-                self.display.show_face_message("Sync Failed", "Operation timed out", "sad", (255, 100, 100), self.nav_items, self.nav_selected_index)
+                # Treat timeout as no WiFi: show broken face, then main menu
+                self.display.show_face_message("Sync Failed", "Operation timed out", "broken", (255, 100, 100), self.nav_items, self.nav_selected_index)
+                self.current_screen = "main"
+                self.show_main_menu()
             except Exception as e:
                 self.last_sync_error = str(e)
-                self.display.show_face_message("Sync Failed", str(e)[:40], "angry", (255, 100, 100), self.nav_items, self.nav_selected_index)
+                # General failure: show broken face, then main menu
+                self.display.show_face_message("Sync Failed", str(e)[:40], "broken", (255, 100, 100), self.nav_items, self.nav_selected_index)
+                time.sleep(2)
+                self.current_screen = "main"
+                self.show_main_menu()
             
             # Wait for display to be visible
             time.sleep(2)
