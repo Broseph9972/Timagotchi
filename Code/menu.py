@@ -37,7 +37,7 @@ class Menu:
         self.settings_menu_items = []
         if abday.lower() == "true":
             self.settings_menu_items.append("A/B Day")
-        self.settings_menu_items.extend(["Theme", "Progress Bar", "Set Time", "Stopwatch", "Update", "Restart"])
+        self.settings_menu_items.extend(["Theme", "Progress Bar", "Set Time", "Stopwatch", "Developer", "Update", "Restart"])
         self.settings_scroll_offset = 0
         self.set_time_menu_items = ["Manual Set"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
@@ -78,8 +78,8 @@ class Menu:
         
         # Load phrases from JSON file
         self.phrases = self._load_phrases()
-        # Secret/Konami state
-        self._konami_code = ['up', 'up', 'down', 'down', 'left', 'right', 'left', 'right', 'key1', 'key2', 'key3']
+        # Secret/Konami state (shorter sequence for Developer screen)
+        self._konami_code = ['up', 'up', 'down', 'down', 'left', 'right', 'left', 'right']
         self._konami_index = 0
         self.secret_menu_items = ["Start Tetris", "Run Custom Script"]
     
@@ -671,6 +671,10 @@ class Menu:
             elif selected_item == "Stopwatch":
                 self.current_screen = 'stopwatch'
                 self.show_stopwatch()
+            elif selected_item == "Developer":
+                self.current_screen = 'developer'
+                self._konami_index = 0
+                self.show_developer_menu()
             elif selected_item == "Update":
                 self._run_update()
             elif selected_item == "Restart":
@@ -806,20 +810,6 @@ class Menu:
         self.display.show_grades_menu(items, self.grades_selected_index, title="Grades", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, start_index=self.grades_scroll_offset, max_visible=max_visible, wifi_connected=self._get_wifi_connected())
     
     def handle_grades_input(self, action):
-        # Konami detection only within Grades menu
-        if action:
-            expected = self._konami_code[self._konami_index] if self._konami_index < len(self._konami_code) else None
-            if action == expected:
-                self._konami_index += 1
-                if self._konami_index == len(self._konami_code):
-                    self._konami_index = 0
-                    self.current_screen = 'secret_menu'
-                    self.selected_index = 0
-                    self.show_secret_menu()
-                    return
-            else:
-                self._konami_index = 1 if action == self._konami_code[0] else 0
-
         if not hasattr(self, '_courses_list') or not self._courses_list:
             self.show_grades_menu(fetch=True)
             return
@@ -860,6 +850,32 @@ class Menu:
         elif action == 'left':
             self.current_screen = 'grades'
             self.show_grades_menu(fetch=False)
+
+    def show_developer_menu(self):
+        wifi_connected = self._get_wifi_connected()
+        message = "Developer Menu\n\nEnter code to unlock\nsecret features..."
+        self.display.show_message("Developer", message, (150, 100, 200), self.nav_items, self.nav_selected_index, wifi_connected)
+
+    def handle_developer_input(self, action):
+        # Konami detection on Developer screen
+        if action:
+            expected = self._konami_code[self._konami_index] if self._konami_index < len(self._konami_code) else None
+            if action == expected:
+                self._konami_index += 1
+                if self._konami_index == len(self._konami_code):
+                    self._konami_index = 0
+                    self.current_screen = 'secret_menu'
+                    self.selected_index = 0
+                    self.show_secret_menu()
+                    return
+            else:
+                self._konami_index = 1 if action == self._konami_code[0] else 0
+        
+        if action == 'left':
+            self._konami_index = 0
+            self.current_screen = 'settings'
+            self.selected_index = self.settings_menu_items.index("Developer") if "Developer" in self.settings_menu_items else 0
+            self.show_settings_menu()
 
     def launch_tetris_pygame(self):
         self.display.show_message("Tetris", "Launching...", (100, 200, 255), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
@@ -1289,6 +1305,8 @@ class Menu:
                     self.handle_assignments_input(action)
                 elif self.current_screen == "stopwatch":
                     self.handle_stopwatch_input(action)
+                elif self.current_screen == "developer":
+                    self.handle_developer_input(action)
                 elif self.current_screen == "secret_menu":
                     self.handle_secret_menu_input(action)
             
