@@ -1388,6 +1388,6 @@ class Menu:
                     self.sync_time_via_wifi()
                     self.last_sync_time = current_time
             
-            time.sleep(0.005)
+            time.sleep(0.05)
         
         self.input_handler.cleanup()
