@@ -81,7 +81,7 @@ class Menu:
         # Secret/Konami state (shorter sequence for Developer screen)
         self._konami_code = ['up', 'up', 'down', 'down', 'left', 'right', 'left', 'right']
         self._konami_index = 0
-        self.secret_menu_items = ["Start Tetris", "Doom", "Run Custom Script"]
+        self.secret_menu_items = ["Start Tetris", "Doom", "Shitty Doom", "Run Custom Script"]
     
     def _load_phrases(self):
         """Load phrases from Phrases.json file."""
@@ -846,7 +846,9 @@ class Menu:
             if choice == "Start Tetris":
                 self.launch_tetris_pygame()
             elif choice == "Doom":
-                self.launch_mini_doom()
+                self.launch_doom_pydoom()
+            elif choice == "Shitty Doom":
+                self.launch_shitty_doom()
             elif choice == "Run Custom Script":
                 self.launch_custom_script()
         elif action == 'left':
@@ -927,17 +929,67 @@ class Menu:
             self.current_screen = 'main'
             self.show_main_menu()
 
-    def launch_mini_doom(self):
-        """Launch Doom - tries PyDoom first, falls back to raycaster."""
+    def launch_doom_pydoom(self):
+        """Launch Doom via PyDoom if available; otherwise show guidance."""
         self.display.show_message("Doom", "Starting...", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
         time.sleep(0.3)
-        
+
         try:
-            from doom_wrapper import run_doom
+            # Try to import pydoom and run it
+            try:
+                import pydoom  # type: ignore
+                pydoom_available = True
+            except Exception:
+                pydoom_available = False
+
+            if not pydoom_available:
+                msg = "PyDoom not installed. Build from source:\n" \
+                      "git clone https://github.com/Pink-Silver/PyDoom\n" \
+                      "(PyDoom is Windows-focused; on Pi it may not build)"
+                self.display.show_message("Doom", msg, (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                time.sleep(3)
+                self.current_screen = 'secret_menu'
+                self.show_secret_menu()
+                return
+
+            # Attempt to run PyDoom with a WAD if available
+            wad_candidates = [
+                os.path.join(os.path.dirname(__file__), 'doom1.wad'),
+                os.path.join(os.path.dirname(__file__), 'doom.wad'),
+                os.path.expanduser('~/timagotchi/roms/doom1.wad'),
+                os.path.expanduser('~/timagotchi/roms/doom.wad'),
+            ]
+            wad_path = next((p for p in wad_candidates if os.path.exists(p)), None)
+            if wad_path is None:
+                self.display.show_message("Doom", "doom1.wad missing (put in Code/)", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                time.sleep(2)
+                self.current_screen = 'secret_menu'
+                self.show_secret_menu()
+                return
+
+            # PyDoom likely opens its own window; run and return to menu after
+            try:
+                subprocess.run([sys.executable, '-c', f"import pydoom; pydoom.run('{wad_path}')"], check=False)
+            except Exception as exc:
+                self.display.show_message("Doom", f"PyDoom error: {str(exc)[:60]}", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                time.sleep(3)
+
+            self.current_screen = 'secret_menu'
+            self.show_secret_menu()
             
-            # Run doom - it returns the exit key pressed
-            exit_key = run_doom(self.display, self.input_handler)
-            
+        except Exception as e:
+            self.display.show_message("Doom", f"Error: {str(e)[:50]}", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+            time.sleep(2)
+            self.current_screen = 'secret_menu'
+            self.show_secret_menu()
+
+    def launch_shitty_doom(self):
+        """Run the built-in raycaster (fast, works on LCD)."""
+        self.display.show_message("Shitty Doom", "Starting...", (255, 150, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+        time.sleep(0.2)
+        try:
+            from doom_raycaster import run_raycaster
+            exit_key = run_raycaster(self.display, self.input_handler)
             # Navigate based on which key was pressed to exit
             if exit_key == 'key1':
                 self.current_screen = 'main'
@@ -953,15 +1005,13 @@ class Menu:
                 self.selected_index = 0
                 self.show_settings_menu()
             else:
-                self.current_screen = 'main'
-                self.nav_selected_index = self.nav_items.index('Main Page') if 'Main Page' in self.nav_items else 0
-                self.show_main_menu()
-                
+                self.current_screen = 'secret_menu'
+                self.show_secret_menu()
         except Exception as e:
-            self.display.show_message("Doom", f"Error: {str(e)[:50]}", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+            self.display.show_message("Shitty Doom", f"Error: {str(e)[:60]}", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
             time.sleep(2)
-            self.current_screen = 'main'
-            self.show_main_menu()
+            self.current_screen = 'secret_menu'
+            self.show_secret_menu()
 
     def launch_custom_script(self):
         """
