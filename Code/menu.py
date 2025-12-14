@@ -893,12 +893,32 @@ class Menu:
         self.display.show_message("Tetris", "Launching...", (100, 200, 255), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
         try:
             # Run the pygame script
-            subprocess.Popen([sys.executable, os.path.join(os.path.dirname(__file__), 'tetris.py')])
+            tetris_path = os.path.join(os.path.dirname(__file__), 'tetris.py')
+            result = subprocess.Popen([sys.executable, tetris_path], 
+                                     stdout=subprocess.PIPE, 
+                                     stderr=subprocess.PIPE)
+            time.sleep(0.5)  # Brief delay to let pygame initialize
+            
+            # Check if process is still running
+            poll = result.poll()
+            if poll is not None:
+                # Process already exited - likely an error
+                stderr = result.stderr.read().decode('utf-8', errors='ignore')
+                self.display.show_message("Tetris", f"Error: {stderr[:60]}", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                time.sleep(3)
+            else:
+                # Game is running, show success briefly
+                self.display.show_message("Tetris", "Started!", (100, 255, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                time.sleep(1)
+            
             self.current_screen = 'main'
             self.nav_selected_index = self.nav_items.index('Main Page') if 'Main Page' in self.nav_items else 0
             self.show_main_menu()
         except Exception as e:
             self.display.show_message("Tetris", f"Launch failed: {str(e)[:40]}", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+            time.sleep(3)
+            self.current_screen = 'main'
+            self.show_main_menu()
 
 
     def launch_custom_script(self):
