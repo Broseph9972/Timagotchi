@@ -17,6 +17,7 @@ from theme_manager import ThemeManager
 import json as _json
 import requests
 from urllib.parse import urljoin
+from games_config import get_game_command
 
 class Menu:
     def __init__(self, display, input_handler):
@@ -77,6 +78,10 @@ class Menu:
         
         # Load phrases from JSON file
         self.phrases = self._load_phrases()
+        # Secret/Konami state
+        self._konami_code = ['up', 'up', 'down', 'down', 'left', 'right', 'left', 'right', 'key1', 'key2', 'key3']
+        self._konami_index = 0
+        self.secret_menu_items = ["Start Tetris", "Start Doom", "Run Custom Script"]
     
     def _load_phrases(self):
         """Load phrases from Phrases.json file."""
@@ -801,6 +806,20 @@ class Menu:
         self.display.show_grades_menu(items, self.grades_selected_index, title="Grades", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, start_index=self.grades_scroll_offset, max_visible=max_visible, wifi_connected=self._get_wifi_connected())
     
     def handle_grades_input(self, action):
+        # Konami detection only within Grades menu
+        if action:
+            expected = self._konami_code[self._konami_index] if self._konami_index < len(self._konami_code) else None
+            if action == expected:
+                self._konami_index += 1
+                if self._konami_index == len(self._konami_code):
+                    self._konami_index = 0
+                    self.current_screen = 'secret_menu'
+                    self.selected_index = 0
+                    self.show_secret_menu()
+                    return
+            else:
+                self._konami_index = 1 if action == self._konami_code[0] else 0
+
         if not hasattr(self, '_courses_list') or not self._courses_list:
             self.show_grades_menu(fetch=True)
             return
@@ -820,6 +839,66 @@ class Menu:
             self.current_screen = 'main'
             self.nav_selected_index = 0  # Set to Main Page
             self.show_main_menu()
+
+    def show_secret_menu(self):
+        wifi_connected = self._get_wifi_connected()
+        self.display.show_menu(self.secret_menu_items, self.selected_index, "Secret Menu", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, wifi_connected=wifi_connected)
+
+    def handle_secret_menu_input(self, action):
+        if action == 'up':
+            self.selected_index = (self.selected_index - 1) % len(self.secret_menu_items)
+            self.show_secret_menu()
+        elif action == 'down':
+            self.selected_index = (self.selected_index + 1) % len(self.secret_menu_items)
+            self.show_secret_menu()
+        elif action in ('select', 'right'):
+            choice = self.secret_menu_items[self.selected_index]
+            if choice == "Start Tetris":
+                self.launch_tetris_pygame()
+            elif choice == "Start Doom":
+                self.launch_doom()
+            elif choice == "Run Custom Script":
+                self.launch_custom_script()
+        elif action == 'left':
+            self.current_screen = 'grades'
+            self.show_grades_menu(fetch=False)
+
+    def launch_tetris_pygame(self):
+        self.display.show_message("Tetris", "Launching...", (100, 200, 255), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+        try:
+            # Run the pygame script
+            subprocess.Popen([sys.executable, os.path.join(os.path.dirname(__file__), 'tetris.py')])
+            self.current_screen = 'main'
+            self.nav_selected_index = self.nav_items.index('Main Page') if 'Main Page' in self.nav_items else 0
+            self.show_main_menu()
+        except Exception as e:
+            self.display.show_message("Tetris", f"Launch failed: {str(e)[:40]}", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+
+    def launch_doom(self):
+        self.display.show_message("Doom", "Launching...", (100, 200, 255), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+        try:
+            cmd = get_game_command("Doom (PrBoom)")
+            subprocess.Popen(cmd)
+            self.current_screen = 'main'
+            self.nav_selected_index = self.nav_items.index('Main Page') if 'Main Page' in self.nav_items else 0
+            self.show_main_menu()
+        except Exception as e:
+            self.display.show_message("Doom", f"Launch failed: {str(e)[:60]}", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+
+    def launch_custom_script(self):
+        # Looks for Code/custom_script.py; show error if missing
+        path = os.path.join(os.path.dirname(__file__), 'custom_script.py')
+        if not os.path.exists(path):
+            self.display.show_message("Custom Script", "Place custom_script.py in Code/", (255, 150, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+            return
+        self.display.show_message("Custom Script", "Launching...", (100, 200, 255), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+        try:
+            subprocess.Popen([sys.executable, path])
+            self.current_screen = 'main'
+            self.nav_selected_index = self.nav_items.index('Main Page') if 'Main Page' in self.nav_items else 0
+            self.show_main_menu()
+        except Exception as e:
+            self.display.show_message("Custom Script", f"Launch failed: {str(e)[:60]}", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
 
     def show_assignments_menu(self, fetch=True):
         """Display assignments menu. fetch=True to fetch from API, False to redraw cached list."""
@@ -1222,6 +1301,8 @@ class Menu:
                     self.handle_assignments_input(action)
                 elif self.current_screen == "stopwatch":
                     self.handle_stopwatch_input(action)
+                elif self.current_screen == "secret_menu":
+                    self.handle_secret_menu_input(action)
             
             current_time = time.time()
             if current_time - last_update > 1.0:
