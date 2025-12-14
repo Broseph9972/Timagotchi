@@ -744,54 +744,56 @@ class Menu:
             self.selected_index = self.settings_menu_items.index("Stopwatch") if "Stopwatch" in self.settings_menu_items else 0
             self.show_settings_menu()
     def _run_update(self):
-        """Run a safe git pull (ff-only) from /home/pi/Timagotchi and report status.
-        Auto-add remote origin if missing.
-        """
+        """Run sudo git pull (ff-only) and show face on completion."""
         try:
-            # Use the Pi repo path explicitly as requested
             repo_dir = "/home/pi/Timagotchi"
-            # Verify git is available
+
+            # Verify git exists
             git_check = subprocess.run(['git', '--version'], capture_output=True, text=True, timeout=5)
             if git_check.returncode != 0:
-                self.display.show_message("Update", "git not installed", (255, 100, 100), self.nav_items, self.nav_selected_index)
+                self.display.show_face_message("Update", "git not installed", "broken", (255, 100, 100), self.nav_items, self.nav_selected_index)
                 return
 
-            # Address potential "dubious ownership" on newer Git versions
+            # Mark safe directory for newer git
             try:
                 subprocess.run(['git', 'config', '--global', '--add', 'safe.directory', repo_dir], capture_output=True, text=True, timeout=5)
             except Exception:
                 pass
 
-            # Ensure remote origin exists; add if missing
+            # Ensure origin exists
             remote = subprocess.run(['git', '-C', repo_dir, 'config', '--get', 'remote.origin.url'], capture_output=True, text=True, timeout=5)
             if remote.returncode != 0 or not remote.stdout.strip():
                 origin_url = 'https://github.com/broseph9972/Timagotchi'
                 add_remote = subprocess.run(['git', '-C', repo_dir, 'remote', 'add', 'origin', origin_url], capture_output=True, text=True, timeout=10)
-                if add_remote.returncode != 0:
-                    err_txt = (add_remote.stderr or '').lower()
-                    # If origin already exists, proceed; otherwise report
-                    if 'already exists' not in err_txt:
-                        err = add_remote.stderr.strip()[:80] or "Failed to add origin"
-                        self.display.show_message("Update", err, (255, 100, 100), self.nav_items, self.nav_selected_index)
-                        return
+                if add_remote.returncode != 0 and 'already exists' not in (add_remote.stderr or '').lower():
+                    err = add_remote.stderr.strip()[:80] or "Failed to add origin"
+                    self.display.show_face_message("Update", err, "broken", (255, 100, 100), self.nav_items, self.nav_selected_index)
+                    return
 
-            # Get current branch (default to main if detached)
+            # Determine branch
             branch = subprocess.run(['git', '-C', repo_dir, 'rev-parse', '--abbrev-ref', 'HEAD'], capture_output=True, text=True, timeout=5)
             current_branch = branch.stdout.strip() or 'main'
             if current_branch in ('HEAD', ''):
                 current_branch = 'main'
 
-            # Fetch and fast-forward only
-            subprocess.run(['git', '-C', repo_dir, 'fetch', '--all', '--prune'], capture_output=True, text=True, timeout=20)
-            result = subprocess.run(['git', '-C', repo_dir, 'pull', '--ff-only', 'origin', current_branch], capture_output=True, text=True, timeout=30)
+            # Fetch + pull with sudo -n to avoid hanging on password
+            subprocess.run(['sudo', '-n', 'git', '-C', repo_dir, 'fetch', '--all', '--prune'], capture_output=True, text=True, timeout=20)
+            result = subprocess.run(['sudo', '-n', 'git', '-C', repo_dir, 'pull', '--ff-only', 'origin', current_branch], capture_output=True, text=True, timeout=30)
+
             if result.returncode == 0:
                 msg = result.stdout.strip() or "Up to date"
-                self.display.show_message("Update", msg[:60], (100, 255, 100), self.nav_items, self.nav_selected_index)
+                self.display.show_face_message("Update", msg[:60], "happy", (100, 255, 100), self.nav_items, self.nav_selected_index)
             else:
                 err = result.stderr.strip()[:80] or "Pull failed"
-                self.display.show_message("Update", err, (255, 100, 100), self.nav_items, self.nav_selected_index)
+                self.display.show_face_message("Update", err, "broken", (255, 100, 100), self.nav_items, self.nav_selected_index)
         except Exception as e:
-            self.display.show_message("Update", (str(e) or "error")[:80], (255, 100, 100), self.nav_items, self.nav_selected_index)
+            self.display.show_face_message("Update", (str(e) or "error")[:80], "broken", (255, 100, 100), self.nav_items, self.nav_selected_index)
+        finally:
+            # Brief pause so user sees the face, then return to settings
+            time.sleep(1.5)
+            self.current_screen = 'settings'
+            self.selected_index = self.settings_menu_items.index("Update") if "Update" in self.settings_menu_items else 0
+            self.show_settings_menu()
 
     def show_grades_menu(self, fetch=True):
         """Display grades menu. fetch=True to fetch from API, False to redraw cached list."""
