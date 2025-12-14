@@ -289,6 +289,18 @@ class Menu:
 
     def _get_schedule_summary(self):
         now = datetime.datetime.now()
+        # Force Lunch label during lunch window regardless of period detection
+        try:
+            lunch_start_dt = datetime.datetime.combine(
+                datetime.date.today(), datetime.datetime.strptime(LUNCH_START, "%H:%M").time()
+            )
+            lunch_end_dt = datetime.datetime.combine(
+                datetime.date.today(), datetime.datetime.strptime(LUNCH_END, "%H:%M").time()
+            )
+            if lunch_start_dt <= now < lunch_end_dt:
+                return "Lunch"
+        except Exception:
+            pass
         period, time_remaining, is_lunch = self.get_current_period(now)
         if period == "LUNCH":
             return "Lunch"
