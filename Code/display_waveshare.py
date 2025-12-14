@@ -436,12 +436,18 @@ class WaveshareDisplay:
         face_y = max(bar_h + 12, bottom_y - face_h - 6)
         self.draw.text((face_x, face_y), face_text, font=face_font, fill=primary)
 
-        # Speech lines (if any), drawn below the face, left aligned
+        # Single speech line (if any), drawn above the face, left aligned
         speech_lines = speech_lines or []
-        text_y = face_y + face_h + 4
-        for line in speech_lines[:4]:
-            self.draw.text((face_x, text_y), line[:24], font=self.font_tiny, fill=primary)
-            text_y += 12
+        if speech_lines:
+            line = speech_lines[0]
+            msg = f"______{line}______"
+            try:
+                tb = self.draw.textbbox((0, 0), msg, font=self.font_tiny)
+                msg_h = tb[3] - tb[1]
+            except Exception:
+                msg_h = self.font_tiny.getsize(msg)[1]
+            text_y = max(bar_h + 8, face_y - msg_h - 4)
+            self.draw.text((face_x, text_y), msg[:28], font=self.font_tiny, fill=primary)
 
         # === BOTTOM: Clock only (WiFi is in sidebar area) ===
         # Move up a bit to avoid overlap with summary/wifi
