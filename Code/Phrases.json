@@ -1,0 +1,22 @@
+{
+    "passing": [
+        "Go get some water man",
+        "a^2 + b^2 = c^2",
+        "lowk lock in",
+        "No, I'm not a bomb.",
+        "Stretch your legs!",
+        "Time to move classes",
+        "Don't be late!",
+        "Quick break time"
+    ],
+    "advisory": [
+        "PD time!",
+        "Professional dev today",
+        "Time to learn something",
+        "Advisory period vibes",
+        "Chill for a bit",
+        "Take it easy",
+        "Rest your brain",
+        "Almost done with PD"
+    ]
+}
