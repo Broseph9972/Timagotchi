@@ -324,7 +324,13 @@ class Menu:
         if "lunch" in summary_lower:
             face_name = "happy"
         elif "passing" in summary_lower:
-            face_name = "look_r"
+            # Animate between happy look left/right during passing
+            try:
+                # Toggle every ~0.5s based on timestamp
+                tick = int((now.timestamp() * 2) % 2)
+            except Exception:
+                tick = 0
+            face_name = "look_r_happy" if tick == 0 else "look_l_happy"
         elif "advisory" in summary_lower:
             face_name = "smart"
         elif not schedule_summary:
@@ -383,8 +389,13 @@ class Menu:
 
             mode = self.progress_bar_modes[self.progress_bar_mode_index]
             if mode == "time_in_class":
+                # Handle lunch explicitly
+                if lunch_start_dt <= now < lunch_end_dt:
+                    return "Lunch", 100
+
                 # Progress within current class period
-                for p in sorted(PERIODS.keys()):
+                sorted_periods = sorted(PERIODS.keys())
+                for p in sorted_periods:
                     start_dt = datetime.datetime.combine(
                         datetime.date.today(), datetime.datetime.strptime(PERIODS[p], "%H:%M").time()
                     )
@@ -401,7 +412,41 @@ class Menu:
                         else:
                             class_name = A_DAY_PERIODS.get(p, f"Period {p}")
                         return f"{class_name}: {progress}% - {p}", progress
-                return "Not in class", 0
+
+                # Not in class: determine if Passing, Before school, or After school
+                if now < school_start_dt:
+                    return "Before school", 0
+
+                # Compute actual end (last period end)
+                if sorted_periods:
+                    last_start_dt = datetime.datetime.combine(
+                        datetime.date.today(), datetime.datetime.strptime(PERIODS[sorted_periods[-1]], "%H:%M").time()
+                    )
+                    actual_class_end = last_start_dt + datetime.timedelta(minutes=PERIOD_LENGTH)
+                else:
+                    actual_class_end = school_end_dt
+
+                if now >= actual_class_end:
+                    return "After school", 100
+
+                # Determine if within passing time between periods
+                for i in range(len(sorted_periods) - 1):
+                    p_curr = sorted_periods[i]
+                    p_next = sorted_periods[i + 1]
+                    curr_start = datetime.datetime.combine(
+                        datetime.date.today(), datetime.datetime.strptime(PERIODS[p_curr], "%H:%M").time()
+                    )
+                    curr_end = curr_start + datetime.timedelta(minutes=PERIOD_LENGTH)
+                    next_start = datetime.datetime.combine(
+                        datetime.date.today(), datetime.datetime.strptime(PERIODS[p_next], "%H:%M").time()
+                    )
+                    # Passing window: from curr_end up to PASSING_TIME minutes (or until next_start, whichever is earlier)
+                    passing_end = min(next_start, curr_end + datetime.timedelta(minutes=PASSING_TIME))
+                    if curr_end <= now < passing_end:
+                        return "Passing", 0
+
+                # Default fallback
+                return "Passing", 0
 
             if mode == "time_in_day":
                 if now < school_start_dt:
