@@ -1,22 +1,13 @@
 {
-    "passing": [
-        "Go get some water man",
-        "a^2 + b^2 = c^2",
-        "lowk lock in",
-        "No, I'm not a bomb.",
-        "Stretch your legs!",
-        "Time to move classes",
-        "Don't be late!",
-        "Quick break time"
-    ],
-    "advisory": [
-        "PD time!",
-        "Professional dev today",
-        "Time to learn something",
-        "Advisory period vibes",
-        "Chill for a bit",
-        "Take it easy",
-        "Rest your brain",
-        "Almost done with PD"
-    ]
+    "passing": ["No, I'm not a bomb.", "I may or may not play tetris"],
+    "advisory": ["its still advisory dude what"],
+    "lunch": ["Dont get 3 lunches"],
+    "period1": ["Insert corny ass phrase here"],
+    "period2": [],
+    "period3": ["a2 + b2 = c2"],
+    "period4": ["Yes, you should wear deodorant."],
+    "period5": [],
+    "period6": ["Almost there man"],
+    "period7": [],
+    "period8": []
 }

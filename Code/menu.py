@@ -80,6 +80,19 @@ class Menu:
     
     def _load_phrases(self):
         """Load phrases from Phrases.json file."""
+        default_phrases = {
+            "passing": [],
+            "advisory": [],
+            "lunch": [],
+            "period1": [],
+            "period2": [],
+            "period3": [],
+            "period4": [],
+            "period5": [],
+            "period6": [],
+            "period7": [],
+            "period8": []
+        }
         try:
             phrases_path = os.path.join(os.path.dirname(__file__), 'Phrases.json')
             if os.path.exists(phrases_path):
@@ -88,19 +101,7 @@ class Menu:
         except Exception:
             pass
         # Fallback to default phrases if file not found or error
-        return {
-            "passing": [
-                "Go get some water man",
-                "a^2 + b^2 = c^2",
-                "lowk lock in",
-                "No, I'm not a bomb."
-            ],
-            "advisory": [
-                "PD time!",
-                "Advisory period vibes",
-                "Chill for a bit"
-            ]
-        }
+        return default_phrases
     
     def is_freetime_day(self):
         today = datetime.datetime.now().strftime('%a').lower()
@@ -329,24 +330,26 @@ class Menu:
         elif not schedule_summary:
             face_name = "bored"
 
-        # Speech lines for passing and advisory periods
+        # Speech lines based on current period
+        period, time_remaining, is_lunch = self.get_current_period(now)
+        phrase_key = None
+        
         if "passing" in summary_lower:
-            rem_to_end = self.get_time_until(SCHOOL_END, now)
-            rem_str = self.format_timedelta(rem_to_end)
-            passing_phrases = self.phrases.get("passing", [])
-            # Add time-based phrase
-            all_phrases = passing_phrases + [f"only {rem_str} until ur done."]
-            # Change message every 5 minutes using a time bucket
-            bucket = int(now.timestamp() // 300)
-            rng = random.Random(bucket)
-            speech_lines = [rng.choice(all_phrases)]
-        elif "advisory" in summary_lower:
-            advisory_phrases = self.phrases.get("advisory", [])
-            if advisory_phrases:
-                # Change message every 5 minutes using a time bucket
+            phrase_key = "passing"
+        elif period == "ADVISORY":
+            phrase_key = "advisory"
+        elif period == "LUNCH":
+            phrase_key = "lunch"
+        elif isinstance(period, int):
+            phrase_key = f"period{period}"
+        
+        # Get random phrase from the period's phrase list
+        if phrase_key:
+            period_phrases = self.phrases.get(phrase_key, [])
+            if period_phrases:
                 bucket = int(now.timestamp() // 300)
                 rng = random.Random(bucket)
-                speech_lines = [rng.choice(advisory_phrases)]
+                speech_lines = [rng.choice(period_phrases)]
 
         self.display.show_main_page(label, progress, time_str, date_str, None, wifi_connected, self.nav_items, self.nav_selected_index, face_name, speech_lines)
     
