@@ -81,7 +81,7 @@ class Menu:
         # Secret/Konami state
         self._konami_code = ['up', 'up', 'down', 'down', 'left', 'right', 'left', 'right', 'key1', 'key2', 'key3']
         self._konami_index = 0
-        self.secret_menu_items = ["Start Tetris", "Start Doom", "Run Custom Script"]
+        self.secret_menu_items = ["Start Tetris", "Run Custom Script"]
     
     def _load_phrases(self):
         """Load phrases from Phrases.json file."""
@@ -855,8 +855,6 @@ class Menu:
             choice = self.secret_menu_items[self.selected_index]
             if choice == "Start Tetris":
                 self.launch_tetris_pygame()
-            elif choice == "Start Doom":
-                self.launch_doom()
             elif choice == "Run Custom Script":
                 self.launch_custom_script()
         elif action == 'left':
@@ -874,16 +872,6 @@ class Menu:
         except Exception as e:
             self.display.show_message("Tetris", f"Launch failed: {str(e)[:40]}", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
 
-    def launch_doom(self):
-        self.display.show_message("Doom", "Launching...", (100, 200, 255), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
-        try:
-            cmd = get_game_command("Doom (PrBoom)")
-            subprocess.Popen(cmd)
-            self.current_screen = 'main'
-            self.nav_selected_index = self.nav_items.index('Main Page') if 'Main Page' in self.nav_items else 0
-            self.show_main_menu()
-        except Exception as e:
-            self.display.show_message("Doom", f"Launch failed: {str(e)[:60]}", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
 
     def launch_custom_script(self):
         # Looks for Code/custom_script.py; show error if missing

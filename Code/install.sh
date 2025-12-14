@@ -17,7 +17,7 @@ sudo apt install -y python3-pip python3-pil python3-numpy git
 #sudo apt install -y libretro-common || echo "Warning: libretro-common package not available"
 
 echo "Installing Python dependencies..."
-pip3 install --break-system-packages pillow numpy spidev RPi.GPIO requests
+pip3 install --break-system-packages pillow numpy spidev RPi.GPIO requests pygame
 
 echo "Downloading Waveshare LCD driver..."
 GIT_TERMINAL_PROMPT=0 git clone --depth 1 https://github.com/waveshare/LCD_1in44.git /tmp/LCD_1in44
