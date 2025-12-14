@@ -297,6 +297,7 @@ class Menu:
         # Pick a face based on state
         face_name = "awake"
         summary_lower = (schedule_summary or "").lower()
+        speech_lines = []
         if "lunch" in summary_lower:
             face_name = "happy"
         elif "passing" in summary_lower:
@@ -306,7 +307,20 @@ class Menu:
         elif not schedule_summary:
             face_name = "bored"
 
-        self.display.show_main_page(label, progress, time_str, date_str, None, wifi_connected, self.nav_items, self.nav_selected_index, face_name)
+        # Passing-time speech lines
+        if "passing" in summary_lower:
+            rem_to_end = self.get_time_until(SCHOOL_END, now)
+            rem_str = self.format_timedelta(rem_to_end)
+            passing_lines = [
+                "Go get some water man",
+                f"only {rem_str} until ur done.",
+                "a^2 + b^2 = c^2",
+                "lowk lock in",
+                "No, I'm not a bomb.",
+            ]
+            speech_lines = passing_lines
+
+        self.display.show_main_page(label, progress, time_str, date_str, None, wifi_connected, self.nav_items, self.nav_selected_index, face_name, speech_lines)
     
     def get_progress_bar(self):
         """Calculate progress bar based on current mode."""

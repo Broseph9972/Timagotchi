@@ -395,8 +395,8 @@ class WaveshareDisplay:
         self._render_wifi_indicator(wifi_connected)
         self._render()
     
-    def show_main_page(self, progress_label, progress_value, time_str, date_str, schedule_summary, wifi_connected, nav_items, selected_index, face_name="awake"):
-        """Render the main page with an ASCII face, progress bar, clock, sidebar, wifi."""
+    def show_main_page(self, progress_label, progress_value, time_str, date_str, schedule_summary, wifi_connected, nav_items, selected_index, face_name="awake", speech_lines=None):
+        """Render the main page with an ASCII face, optional speech lines, progress bar, clock, sidebar, wifi."""
         self.clear(self._get_bg_color())
 
         accent = self._get_accent_color()
@@ -420,13 +420,10 @@ class WaveshareDisplay:
         # Label below bar
         self.draw.text((4, bar_h + 2), progress_label, font=self.font_tiny, fill=secondary)
 
-        # === CENTER: Face ===
-        center_top = bar_h + 16
-        center_bottom = self.height - 24
-        center_h = center_bottom - center_top
-
+        # === FACE + SPEECH ===
+        # Place face toward left, slightly above the bottom time text
+        bottom_y = self.height - (self.WIFI_BOX_SIZE + 18)
         face_text = self._get_face(face_name)
-        # Choose font size that fits nicely
         face_font = self.font_large
         try:
             bbox = self.draw.textbbox((0, 0), face_text, font=face_font)
@@ -435,9 +432,16 @@ class WaveshareDisplay:
         except Exception:
             face_w, face_h = face_font.getsize(face_text)
 
-        face_x = (content_width - face_w) // 2
-        face_y = center_top + (center_h - face_h) // 2
+        face_x = 6
+        face_y = max(bar_h + 12, bottom_y - face_h - 6)
         self.draw.text((face_x, face_y), face_text, font=face_font, fill=primary)
+
+        # Speech lines (if any), drawn below the face, left aligned
+        speech_lines = speech_lines or []
+        text_y = face_y + face_h + 4
+        for line in speech_lines[:4]:
+            self.draw.text((face_x, text_y), line[:24], font=self.font_tiny, fill=primary)
+            text_y += 12
 
         # === BOTTOM: Clock only (WiFi is in sidebar area) ===
         # Move up a bit to avoid overlap with summary/wifi
