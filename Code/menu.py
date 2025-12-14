@@ -9,7 +9,7 @@ from config import (
     PERIODS, SCHOOL_START, SCHOOL_END, LUNCH_START, LUNCH_END,
     PERIOD_LENGTH, PASSING_TIME, A_DAY_PERIODS, B_DAY_PERIODS,
     freetimedaus, USE_24_HOUR,
-    AB_DAY_MODE, MANUAL_AB_DAY, TIME_SYNC_MODE, TIME_SYNC_INTERVAL, abday, PROGRESS_BAR_MODE,
+    AB_DAY_MODE, MANUAL_AB_DAY, abday, PROGRESS_BAR_MODE,
     ADVISORY_START, ADVISORY_PERIOD, advisory, advisorylength, advisorydays
 )
 from input_handler import InputHandler
@@ -36,19 +36,15 @@ class Menu:
         self.settings_menu_items = []
         if abday.lower() == "true":
             self.settings_menu_items.append("A/B Day")
-        self.settings_menu_items.extend(["WiFi", "Theme", "Progress Bar", "Set Time", "Stopwatch", "Update", "Restart"])
+        self.settings_menu_items.extend(["Theme", "Progress Bar", "Set Time", "Stopwatch", "Update", "Restart"])
         self.settings_scroll_offset = 0
-        self.set_time_menu_items = ["WiFi Sync", "Manual Set"]
+        self.set_time_menu_items = ["Manual Set"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
         self.adjust_hour = 0
         self.adjust_minute = 0
         self.ab_day_mode = AB_DAY_MODE  # "auto", "a", or "b"
         self.manual_ab_day = MANUAL_AB_DAY  # "a" or "b" when in manual mode
-        self.last_sync_time = 0  # Track last WiFi sync time for periodic syncing
-        self.sync_on_boot = (TIME_SYNC_MODE == "on_boot")  # Flag to sync once at startup
-        self.last_sync_error = None  # Store the last sync error message
-        self.available_networks = []  # Store scanned WiFi networks
-        self.wifi_scan_index = 0  # Index for selecting networks
+        self.last_sync_error = None  # Track last time-setting error
         self.progress_bar_modes = ["time_in_class", "time_in_day", "lunch_day"]
         self.progress_bar_mode = PROGRESS_BAR_MODE
         self.progress_bar_mode_index = self.progress_bar_modes.index(self.progress_bar_mode) if self.progress_bar_mode in self.progress_bar_modes else 0
@@ -453,114 +449,6 @@ class Menu:
             self.selected_index = self.settings_menu_items.index("Set Today Preset")
             self.show_settings_menu()
     
-    def scan_wifi_networks(self):
-        """Scan for available WiFi networks using nmcli or iwlist."""
-        try:
-            wifi_connected = self._get_wifi_connected()
-            self.display.show_message("WiFi", "Scanning for\nnetworks...", (100, 200, 255), self.nav_items, self.nav_selected_index, wifi_connected)
-            # Try using nmcli (NetworkManager)
-            try:
-                result = subprocess.run(
-                    ['sudo', 'nmcli', 'device', 'wifi', 'list'],
-                    capture_output=True, text=True, timeout=10
-                )
-                if result.returncode == 0:
-                    networks = self._parse_nmcli_output(result.stdout)
-                    if networks:
-                        self.available_networks = networks
-                        self.wifi_scan_index = 0
-                        return True
-            except Exception:
-                pass
-
-            # Fallback: try iwlist (older systems)
-            try:
-                result = subprocess.run(
-                    ['sudo', 'iwlist', 'wlan0', 'scan'],
-                    capture_output=True, text=True, timeout=10
-                )
-                if result.returncode == 0:
-                    networks = self._parse_iwlist_output(result.stdout)
-                    if networks:
-                        self.available_networks = networks
-                        self.wifi_scan_index = 0
-                        return True
-            except Exception:
-                pass
-
-            return False
-        except Exception as e:
-            wifi_connected = self._get_wifi_connected()
-            self.display.show_message("Error", f"Scan failed: {str(e)[:30]}", (255, 100, 100), self.nav_items, self.nav_selected_index, wifi_connected)
-            time.sleep(2)
-            return False
-    
-    def _parse_nmcli_output(self, output):
-        """Parse nmcli wifi list output"""
-        networks = []
-        lines = output.strip().split('\n')[1:]  # Skip header
-        for line in lines:
-            if line.strip():
-                # Format: SSID BSSID RSSI CHANNEL SECURITY
-                parts = line.split()
-                if len(parts) >= 5:
-                    ssid = parts[0]
-                    security = ' '.join(parts[4:]) if len(parts) > 4 else ""
-                    is_open = "--" in security or security.strip() == ""
-                    networks.append({"ssid": ssid, "security": security, "open": is_open})
-        return networks
-    
-    def _parse_iwlist_output(self, output):
-        """Parse iwlist scan output"""
-        networks = []
-        current_network = {}
-        
-        for line in output.split('\n'):
-            if 'ESSID' in line and '"' in line:
-                # Extract SSID
-                ssid = line.split('"')[1]
-                current_network['ssid'] = ssid
-            elif 'Encryption key:off' in line:
-                current_network['open'] = True
-                current_network['security'] = "Open"
-            elif 'Encryption key:on' in line:
-                current_network['open'] = False
-            
-            if current_network.get('ssid'):
-                is_duplicate = any(n['ssid'] == current_network['ssid'] for n in networks)
-                if not is_duplicate:
-                    networks.append(current_network)
-                    current_network = {}
-        
-        return networks
-    
-    def show_wifi_menu(self):
-        """Show WiFi network selection menu"""
-        if not self.available_networks:
-            if not self.scan_wifi_networks():
-                wifi_connected = self._get_wifi_connected()
-                self.display.show_message("WiFi", "No networks found\nor scan failed", (255, 100, 100), self.nav_items, self.nav_selected_index, wifi_connected)
-                time.sleep(2)
-                return
-        
-        self.show_wifi_network_list()
-    
-    def show_wifi_network_list(self):
-        """Display current WiFi network for selection"""
-        if not self.available_networks:
-            wifi_connected = self._get_wifi_connected()
-            self.display.show_message("WiFi", "No networks\nfound", (200, 100, 100), self.nav_items, self.nav_selected_index, wifi_connected)
-            return
-        
-        network = self.available_networks[self.wifi_scan_index]
-        ssid = network['ssid']
-        is_open = network.get('open', False)
-        status = "[OPEN]" if is_open else "[SECURED]"
-        
-        message = f"WiFi Network:\n{ssid}\n{status}\n\nUp/Down: Browse\nSelect: Connect"
-        wifi_connected = self._get_wifi_connected()
-        self.display.show_message("WiFi", message, (100, 200, 255), self.nav_items, self.nav_selected_index, wifi_connected)
-    
     def show_ab_day_menu(self):
         label = 'A' if self.current_preset_index == 0 else 'B'
         message = f"A/B Day: {label}\n\nUp/Down: Toggle\nSelect: Done"
@@ -614,12 +502,7 @@ class Menu:
             self.show_set_time_menu()
         elif action == 'select' or action == 'right':
             selected_item = self.set_time_menu_items[self.selected_index]
-            if selected_item == "WiFi Sync":
-                self.sync_time_via_wifi()
-                self.current_screen = "set_time_menu"
-                self.selected_index = 0
-                self.show_set_time_menu()
-            elif selected_item == "Manual Set":
+            if selected_item == "Manual Set":
                 self.current_screen = "set_time"
                 now = datetime.datetime.now()
                 self.adjust_hour = now.hour
@@ -681,9 +564,6 @@ class Menu:
             if selected_item == "A/B Day":
                 self.current_screen = "ab_day"
                 self.show_ab_day_menu()
-            elif selected_item == "WiFi":
-                self.current_screen = "wifi"
-                self.show_wifi_menu()
             elif selected_item == "Theme":
                 self.current_screen = "theme"
                 self.selected_index = 0
@@ -832,41 +712,6 @@ class Menu:
         items = [f"{c['name'][:10]} {self._format_percent(c['percent'])}" for c in self._courses_list]
         self.display.show_grades_menu(items, self.grades_selected_index, title="Grades", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, start_index=self.grades_scroll_offset, max_visible=max_visible, wifi_connected=self._get_wifi_connected())
     
-    def connect_to_wifi(self, network):
-        """Attempt to connect to an open WiFi network"""
-        try:
-            ssid = network['ssid']
-            is_open = network.get('open', False)
-            
-            if not is_open:
-                self.display.show_message("WiFi", "Only open networks\nare supported", (255, 150, 100), self.nav_items, self.nav_selected_index)
-                time.sleep(2)
-                return False
-            
-            self.display.show_message("WiFi", f"Connecting to\n{ssid}...", (100, 200, 255), self.nav_items, self.nav_selected_index)
-            
-            # Try connecting using nmcli
-            try:
-                result = subprocess.run(
-                    ['sudo', 'nmcli', 'device', 'wifi', 'connect', ssid],
-                    capture_output=True, text=True, timeout=10
-                )
-                if result.returncode == 0:
-                    self.display.show_message("WiFi", f"Connected to\n{ssid}", (100, 255, 100), self.nav_items, self.nav_selected_index)
-                    time.sleep(2)
-                    return True
-            except:
-                pass
-            
-            # Fallback: try wpa_cli or other methods
-            self.display.show_message("WiFi", "Connection\nfailed", (255, 100, 100), self.nav_items, self.nav_selected_index)
-            time.sleep(2)
-            return False
-        except Exception as e:
-            self.display.show_message("Error", str(e)[:30], (255, 100, 100), self.nav_items, self.nav_selected_index)
-            time.sleep(2)
-            return False
-
     def handle_grades_input(self, action):
         if not hasattr(self, '_courses_list') or not self._courses_list:
             self.show_grades_menu(fetch=True)
@@ -1098,25 +943,6 @@ class Menu:
         self._write_cache(cache)
         return assigns
     
-    def handle_wifi_input(self, action):
-        if action == 'up':
-            if self.available_networks:
-                self.wifi_scan_index = (self.wifi_scan_index - 1) % len(self.available_networks)
-                self.show_wifi_network_list()
-        elif action == 'down':
-            if self.available_networks:
-                self.wifi_scan_index = (self.wifi_scan_index + 1) % len(self.available_networks)
-                self.show_wifi_network_list()
-        elif action == 'select' or action == 'right':
-            if self.available_networks:
-                network = self.available_networks[self.wifi_scan_index]
-                self.connect_to_wifi(network)
-                self.show_wifi_network_list()
-        elif action == 'left':
-            self.current_screen = "settings"
-            self.selected_index = self.settings_menu_items.index("WiFi") if "WiFi" in self.settings_menu_items else 1
-            self.show_settings_menu()
-    
     def show_theme_menu(self):
         wifi_connected = self._get_wifi_connected()
         self.display.show_menu(self.theme_menu_items, self.selected_index, "Theme", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, wifi_connected=wifi_connected)
@@ -1192,66 +1018,6 @@ class Menu:
             self.selected_index = self.settings_menu_items.index("Restart") if "Restart" in self.settings_menu_items else 2
             self.show_settings_menu()
     
-    def sync_time_via_wifi(self):
-        """Attempt to sync time via WiFi using timedatectl"""
-        try:
-            # Animated faces during sync
-            faces_seq = ["sleep", "sleep2", "look_l", "look_r", "awake"]
-            for f in faces_seq:
-                self.display.show_face_message("Syncing...", "Getting time from\nwifi network...", f, (100, 200, 100), self.nav_items, self.nav_selected_index)
-                time.sleep(0.4)
-            
-            try:
-                # Set timezone first (import from config)
-                try:
-                    from config import TIMEZONE
-                except ImportError:
-                    TIMEZONE = "America/New_York"  # Default if not in config
-                
-                subprocess.run(['sudo', 'timedatectl', 'set-timezone', TIMEZONE], 
-                              capture_output=True, text=True, timeout=5, check=False)
-                
-                # Ensure NTP is enabled
-                subprocess.run(['sudo', 'timedatectl', 'set-ntp', 'on'], 
-                              capture_output=True, text=True, timeout=5, check=False)
-                time.sleep(1)
-                
-                # Wait for NTP to sync (give it a moment)
-                time.sleep(3)
-                
-                # Get the current synced time
-                result = subprocess.run(['timedatectl', 'show', '-p', 'NTPSynchronized'],
-                                      capture_output=True, text=True, timeout=5)
-                
-                if "yes" in result.stdout.lower():
-                    self.last_sync_error = None
-                    self.display.show_face_message("Time Synced", "WiFi sync\nsuccessful!", "grateful", (100, 255, 100), self.nav_items, self.nav_selected_index)
-                else:
-                    self.last_sync_error = "NTP not synchronized"
-                    self.display.show_face_message("Sync Failed", "NTP sync pending", "broken", (255, 100, 100), self.nav_items, self.nav_selected_index)
-                
-            except subprocess.TimeoutExpired:
-                self.last_sync_error = "Sync timed out"
-                self.display.show_face_message("Sync Failed", "Operation timed out", "broken", (255, 100, 100), self.nav_items, self.nav_selected_index)
-            except Exception as e:
-                self.last_sync_error = str(e)
-                self.display.show_face_message("Sync Failed", str(e)[:40], "broken", (255, 100, 100), self.nav_items, self.nav_selected_index)
-            
-            # Wait for display to be visible
-            time.sleep(2)
-            # Reset all debounce timers to prevent stale presses
-            current_time = time.time()
-            for pin in self.input_handler.pins:
-                self.input_handler.last_press[pin] = current_time
-        except Exception as e:
-            self.last_sync_error = str(e)
-            self.display.show_message("Error", str(e)[:40], (255, 100, 100), self.nav_items, self.nav_selected_index)
-            time.sleep(2)
-            # Reset debounce timers
-            current_time = time.time()
-            for pin in self.input_handler.pins:
-                self.input_handler.last_press[pin] = current_time
-    
     def apply_manual_time(self):
         """Apply the manually set time"""
         try:
@@ -1318,12 +1084,6 @@ class Menu:
     
     def run(self):
         import time
-        
-        # Handle time sync on boot if enabled
-        if self.sync_on_boot:
-            self.sync_time_via_wifi()
-            self.sync_on_boot = False  # Only sync once at startup
-        
         self.show_main_menu()
         
         last_update = time.time()
@@ -1360,8 +1120,6 @@ class Menu:
                     self.handle_settings_input(action)
                 elif self.current_screen == "ab_day":
                     self.handle_ab_day_input(action)
-                elif self.current_screen == "wifi":
-                    self.handle_wifi_input(action)
                 elif self.current_screen == "theme":
                     self.handle_theme_input(action)
                 elif self.current_screen == "progress_bar":
@@ -1388,13 +1146,6 @@ class Menu:
                 elif self.current_screen == "stopwatch":
                     self.show_stopwatch()
                 last_update = current_time
-            
-            # Handle periodic time sync if enabled
-            if TIME_SYNC_MODE == "periodic":
-                sync_interval = TIME_SYNC_INTERVAL * 3600  # Convert hours to seconds
-                if current_time - self.last_sync_time > sync_interval:
-                    self.sync_time_via_wifi()
-                    self.last_sync_time = current_time
             
             time.sleep(0.05)
         
