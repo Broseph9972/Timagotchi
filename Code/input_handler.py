@@ -38,11 +38,13 @@ class InputHandler:
             self.using_rpi_gpio = False
         
         self.last_press = {}
+        self.last_state = {}
         for pin in self.pins:
             self.last_press[pin] = 0
+            self.last_state[pin] = 1  # 1 = not pressed (pull-up)
         
-        # Keep debounce short so taps are captured without holding
-        self.debounce_time = 0.02
+        # Debounce time in seconds
+        self.debounce_time = 0.05
     
     def check_button(self, pin):
         if self.using_rpi_gpio:
@@ -50,11 +52,19 @@ class InputHandler:
         else:
             button_state = lgpio.gpio_read(self.gpio_handle, pin)
         
-        if button_state == 0:
-            current_time = time.time()
+        current_time = time.time()
+        prev_state = self.last_state.get(pin, 1)
+        
+        # Detect falling edge: was not pressed (1), now pressed (0)
+        if prev_state == 1 and button_state == 0:
+            self.last_state[pin] = 0
             if current_time - self.last_press[pin] > self.debounce_time:
                 self.last_press[pin] = current_time
                 return True
+        elif button_state == 1:
+            # Released
+            self.last_state[pin] = 1
+        
         return False
     
     def get_input(self):

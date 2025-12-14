@@ -366,7 +366,14 @@ class Menu:
                         elapsed = (now - start_dt).total_seconds()
                         total = (end_dt - start_dt).total_seconds()
                         progress = int((elapsed / total) * 100) if total > 0 else 0
-                        return f"Class: {progress}%", progress
+                        # Get class name from A_DAY or B_DAY periods
+                        class_name = "Class"
+                        if self.presets_count == 2:
+                            day_periods = A_DAY_PERIODS if self.current_preset_index == 0 else B_DAY_PERIODS
+                            class_name = day_periods.get(p, f"Period {p}")
+                        else:
+                            class_name = A_DAY_PERIODS.get(p, f"Period {p}")
+                        return f"{class_name}: {progress}% - {p}", progress
                 return "Not in class", 0
 
             if mode == "time_in_day":
