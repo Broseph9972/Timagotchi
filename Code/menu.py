@@ -857,6 +857,24 @@ class Menu:
         self.display.show_message("Developer", message, (150, 100, 200), self.nav_items, self.nav_selected_index, wifi_connected)
 
     def handle_developer_input(self, action):
+        # Allow exiting with key1/key2/key3
+        if action in ('key1', 'key2', 'key3'):
+            self._konami_index = 0
+            if action == 'key1':
+                self.current_screen = 'main'
+                self.nav_selected_index = self.nav_items.index('Main Page') if 'Main Page' in self.nav_items else 0
+                self.show_main_menu()
+            elif action == 'key2':
+                self.current_screen = 'grades'
+                self.nav_selected_index = self.nav_items.index('Grades') if 'Grades' in self.nav_items else 1
+                self.show_grades_menu()
+            elif action == 'key3':
+                self.current_screen = 'settings'
+                self.nav_selected_index = self.nav_items.index('Settings') if 'Settings' in self.nav_items else 2
+                self.selected_index = 0
+                self.show_settings_menu()
+            return
+        
         # Konami detection on Developer screen
         if action:
             expected = self._konami_code[self._konami_index] if self._konami_index < len(self._konami_code) else None
@@ -1258,7 +1276,8 @@ class Menu:
             
             if action:
                 # Global key mapping: key1=Main Page, key2=Grades, key3=Settings
-                if action in ('key1', 'key2', 'key3'):
+                # Skip global keys on developer and secret_menu screens
+                if action in ('key1', 'key2', 'key3') and self.current_screen not in ('developer', 'secret_menu'):
                     if action == 'key1':
                         self.current_screen = 'main'
                         self.nav_selected_index = self.nav_items.index('Main Page') if 'Main Page' in self.nav_items else 0
