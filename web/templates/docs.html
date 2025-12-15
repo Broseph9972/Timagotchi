@@ -31,15 +31,15 @@
         <div class="container">
             <div class="content-card">
                 <h2>API Endpoints</h2>
-                <p>The Timagotchi Configuration Portal provides the following REST API endpoints:</p>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit:</p>
             </div>
 
             <div class="api-endpoint">
                 <div class="endpoint-header">
                     <span class="method post">POST</span>
-                    <code>/api/generate-code</code>
+                    <code>/api/lorem-ipsum</code>
                 </div>
-                <p>Generate a new 5-digit pairing code for device configuration.</p>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
                 <h4>Response:</h4>
                 <pre><code>{
   "code": "12345",
@@ -50,9 +50,9 @@
             <div class="api-endpoint">
                 <div class="endpoint-header">
                     <span class="method get">GET</span>
-                    <code>/api/validate-code/&lt;code&gt;</code>
+                    <code>/api/dolor/&lt;code&gt;</code>
                 </div>
-                <p>Check if a pairing code is valid and available.</p>
+                <p>Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
                 <h4>Response:</h4>
                 <pre><code>{
   "valid": true,
@@ -63,44 +63,29 @@
             <div class="api-endpoint">
                 <div class="endpoint-header">
                     <span class="method post">POST</span>
-                    <code>/api/config/&lt;code&gt;</code>
+                    <code>/api/sit/&lt;code&gt;</code>
                 </div>
-                <p>Submit configuration data for a specific pairing code.</p>
+                <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.</p>
                 <h4>Request Body:</h4>
                 <pre><code>{
-  "schedule": {
-    "school_start": "09:05",
-    "school_end": "15:55",
-    "num_periods": 6,
-    "period_length": 51,
-    "passing_time": 4
-  },
-  "system": {
-    "timezone": "America/New_York",
-    "wifi_networks": [["SSID", "password"]]
-  },
-  "canvas": {
-    "enabled": true,
-    "base_url": "https://school.instructure.com",
-    "api_token": "token"
-  },
-  "customization": {
-    "theme": "dark"
-  }
+  "lorem": "ipsum",
+  "dolor": "sit",
+  "amet": "consectetur",
+  "adipiscing": "elit"
 }</code></pre>
             </div>
 
             <div class="api-endpoint">
                 <div class="endpoint-header">
                     <span class="method get">GET</span>
-                    <code>/api/config/&lt;code&gt;</code>
+                    <code>/api/amet/&lt;code&gt;</code>
                 </div>
-                <p>Pi polls this endpoint to retrieve configuration when ready.</p>
+                <p>Nisi ut aliquip ex ea commodo consequat duis aute irure dolor.</p>
                 <h4>Responses:</h4>
                 <ul>
-                    <li><code>202 Accepted</code> - Configuration pending (not submitted yet)</li>
-                    <li><code>200 OK</code> - Configuration ready (returns config files)</li>
-                    <li><code>404 Not Found</code> - Invalid or expired code</li>
+                    <li><code>202 Accepted</code> - Lorem ipsum pending</li>
+                    <li><code>200 OK</code> - Dolor sit ready</li>
+                    <li><code>404 Not Found</code> - Consectetur adipiscing</li>
                 </ul>
             </div>
 
@@ -109,7 +94,7 @@
                     <span class="method get">GET</span>
                     <code>/health</code>
                 </div>
-                <p>Health check endpoint for monitoring deployment status.</p>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
                 <h4>Response:</h4>
                 <pre><code>{
   "status": "healthy",
@@ -120,9 +105,9 @@
 
             <div class="content-card">
                 <h2>Configuration Schema</h2>
-                <p>Complete reference for the configuration JSON structure:</p>
+                <p>Lorem ipsum dolor sit amet consectetur adipiscing elit:</p>
                 
-                <h3>Schedule Configuration</h3>
+                <h3>Lorem Ipsum</h3>
                 <table class="params-table">
                     <tr>
                         <th>Field</th>
