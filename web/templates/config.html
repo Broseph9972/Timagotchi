@@ -316,6 +316,18 @@
                         <h2>✅ Review Your Configuration</h2>
                         <div id="config-summary"></div>
                     </div>
+
+                    <div class="card">
+                        <h2>🔐 Enter Your Device Code</h2>
+                        <p>Boot up your Timagotchi device and enter the 5-digit code displayed on screen.</p>
+                        
+                        <div class="form-group">
+                            <label>Device Code</label>
+                            <input type="text" id="device-code-input" maxlength="5" pattern="[0-9]*" 
+                                   placeholder="12345" autocomplete="off" required>
+                            <small>The 5-digit code shown on your Timagotchi screen</small>
+                        </div>
+                    </div>
                     
                     <div class="button-group">
                         <button type="button" onclick="prevSection()" class="btn-secondary">Back</button>

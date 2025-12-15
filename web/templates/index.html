@@ -82,25 +82,20 @@
     <div class="config-section" id="config-section">
         <div class="container">
             <h2>Configure Your Timagotchi</h2>
-            <p class="section-description">Enter the 5-digit code displayed on your device to get started.</p>
+            <p class="section-description">Fill out your configuration below. You'll enter your device code at the end.</p>
             
             <div class="config-card">
-                <div class="code-input-large">
-                    <label for="device-code">Device Code</label>
-                    <input type="text" id="device-code" maxlength="5" pattern="[0-9]*" 
-                           placeholder="12345" autocomplete="off">
-                    <button onclick="goToConfig()" class="btn-primary">Continue to Configuration</button>
-                </div>
-                
                 <div class="config-help">
-                    <h4>Where to find your code:</h4>
+                    <h4>How it works:</h4>
                     <ol>
+                        <li>Fill out the configuration form on the next page</li>
                         <li>Boot up your Timagotchi device</li>
-                        <li>If no configuration exists, a 5-digit code will appear on screen</li>
-                        <li>Or navigate to: <strong>Settings → Configuration Portal</strong></li>
-                        <li>Enter the code above and click Continue</li>
+                        <li>Your device will display a 5-digit code on screen</li>
+                        <li>Enter that code at the end of the form and submit</li>
+                        <li>Your device will sync automatically!</li>
                     </ol>
                 </div>
+                <button onclick="location.href='/config/temp'" class="btn-primary btn-large">Start Configuration</button>
             </div>
         </div>
     </div>

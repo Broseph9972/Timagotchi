@@ -58,10 +58,11 @@ def documentation():
 @app.route('/config/<code>')
 def config_page(code):
     """Configuration interface for a specific pairing code"""
-    # Validate code exists
-    cleanup_expired_codes()
-    if code not in pairing_codes:
-        return render_template('error.html', message="Invalid or expired code"), 404
+    # Allow 'temp' as placeholder code - validation happens on submission
+    if code != 'temp':
+        cleanup_expired_codes()
+        if code not in pairing_codes:
+            return render_template('error.html', message="Invalid or expired code"), 404
     
     return render_template('config.html', code=code)
 

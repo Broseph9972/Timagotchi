@@ -240,9 +240,15 @@ function collectFormData() {
 
 async function submitConfiguration() {
     const config = collectFormData();
+    const deviceCode = document.getElementById('device-code-input').value.trim();
+    
+    if (!deviceCode || deviceCode.length !== 5) {
+        alert('Please enter a valid 5-digit device code');
+        return;
+    }
     
     try {
-        const response = await fetch(`/api/config/${currentCode}`, {
+        const response = await fetch(`/api/config/${deviceCode}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
