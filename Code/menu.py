@@ -37,7 +37,7 @@ class Menu:
         self.settings_menu_items = []
         if abday.lower() == "true":
             self.settings_menu_items.append("A/B Day")
-        self.settings_menu_items.extend(["Theme", "Progress Bar", "Set Time", "Stopwatch", "Developer", "Update", "Restart"])
+        self.settings_menu_items.extend(["WiFi", "Theme", "Progress Bar", "Set Time", "Stopwatch", "Developer", "Update", "Restart"])
         self.settings_scroll_offset = 0
         self.set_time_menu_items = ["Manual Set"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
@@ -542,6 +542,104 @@ class Menu:
             self.selected_index = self.settings_menu_items.index("Set Today Preset")
             self.show_settings_menu()
     
+    def show_wifi_menu(self):
+        """Show WiFi networks available."""
+        wifi_connected = self._get_wifi_connected()
+        message = "Scanning WiFi...\nPlease wait."
+        self.display.show_message("WiFi", message, (100, 200, 255), self.nav_items, self.nav_selected_index, wifi_connected)
+        
+        # Get available networks
+        try:
+            result = subprocess.run(
+                ['nmcli', 'device', 'wifi', 'list'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            lines = result.stdout.strip().split('\n')[1:]  # Skip header
+            
+            self.wifi_networks = []
+            for line in lines:
+                parts = line.split()
+                if len(parts) >= 2:
+                    ssid = parts[0]
+                    # Get signal strength (last column)
+                    signal = parts[-2] if len(parts) > 1 else "0"
+                    self.wifi_networks.append((ssid, signal))
+            
+            if not self.wifi_networks:
+                self.display.show_message("WiFi", "No networks found.\nMake sure WiFi is enabled.", (200, 100, 100), self.nav_items, self.nav_selected_index, wifi_connected)
+                return
+            
+            self.wifi_selected = 0
+            self._draw_wifi_list()
+        except Exception as e:
+            self.display.show_message("WiFi", f"Error: {str(e)[:50]}\nMake sure nmcli\nis installed", (200, 100, 100), self.nav_items, self.nav_selected_index, wifi_connected)
+    
+    def _draw_wifi_list(self):
+        """Draw the WiFi network list."""
+        wifi_connected = self._get_wifi_connected()
+        if not hasattr(self, 'wifi_networks') or not self.wifi_networks:
+            self.display.show_message("WiFi", "No networks", (200, 100, 100), self.nav_items, self.nav_selected_index, wifi_connected)
+            return
+        
+        # Show current selection
+        if self.wifi_selected < len(self.wifi_networks):
+            ssid, signal = self.wifi_networks[self.wifi_selected]
+            message = f"SSID: {ssid}\nSignal: {signal}\n\nSelect to\nconnect"
+        else:
+            message = "No selection"
+        
+        self.display.show_message("WiFi", message, (100, 200, 255), self.nav_items, self.nav_selected_index, wifi_connected)
+    
+    def handle_wifi_input(self, action):
+        """Handle WiFi menu navigation and connection."""
+        if not hasattr(self, 'wifi_networks'):
+            self.wifi_networks = []
+        
+        if action == 'up':
+            self.wifi_selected = (self.wifi_selected - 1) % len(self.wifi_networks) if self.wifi_networks else 0
+            self._draw_wifi_list()
+        elif action == 'down':
+            self.wifi_selected = (self.wifi_selected + 1) % len(self.wifi_networks) if self.wifi_networks else 0
+            self._draw_wifi_list()
+        elif action in ('select', 'right'):
+            if self.wifi_networks and self.wifi_selected < len(self.wifi_networks):
+                ssid, _ = self.wifi_networks[self.wifi_selected]
+                self._connect_to_wifi(ssid)
+        elif action == 'left':
+            self.current_screen = "settings"
+            self.selected_index = 0
+            self.show_settings_menu()
+    
+    def _connect_to_wifi(self, ssid):
+        """Attempt to connect to a WiFi network."""
+        self.display.show_message("WiFi", f"Connecting to\n{ssid}...", (100, 200, 255), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+        
+        try:
+            # Try to connect to the network (assumes it's open or remembers password)
+            result = subprocess.run(
+                ['nmcli', 'device', 'wifi', 'connect', ssid],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            
+            if result.returncode == 0:
+                time.sleep(1)
+                self.display.show_message("WiFi", f"Connected to\n{ssid}!", (100, 255, 100), self.nav_items, self.nav_selected_index, True)
+                time.sleep(2)
+            else:
+                error_msg = result.stderr.strip()[:50] if result.stderr else "Connection failed"
+                self.display.show_message("WiFi", f"Error:\n{error_msg}", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                time.sleep(2)
+        except Exception as e:
+            self.display.show_message("WiFi", f"Error: {str(e)[:40]}", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+            time.sleep(2)
+        
+        # Return to WiFi menu
+        self.show_wifi_menu()
+    
     def show_ab_day_menu(self):
         label = 'A' if self.current_preset_index == 0 else 'B'
         message = f"A/B Day: {label}\n\nUp/Down: Toggle\nSelect: Done"
@@ -654,7 +752,10 @@ class Menu:
             self.show_settings_menu()
         elif action == 'select' or action == 'right':
             selected_item = self.settings_menu_items[self.selected_index]
-            if selected_item == "A/B Day":
+            if selected_item == "WiFi":
+                self.current_screen = "wifi"
+                self.show_wifi_menu()
+            elif selected_item == "A/B Day":
                 self.current_screen = "ab_day"
                 self.show_ab_day_menu()
             elif selected_item == "Theme":
@@ -1453,6 +1554,8 @@ class Menu:
                     self.handle_clock_input(action)
                 elif self.current_screen == "settings":
                     self.handle_settings_input(action)
+                elif self.current_screen == "wifi":
+                    self.handle_wifi_input(action)
                 elif self.current_screen == "ab_day":
                     self.handle_ab_day_input(action)
                 elif self.current_screen == "theme":
