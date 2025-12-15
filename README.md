@@ -8,47 +8,83 @@ A school schedule display system for Raspberry Pi Zero WH with Waveshare 1.44" L
 This project is a pi zero scheduler that tells u how much time u have left in school. if you wanna make this pls download from releases, i develop on main branch bc idk what im doing.
 ## Features
 
-- **Schedule View**: Shows what period ur in and how much time left( i want to add a progress bar)
-- **Clock View**: its a clock. it shows time and date.
-- **Menu System**: crappy menu ill change later
-- **RetroArch Games Menu**: DOES NOT WORK YET but i have retroarch working and i will add later
+### Display & Navigation
+- **Main Page**: lil guy i stole from Pwnagotchi
+- **Schedule View**: Shows current pd, based off ur schedule
+- **Progress Bar**: Multiple modes (time in class, time in day, lunch countdown) - configurable in settings
+- **Clock View**: It's a clock.
+- **Theme System**: Funny colors
+- **Sidebar**: shows what page ur on and stuff, idk looks cool
+- **WiFi Status Indicator**: Lil box that tells u if u have wifi or no.
+
+### Schedule Management
+- **A/B Day Support**: Automatic or manual A/B day scheduling with preset rotation
+- **Advisory Period**: Optional morning advisory (homeroom) period support
+- **Passing Time Detection**: Shows "passing" between periods
+- **Custom Phrases**: JSON-configurable phrases that appear based on current period
+
+### Canvas Integration
+- **Grades Display**: View current grades from Canvas LMS
+- **Assignment List**: Browse assignments by course
+- **Course Details**: See course names and current percentages
+- **API Configuration**: Secure canvas_config.json for base URL and API token
+
+### Settings & Customization
+- **Theme Selector**: Choose from multiple pre-configured themes
+- **Progress Bar Modes**: Switch between different progress visualization styles
+- **Time Settings**: Manual time adjustment via on-screen controls
+- **A/B Day Override**: Manually set which day type (A or B) when in manual mode
+- **Stopwatch**: Built-in stopwatch with start/stop/reset
+- **Developer Mode**: Konami code. iykyk
 
 ## Target Hardware
 
 - **Board**: Raspberry Pi Zero WH
 - **Display**: Waveshare 1.44" LCD HAT
-- **Operating System**: Raspberry Pi OS (tested on Bookworm)
+- **Operating System**: Raspberry Pi OS (tested on Bookworm & trixie)
 - **(Not required) Battery**: Battery or battery bank w/ cable
 
 ## Project Structure
 
 ### Core Files
-- `main.py` – starts everything
-- `display_waveshare.py` – its a driver
-- `input_handler.py` – shoves button inputs in places they need to go
-- `menu.py` – Its where the menu menus.
-- 
+- `main.py` – Starts everything and manages the main loop
+- `display_waveshare.py` – Display driver with theme support and rendering functions
+- `input_handler.py` – GPIO button input handling with debouncing
+- `menu.py` – Menu system, navigation, Canvas integration, and game launchers
+- `theme_manager.py` – Theme loading and color management
+- `tetris.py` – Original Pygame Tetris (legacy)
+- `tetris_waveshare.py` – Tetris implementation for the 128x128 LCD
+- `doom_raycaster.py` – Built-in Doom-style FPS raycaster engine
+- `doom_wrapper.py` – PyDoom detection and launcher fallback
+- `custom_script_example.py` – Template for creating custom scripts
+ 
 ### Configuration & Utilities
-- `config.py` – Schedule definition (editable manually or via the helper script).
-- `configure_schedule.py` – makes ur config.json for u
-- `schedule-display.service` – systemd unit for auto-start/restart.
-- `install.sh` / `start.sh` – automated scripts
-- `old code/` – old code w/ drivers and stuff, duct taped together
+- `config.py` – Schedule definition (editable manually or via the helper script)
+- `configure_schedule.py` – Interactive schedule configuration tool
+- `themes.json` – Theme color definitions
+- `Phrases.json` – Context-aware phrases by period
+- `canvas_config.json` – Canvas LMS API credentials (created during setup)
+- `schedule-display.service` – systemd unit for auto-start/restart
+- `install.sh` / `start.sh` – Automated installation and launch scripts
+- `old code/` – Legacy drivers and code, kept for compatibility
 
 ## Dependencies
 
 ### Python Packages
-- `st7735>=0.2.0` – ST7735S display driver (128x128 LCD).
-- `pillow>=10.0.0` – Image rendering and fonts.
-- `numpy>=1.24.0` – Numerical helpers for drawing.
-- `spidev>=3.6` – SPI communication.
-- `rpi-lgpio>=0.4` – GPIO access on Raspberry Pi OS Bookworm.
-- `lgpio>=0.2.2.0` – Low-level GPIO interface used when RPi.GPIO is unavailable.
+- `pillow>=10.0.0` – Image rendering, fonts, and graphics
+- `numpy>=1.24.0` – Numerical operations for rendering
+- `spidev>=3.6` – SPI communication with the display
+- `RPi.GPIO` or `lgpio>=0.2.2.0` – GPIO access (automatic fallback on Bookworm)
+- `requests` – Canvas API integration
+- `pygame` – Legacy game support (optional)
+- `mss` – Screen capture for advanced features (optional)
+- `Cython` – For building extensions (optional)
 
 ### System Requirements
-Root access
-internet
-basic knowledge
+- Root access for GPIO and service management
+- Internet connection for Canvas integration and setup
+- SPI interface enabled (`sudo raspi-config`)
+- Basic Linux/Python knowledge for customization
 
 ## Installation
 
@@ -108,12 +144,82 @@ sudo usermod -aG gpio [Your username]
 ```
 
 
-#### 4. Configure Your Schedule
+#### 4. Configure Your Schedule & Canvas (Optional)
 
-i made a script that does this for u, but it's made for my school system specifically, so feel free to edit and contribute if u want. You can also edit manually, its just json.
+Run the interactive configuration script:
 
 ```bash
 python3 configure_schedule.py
+```
+
+For Canvas integration, you'll be prompted during `install.sh` or you can manually create `Code/canvas_config.json`:
+
+```json
+{
+  "base_url": "https://yourschool.instructure.com",
+  "api_token": "your_canvas_api_token_here"
+}
+```
+
+To get a Canvas API token:
+1. Log into Canvas
+2. Account → Settings → New Access Token
+3. Copy token to canvas_config.json
+
+## Advanced Features
+
+### Custom Scripts
+
+Create `Code/custom_script.py` with a `run(display, input_handler)` function:
+
+```python
+def run(display, input_handler):
+    """
+    Your custom code here.
+    Return 'key1', 'key2', or 'key3' to navigate on exit.
+    """
+    display.clear((0, 0, 0))
+    display.draw.text((10, 50), "Hello World!", 
+                      font=display.font_large, 
+                      fill=(255, 255, 255))
+    display._render()
+    
+    while True:
+        action = input_handler.get_input()
+        if action in ('key1', 'key2', 'key3'):
+            return action
+```
+
+Access via Secret Menu → Run Custom Script.
+
+### Creating Custom Themes
+
+Edit `Code/themes.json` to add new themes:
+
+```json
+{
+  "theme_name": {
+    "background": [20, 20, 30],
+    "text_primary": [255, 255, 255],
+    "text_secondary": [150, 150, 150],
+    "accent": [100, 200, 255],
+    "sidebar_box": [40, 40, 50],
+    "sidebar_box_selected": [60, 60, 80],
+    "divider": [80, 80, 100]
+  }
+}
+```
+
+### Adding Custom Phrases
+
+Edit `Code/Phrases.json` to customize what your character says:
+
+```json
+{
+  "passing": ["Almost there!", "Quick break!"],
+  "lunch": ["Time to eat!", "Lunch break!"],
+  "period1": ["Good morning!", "Let's start!"]
+}
 ```
 
 ## Usage
@@ -126,18 +232,55 @@ sudo python3 main.py
 
 ### Controls
 
-#### Joystick
-its a joystick, it moves stuff. middle click is ok as well but rlly hard to use so just use right to select
+#### D-Pad Navigation
+- **Up/Down**: Navigate menu items, move in games
+- **Left/Right**: Navigate menu items, turn in games, adjust settings
+- **Center Press**: Select item (hard to press - use Right as alternative)
+
+#### Function Keys
+- **Key1** (top right): Navigate to Main Page from anywhere
+- **Key2** (middle right): Navigate to Grades from anywhere
+- **Key3** (bottom right): Navigate to Settings from anywhere
+
+#### Game Controls
+**Tetris:**
+- Up: Rotate piece
+- Left/Right: Move piece
+- Down: Drop faster
+- Center: Hard drop
+- Key1/2/3: Exit to menu
+
+**Shitty Doom:**
+- Up/Down: Move forward/backward
+- Left/Right: Turn
+- Center: Shoot
+- Key1/2/3: Exit to menu
 
 _All joystick directions and buttons are active-low with pull-ups enabled._
 
-### Menu Options
+### Menu Navigation
 
-1. **Schedule**: View current class and time until ___
-2. **Clock**: View current time and date
-3. **Settings**: its a settings menu
-4. **Games**: opens retroarch launcher
-5. **Exit**: closes it (shutdown)
+#### Main Navigation (Right Sidebar)
+1. **Main Page** (Key1): Animated character with schedule info
+2. **Grades** (Key2): Canvas grades and assignments
+3. **Settings** (Key3): Themes, time, A/B day, stopwatch, etc.
+
+#### Settings Submenu
+- **A/B Day**: Toggle between auto/manual A/B day scheduling
+- **Theme**: Choose from multiple color themes
+- **Progress Bar**: Change progress bar visualization mode
+- **Set Time**: Manually adjust system time
+- **Stopwatch**: Built-in timer
+- **Developer**: Enter Konami code here for secret menu
+- **Update**: Check for updates (if configured)
+- **Restart**: Restart the application
+
+#### Secret Menu (Developer → Konami Code)
+Enter: ↑↑↓↓←→←→ on the Developer screen to unlock:
+- **Start Tetris**: Play Tetris
+- **Doom**: Try to run PyDoom (if installed)
+- **Shitty Doom**: Built-in raycaster FPS
+- **Run Custom Script**: Execute custom_script.py
 
 ## GPIO Pin Mapping (Waveshare 1.44" LCD HAT)
 
@@ -159,10 +302,16 @@ _All joystick directions and buttons are active-low with pull-ups enabled._
 - Key3: GPIO 16
 
 ## TODO
-- Weather display and additional widgets.
-- Multiple schedule profiles.
-- Timer/stopwatch mode
-- check grades via canvas
+- ~~Weather display~~ (deferred - API complexity)
+- ~~Multiple schedule profiles~~ (implemented as A/B day presets)
+- ~~Timer/stopwatch mode~~ (implemented)
+- ~~Check grades via Canvas~~ (implemented)
+- ~~Progress bar~~ (implemented with multiple modes)
+- Alarm/notification system
+- Battery level indicator (if using portable power)
+- Add more games to secret menu
+- Sound effects via PWM buzzer
+- Network time sync improvements
 
 ### auto start w/ systemd service
 
