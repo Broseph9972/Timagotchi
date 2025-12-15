@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timagotchi Configuration Portal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 Timagotchi Configuration Portal</h1>
+            <p class="subtitle">Configure your schedule display system</p>
+        </header>
+
+        <!-- Step 1: Enter Pairing Code -->
+        <div id="step-code" class="step active">
+            <div class="card">
+                <h2>Enter Your Pairing Code</h2>
+                <p>Enter the 5-digit code displayed on your Timagotchi device.</p>
+                
+                <div class="code-input-group">
+                    <input type="text" id="pairing-code" maxlength="5" pattern="[0-9]*" 
+                           placeholder="12345" autocomplete="off">
+                    <button onclick="validateCode()" class="btn-primary">Continue</button>
+                </div>
+                
+                <div id="code-error" class="error-message"></div>
+            </div>
+        </div>
+
+        <!-- Step 2: Configuration Form -->
+        <div id="step-config" class="step">
+            <div class="progress-indicator">
+                <div class="progress-step active">1. Schedule</div>
+                <div class="progress-step">2. Canvas & WiFi</div>
+                <div class="progress-step">3. Customization</div>
+                <div class="progress-step">4. Review</div>
+            </div>
+
+            <form id="config-form">
+                <!-- Section 1: Schedule Configuration -->
+                <div class="section active" id="section-schedule">
+                    <div class="card">
+                        <h2>📅 Schedule Configuration</h2>
+                        
+                        <div class="form-group">
+                            <label>School Start Time</label>
+                            <input type="time" id="school-start" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>School End Time</label>
+                            <input type="time" id="school-end" required>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Number of Periods</label>
+                                <input type="number" id="num-periods" min="4" max="8" value="6" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Period Length (minutes)</label>
+                                <input type="number" id="period-length" min="30" max="90" value="51" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Passing Time (minutes)</label>
+                                <input type="number" id="passing-time" min="2" max="10" value="4" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="has-advisory">
+                                School has Advisory Period
+                            </label>
+                        </div>
+                        
+                        <div id="advisory-config" style="display: none;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Advisory Start Time</label>
+                                    <input type="time" id="advisory-start">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Advisory Length (minutes)</label>
+                                    <input type="number" id="advisory-length" min="10" max="60" value="36">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Advisory Days (select all that apply)</label>
+                                <div class="checkbox-group">
+                                    <label><input type="checkbox" value="m" class="advisory-day"> Monday</label>
+                                    <label><input type="checkbox" value="t" class="advisory-day"> Tuesday</label>
+                                    <label><input type="checkbox" value="w" class="advisory-day"> Wednesday</label>
+                                    <label><input type="checkbox" value="th" class="advisory-day"> Thursday</label>
+                                    <label><input type="checkbox" value="f" class="advisory-day"> Friday</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="has-lunch">
+                                School has separate Lunch Period
+                            </label>
+                        </div>
+                        
+                        <div id="lunch-config" style="display: none;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Lunch Start Time</label>
+                                    <input type="time" id="lunch-start">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Lunch End Time</label>
+                                    <input type="time" id="lunch-end">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="use-ab-day">
+                                School uses A/B Day Scheduling
+                            </label>
+                        </div>
+                        
+                        <div id="ab-day-config" style="display: none;">
+                            <div class="form-group">
+                                <label>A/B Day Mode</label>
+                                <select id="ab-day-mode">
+                                    <option value="auto">Automatic Rotation</option>
+                                    <option value="manual">Manual Selection</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Time Display Format</label>
+                            <select id="time-format">
+                                <option value="12">12-Hour (AM/PM)</option>
+                                <option value="24">24-Hour</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button type="button" onclick="nextSection()" class="btn-primary">Next: Canvas & WiFi</button>
+                </div>
+
+                <!-- Section 2: Canvas & WiFi -->
+                <div class="section" id="section-canvas">
+                    <div class="card">
+                        <h2>🎓 Canvas LMS Integration (Optional)</h2>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="enable-canvas">
+                                Enable Canvas Grades Display
+                            </label>
+                        </div>
+                        
+                        <div id="canvas-config" style="display: none;">
+                            <div class="form-group">
+                                <label>Canvas Base URL</label>
+                                <input type="url" id="canvas-url" placeholder="https://yourschool.instructure.com">
+                                <small>Your school's Canvas website URL</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Canvas API Token</label>
+                                <input type="password" id="canvas-token" placeholder="1234~xxxxxxxxxxxx">
+                                <small>Get this from: Account → Settings → New Access Token</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h2>📡 WiFi Networks</h2>
+                        
+                        <div id="wifi-networks">
+                            <div class="wifi-network">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Network Name (SSID)</label>
+                                        <input type="text" class="wifi-ssid" placeholder="MyWiFi">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label>Password</label>
+                                        <input type="password" class="wifi-password" placeholder="password123">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="button" onclick="addWifiNetwork()" class="btn-secondary">+ Add Another Network</button>
+                    </div>
+                    
+                    <div class="card">
+                        <h2>⏰ Time Settings</h2>
+                        
+                        <div class="form-group">
+                            <label>Timezone</label>
+                            <select id="timezone">
+                                <option value="America/New_York">Eastern (ET)</option>
+                                <option value="America/Chicago">Central (CT)</option>
+                                <option value="America/Denver">Mountain (MT)</option>
+                                <option value="America/Los_Angeles">Pacific (PT)</option>
+                                <option value="America/Phoenix">Arizona (MST)</option>
+                                <option value="America/Anchorage">Alaska (AKT)</option>
+                                <option value="Pacific/Honolulu">Hawaii (HST)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Time Sync Mode</label>
+                            <select id="time-sync">
+                                <option value="on_boot">Sync on Boot</option>
+                                <option value="periodic">Periodic (every 6 hours)</option>
+                                <option value="disabled">Disabled</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button type="button" onclick="prevSection()" class="btn-secondary">Back</button>
+                        <button type="button" onclick="nextSection()" class="btn-primary">Next: Customization</button>
+                    </div>
+                </div>
+
+                <!-- Section 3: Customization -->
+                <div class="section" id="section-custom">
+                    <div class="card">
+                        <h2>🎨 Theme Selection</h2>
+                        
+                        <div class="theme-selector">
+                            <label class="theme-option">
+                                <input type="radio" name="theme" value="dark" checked>
+                                <div class="theme-preview dark">
+                                    <span>Dark</span>
+                                </div>
+                            </label>
+                            
+                            <label class="theme-option">
+                                <input type="radio" name="theme" value="light">
+                                <div class="theme-preview light">
+                                    <span>Light</span>
+                                </div>
+                            </label>
+                            
+                            <label class="theme-option">
+                                <input type="radio" name="theme" value="ocean">
+                                <div class="theme-preview ocean">
+                                    <span>Ocean</span>
+                                </div>
+                            </label>
+                            
+                            <label class="theme-option">
+                                <input type="radio" name="theme" value="forest">
+                                <div class="theme-preview forest">
+                                    <span>Forest</span>
+                                </div>
+                            </label>
+                            
+                            <label class="theme-option">
+                                <input type="radio" name="theme" value="sunset">
+                                <div class="theme-preview sunset">
+                                    <span>Sunset</span>
+                                </div>
+                            </label>
+                            
+                            <label class="theme-option">
+                                <input type="radio" name="theme" value="cyberpunk">
+                                <div class="theme-preview cyberpunk">
+                                    <span>Cyberpunk</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h2>💬 Custom Phrases (Optional)</h2>
+                        <p>Customize what your Timagotchi says during different periods.</p>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="enable-custom-phrases">
+                                Use Custom Phrases
+                            </label>
+                        </div>
+                        
+                        <div id="phrases-config" style="display: none;">
+                            <div class="form-group">
+                                <label>Passing Time Phrases (comma-separated)</label>
+                                <textarea id="phrases-passing" rows="2" placeholder="Almost there!, Quick break!"></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Lunch Phrases (comma-separated)</label>
+                                <textarea id="phrases-lunch" rows="2" placeholder="Time to eat!, Lunch break!"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button type="button" onclick="prevSection()" class="btn-secondary">Back</button>
+                        <button type="button" onclick="nextSection()" class="btn-primary">Next: Review</button>
+                    </div>
+                </div>
+
+                <!-- Section 4: Review & Submit -->
+                <div class="section" id="section-review">
+                    <div class="card">
+                        <h2>✅ Review Your Configuration</h2>
+                        <div id="config-summary"></div>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button type="button" onclick="prevSection()" class="btn-secondary">Back</button>
+                        <button type="submit" class="btn-primary btn-large">🚀 Send to Timagotchi</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Step 3: Success -->
+        <div id="step-success" class="step">
+            <div class="card success-card">
+                <div class="success-icon">✓</div>
+                <h2>Configuration Sent!</h2>
+                <p>Your Timagotchi should sync and start automatically in a few seconds.</p>
+                <p class="code-display">Code: <span id="used-code"></span></p>
+                <button onclick="location.reload()" class="btn-secondary">Configure Another Device</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Timagotchi Configuration Portal • <a href="https://github.com/broseph9972/Timagotchi" target="_blank">GitHub</a></p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
