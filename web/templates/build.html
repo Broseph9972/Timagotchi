@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Build Guide - Timagotchi</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">Timagotchi</a>
+            <div class="nav-menu">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/about" class="nav-link">About</a>
+                <a href="/build" class="nav-link active">Build Guide</a>
+                <a href="/docs" class="nav-link">Docs</a>
+                <a href="https://github.com/broseph9972/Timagotchi" target="_blank">GitHub</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-header">
+        <div class="container">
+            <h1>Build Your Own Timagotchi</h1>
+            <p>Complete step-by-step guide to building your schedule display</p>
+        </div>
+    </div>
+
+    <div class="content-section">
+        <div class="container">
+            <div class="content-card">
+                <h2>What You'll Need</h2>
+                <table class="bom-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Description</th>
+                            <th>Where to Buy</th>
+                            <th>Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Raspberry Pi Zero WH</td>
+                            <td>With pre-soldered GPIO headers</td>
+                            <td>Adafruit, PiShop, Amazon</td>
+                            <td>$10-15</td>
+                        </tr>
+                        <tr>
+                            <td>Waveshare 1.44" LCD HAT</td>
+                            <td>128x128 pixel display with joystick</td>
+                            <td>Waveshare, Amazon</td>
+                            <td>$15-20</td>
+                        </tr>
+                        <tr>
+                            <td>MicroSD Card</td>
+                            <td>8GB or larger (Class 10)</td>
+                            <td>Any electronics store</td>
+                            <td>$5-10</td>
+                        </tr>
+                        <tr>
+                            <td>Battery Bank (optional)</td>
+                            <td>Any USB power bank</td>
+                            <td>Any electronics store</td>
+                            <td>$10-20</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p><strong>Total Cost: $40-65</strong></p>
+            </div>
+
+            <div class="content-card">
+                <h2>Step 1: Hardware Assembly</h2>
+                <ol class="build-steps">
+                    <li>
+                        <h3>Install Raspberry Pi OS</h3>
+                        <p>Download Raspberry Pi Imager from <a href="https://www.raspberrypi.com/software/" target="_blank">raspberrypi.com</a></p>
+                        <p>Flash Raspberry Pi OS (32-bit) to your microSD card</p>
+                        <p>During setup, configure WiFi and enable SSH if desired</p>
+                    </li>
+                    <li>
+                        <h3>Attach the Display HAT</h3>
+                        <p>Carefully align the Waveshare LCD HAT with the GPIO pins on your Pi Zero</p>
+                        <p>Press down gently but firmly until fully seated</p>
+                        <p><strong>Note:</strong> No soldering required if you have the WH model!</p>
+                    </li>
+                    <li>
+                        <h3>Power It Up</h3>
+                        <p>Insert the microSD card into your Pi Zero</p>
+                        <p>Connect a micro USB cable to the Pi's power port</p>
+                        <p>Wait 30-60 seconds for boot</p>
+                    </li>
+                </ol>
+            </div>
+
+            <div class="content-card">
+                <h2>Step 2: Enable SPI Interface</h2>
+                <p>The display uses SPI communication. You need to enable it:</p>
+                <pre><code>sudo raspi-config</code></pre>
+                <ol class="build-steps">
+                    <li>Navigate to: <strong>Interfacing Options → SPI → Yes</strong></li>
+                    <li>Reboot when prompted</li>
+                </ol>
+            </div>
+
+            <div class="content-card">
+                <h2>Step 3: Install Timagotchi Software</h2>
+                <pre><code># Clone the repository
+git clone https://github.com/broseph9972/Timagotchi
+cd Timagotchi/Code
+
+# Run the automated installer
+chmod +x install.sh start.sh
+./install.sh
+
+# Reboot
+sudo reboot</code></pre>
+            </div>
+
+            <div class="content-card">
+                <h2>Step 4: Configure Your Schedule</h2>
+                <p>After reboot, your Timagotchi will display a 5-digit code on screen.</p>
+                <ol class="build-steps">
+                    <li>Visit <strong><a href="/">this website</a></strong> on your phone or computer</li>
+                    <li>Enter the 5-digit code shown on your Timagotchi</li>
+                    <li>Fill out the configuration form:
+                        <ul>
+                            <li>School start/end times</li>
+                            <li>Period lengths and passing time</li>
+                            <li>Canvas LMS credentials (optional)</li>
+                            <li>WiFi networks</li>
+                            <li>Theme preference</li>
+                        </ul>
+                    </li>
+                    <li>Click "Send to Timagotchi"</li>
+                    <li>Your device will sync automatically and restart</li>
+                </ol>
+            </div>
+
+            <div class="content-card">
+                <h2>Step 5: Auto-Start on Boot</h2>
+                <p>The installer sets up a systemd service for automatic startup:</p>
+                <pre><code># Check status
+sudo systemctl status schedule-display
+
+# View logs
+sudo journalctl -u schedule-display -f
+
+# Restart service
+sudo systemctl restart schedule-display</code></pre>
+            </div>
+
+            <div class="content-card">
+                <h2>Optional: Battery Power</h2>
+                <p>To make your Timagotchi portable:</p>
+                <ol class="build-steps">
+                    <li>Get any USB battery bank</li>
+                    <li>Connect to Pi Zero's power port</li>
+                    <li>A 10,000mAh battery will last 20+ hours</li>
+                </ol>
+                <p><strong>Tip:</strong> Configure time sync mode to "on_boot" so the clock stays accurate even without constant internet access.</p>
+            </div>
+
+            <div class="content-card">
+                <h2>Controls</h2>
+                <div class="controls-grid">
+                    <div class="control-item">
+                        <h4>Joystick</h4>
+                        <ul>
+                            <li><strong>Up/Down:</strong> Navigate menus</li>
+                            <li><strong>Left/Right:</strong> Switch screens, adjust settings</li>
+                            <li><strong>Center Press:</strong> Select (hard to press, use Right as alternative)</li>
+                        </ul>
+                    </div>
+                    <div class="control-item">
+                        <h4>Function Keys</h4>
+                        <ul>
+                            <li><strong>Key1:</strong> Jump to Main Page</li>
+                            <li><strong>Key2:</strong> Jump to Grades</li>
+                            <li><strong>Key3:</strong> Jump to Settings</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <h2>Troubleshooting</h2>
+                <div class="troubleshooting">
+                    <h4>Display Not Working</h4>
+                    <ul>
+                        <li>Verify SPI is enabled: <code>lsmod | grep spi</code></li>
+                        <li>Check HAT is fully seated on GPIO pins</li>
+                        <li>Re-run installer: <code>cd ~/Timagotchi/Code && ./install.sh</code></li>
+                    </ul>
+
+                    <h4>Can't Get Configuration Code</h4>
+                    <ul>
+                        <li>Check internet connection: <code>ping google.com</code></li>
+                        <li>Manually run configuration: <code>python3 configure_schedule.py</code></li>
+                        <li>Check backend URL is set correctly</li>
+                    </ul>
+
+                    <h4>Canvas Grades Not Showing</h4>
+                    <ul>
+                        <li>Verify API token is correct</li>
+                        <li>Check Canvas URL format: <code>https://school.instructure.com</code></li>
+                        <li>Ensure token has proper permissions in Canvas settings</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <h2>Next Steps</h2>
+                <ul class="feature-list">
+                    <li>Explore the secret menu (Konami code: ↑↑↓↓←→←→ on Developer screen)</li>
+                    <li>Try different themes in Settings</li>
+                    <li>Customize phrases in <code>Phrases.json</code></li>
+                    <li>Create a custom script using <code>custom_script_example.py</code></li>
+                    <li>Share your build in the GitHub Discussions!</li>
+                </ul>
+            </div>
+
+            <div class="content-card">
+                <h2>Need Help?</h2>
+                <div class="button-group">
+                    <a href="/docs" class="btn-primary">Read Full Documentation</a>
+                    <a href="https://github.com/broseph9972/Timagotchi/issues" target="_blank" class="btn-secondary">Get Support</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>Timagotchi</h4>
+                    <p>Open source Raspberry Pi schedule display system</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Links</h4>
+                    <a href="/about">About</a>
+                    <a href="/build">Build Guide</a>
+                    <a href="/docs">Documentation</a>
+                    <a href="https://github.com/broseph9972/Timagotchi" target="_blank">GitHub</a>
+                </div>
+                <div class="footer-section">
+                    <h4>Resources</h4>
+                    <a href="https://github.com/broseph9972/Timagotchi/issues" target="_blank">Report an Issue</a>
+                    <a href="https://github.com/broseph9972/Timagotchi/discussions" target="_blank">Discussions</a>
+                    <a href="https://github.com/broseph9972/Timagotchi/releases" target="_blank">Releases</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Timagotchi Project • <a href="https://github.com/broseph9972/Timagotchi/blob/main/LICENSE" target="_blank">License</a></p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

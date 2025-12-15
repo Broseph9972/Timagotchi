@@ -10,7 +10,7 @@ import os
 from datetime import datetime
 
 # Backend API URL - change this to your deployed URL
-API_BASE_URL = os.environ.get('TIMAGOTCHI_API_URL', 'https://timagotchi-config.herokuapp.com')
+API_BASE_URL = os.environ.get('TIMAGOTCHI_API_URL', 'https://timagotchi.onrender.com')
 
 class ConfigPortal:
     def __init__(self, display, input_handler):

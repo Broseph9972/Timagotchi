@@ -37,8 +37,33 @@ def cleanup_expired_codes():
 
 @app.route('/')
 def index():
-    """Serve the configuration web interface"""
+    """Serve the main landing page"""
     return render_template('index.html')
+
+@app.route('/about')
+def about():
+    """About the Timagotchi project"""
+    return render_template('about.html')
+
+@app.route('/build')
+def build_guide():
+    """How to build your own Timagotchi"""
+    return render_template('build.html')
+
+@app.route('/docs')
+def documentation():
+    """Documentation and API reference"""
+    return render_template('docs.html')
+
+@app.route('/config/<code>')
+def config_page(code):
+    """Configuration interface for a specific pairing code"""
+    # Validate code exists
+    cleanup_expired_codes()
+    if code not in pairing_codes:
+        return render_template('error.html', message="Invalid or expired code"), 404
+    
+    return render_template('config.html', code=code)
 
 @app.route('/api/generate-code', methods=['POST'])
 def generate_pairing_code():

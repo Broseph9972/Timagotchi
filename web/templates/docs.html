@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation - Timagotchi</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">Timagotchi</a>
+            <div class="nav-menu">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/about" class="nav-link">About</a>
+                <a href="/build" class="nav-link">Build Guide</a>
+                <a href="/docs" class="nav-link active">Docs</a>
+                <a href="https://github.com/broseph9972/Timagotchi" target="_blank">GitHub</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-header">
+        <div class="container">
+            <h1>Documentation</h1>
+            <p>Complete API reference and technical documentation</p>
+        </div>
+    </div>
+
+    <div class="content-section">
+        <div class="container">
+            <div class="content-card">
+                <h2>API Endpoints</h2>
+                <p>The Timagotchi Configuration Portal provides the following REST API endpoints:</p>
+            </div>
+
+            <div class="api-endpoint">
+                <div class="endpoint-header">
+                    <span class="method post">POST</span>
+                    <code>/api/generate-code</code>
+                </div>
+                <p>Generate a new 5-digit pairing code for device configuration.</p>
+                <h4>Response:</h4>
+                <pre><code>{
+  "code": "12345",
+  "expires_in": 3600
+}</code></pre>
+            </div>
+
+            <div class="api-endpoint">
+                <div class="endpoint-header">
+                    <span class="method get">GET</span>
+                    <code>/api/validate-code/&lt;code&gt;</code>
+                </div>
+                <p>Check if a pairing code is valid and available.</p>
+                <h4>Response:</h4>
+                <pre><code>{
+  "valid": true,
+  "time_remaining": 3240
+}</code></pre>
+            </div>
+
+            <div class="api-endpoint">
+                <div class="endpoint-header">
+                    <span class="method post">POST</span>
+                    <code>/api/config/&lt;code&gt;</code>
+                </div>
+                <p>Submit configuration data for a specific pairing code.</p>
+                <h4>Request Body:</h4>
+                <pre><code>{
+  "schedule": {
+    "school_start": "09:05",
+    "school_end": "15:55",
+    "num_periods": 6,
+    "period_length": 51,
+    "passing_time": 4
+  },
+  "system": {
+    "timezone": "America/New_York",
+    "wifi_networks": [["SSID", "password"]]
+  },
+  "canvas": {
+    "enabled": true,
+    "base_url": "https://school.instructure.com",
+    "api_token": "token"
+  },
+  "customization": {
+    "theme": "dark"
+  }
+}</code></pre>
+            </div>
+
+            <div class="api-endpoint">
+                <div class="endpoint-header">
+                    <span class="method get">GET</span>
+                    <code>/api/config/&lt;code&gt;</code>
+                </div>
+                <p>Pi polls this endpoint to retrieve configuration when ready.</p>
+                <h4>Responses:</h4>
+                <ul>
+                    <li><code>202 Accepted</code> - Configuration pending (not submitted yet)</li>
+                    <li><code>200 OK</code> - Configuration ready (returns config files)</li>
+                    <li><code>404 Not Found</code> - Invalid or expired code</li>
+                </ul>
+            </div>
+
+            <div class="api-endpoint">
+                <div class="endpoint-header">
+                    <span class="method get">GET</span>
+                    <code>/health</code>
+                </div>
+                <p>Health check endpoint for monitoring deployment status.</p>
+                <h4>Response:</h4>
+                <pre><code>{
+  "status": "healthy",
+  "active_codes": 3,
+  "timestamp": "2025-12-15T10:30:00"
+}</code></pre>
+            </div>
+
+            <div class="content-card">
+                <h2>Configuration Schema</h2>
+                <p>Complete reference for the configuration JSON structure:</p>
+                
+                <h3>Schedule Configuration</h3>
+                <table class="params-table">
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td><code>school_start</code></td>
+                        <td>string</td>
+                        <td>School start time (HH:MM format)</td>
+                    </tr>
+                    <tr>
+                        <td><code>school_end</code></td>
+                        <td>string</td>
+                        <td>School end time (HH:MM format)</td>
+                    </tr>
+                    <tr>
+                        <td><code>num_periods</code></td>
+                        <td>integer</td>
+                        <td>Number of class periods (4-8)</td>
+                    </tr>
+                    <tr>
+                        <td><code>period_length</code></td>
+                        <td>integer</td>
+                        <td>Length of each period in minutes</td>
+                    </tr>
+                    <tr>
+                        <td><code>passing_time</code></td>
+                        <td>integer</td>
+                        <td>Time between periods in minutes</td>
+                    </tr>
+                    <tr>
+                        <td><code>has_advisory</code></td>
+                        <td>boolean</td>
+                        <td>Whether school has advisory period</td>
+                    </tr>
+                    <tr>
+                        <td><code>has_lunch</code></td>
+                        <td>boolean</td>
+                        <td>Whether school has separate lunch period</td>
+                    </tr>
+                    <tr>
+                        <td><code>use_ab_day</code></td>
+                        <td>boolean</td>
+                        <td>Whether school uses A/B day scheduling</td>
+                    </tr>
+                </table>
+                
+                <h3>System Configuration</h3>
+                <table class="params-table">
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td><code>timezone</code></td>
+                        <td>string</td>
+                        <td>IANA timezone (e.g., "America/New_York")</td>
+                    </tr>
+                    <tr>
+                        <td><code>time_sync_mode</code></td>
+                        <td>string</td>
+                        <td>"disabled", "on_boot", or "periodic"</td>
+                    </tr>
+                    <tr>
+                        <td><code>use_24_hour</code></td>
+                        <td>boolean</td>
+                        <td>Use 24-hour time format</td>
+                    </tr>
+                    <tr>
+                        <td><code>wifi_networks</code></td>
+                        <td>array</td>
+                        <td>Array of [SSID, password] tuples</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="content-card">
+                <h2>Security</h2>
+                <p>The configuration portal uses a simple security model suitable for home/school use:</p>
+                <ul class="feature-list">
+                    <li><strong>5-digit numeric codes:</strong> 100,000 possible combinations</li>
+                    <li><strong>1-hour expiration:</strong> Codes automatically expire after 60 minutes</li>
+                    <li><strong>One-time use:</strong> Codes are deleted after successful retrieval</li>
+                    <li><strong>In-memory storage:</strong> No persistent database; cleared on restart</li>
+                    <li><strong>HTTPS required:</strong> Always deploy with SSL/TLS enabled</li>
+                </ul>
+            </div>
+
+            <div class="content-card">
+                <h2>Deployment</h2>
+                <p>The backend can be deployed to any cloud platform that supports Python/Flask:</p>
+                <ul class="feature-list">
+                    <li><strong>Render:</strong> Free tier available, automatic SSL</li>
+                    <li><strong>Railway:</strong> Simple deployment, built-in SSL</li>
+                    <li><strong>Heroku:</strong> Classic PaaS, requires paid dyno for 24/7</li>
+                    <li><strong>Self-hosted:</strong> Any VPS with Python 3.9+</li>
+                </ul>
+                <p>See the <a href="/build">Build Guide</a> for detailed deployment instructions.</p>
+            </div>
+
+            <div class="content-card">
+                <h2>Environment Variables</h2>
+                <table class="params-table">
+                    <tr>
+                        <th>Variable</th>
+                        <th>Description</th>
+                        <th>Default</th>
+                    </tr>
+                    <tr>
+                        <td><code>PORT</code></td>
+                        <td>Port for Flask application</td>
+                        <td>5000</td>
+                    </tr>
+                    <tr>
+                        <td><code>TIMAGOTCHI_API_URL</code></td>
+                        <td>Backend URL (Pi side only)</td>
+                        <td>-</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="content-card">
+                <h2>Additional Resources</h2>
+                <div class="button-group">
+                    <a href="https://github.com/broseph9972/Timagotchi" target="_blank" class="btn-primary">GitHub Repository</a>
+                    <a href="https://github.com/broseph9972/Timagotchi/blob/main/README.md" target="_blank" class="btn-secondary">Full README</a>
+                    <a href="https://github.com/broseph9972/Timagotchi/issues" target="_blank" class="btn-secondary">Report Issue</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>Timagotchi</h4>
+                    <p>Open source Raspberry Pi schedule display system</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Links</h4>
+                    <a href="/about">About</a>
+                    <a href="/build">Build Guide</a>
+                    <a href="/docs">Documentation</a>
+                    <a href="https://github.com/broseph9972/Timagotchi" target="_blank">GitHub</a>
+                </div>
+                <div class="footer-section">
+                    <h4>Resources</h4>
+                    <a href="https://github.com/broseph9972/Timagotchi/issues" target="_blank">Report an Issue</a>
+                    <a href="https://github.com/broseph9972/Timagotchi/discussions" target="_blank">Discussions</a>
+                    <a href="https://github.com/broseph9972/Timagotchi/releases" target="_blank">Releases</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Timagotchi Project • <a href="https://github.com/broseph9972/Timagotchi/blob/main/LICENSE" target="_blank">License</a></p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

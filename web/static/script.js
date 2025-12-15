@@ -1,32 +1,13 @@
-let currentCode = '';
+// currentCode is set by inline script in config.html
 let currentSection = 0;
 const sections = ['schedule', 'canvas', 'custom', 'review'];
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
-    
-    // Auto-focus on code input
-    document.getElementById('pairing-code').focus();
 });
 
 function setupEventListeners() {
-    // Code input - only allow numbers
-    const codeInput = document.getElementById('pairing-code');
-    codeInput.addEventListener('input', (e) => {
-        e.target.value = e.target.value.replace(/[^0-9]/g, '');
-        if (e.target.value.length === 5) {
-            validateCode();
-        }
-    });
-    
-    // Enter key on code input
-    codeInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && e.target.value.length === 5) {
-            validateCode();
-        }
-    });
-    
     // Toggle advisory config
     document.getElementById('has-advisory').addEventListener('change', (e) => {
         document.getElementById('advisory-config').style.display = e.target.checked ? 'block' : 'none';
@@ -59,34 +40,8 @@ function setupEventListeners() {
     });
 }
 
-async function validateCode() {
-    const code = document.getElementById('pairing-code').value;
-    const errorDiv = document.getElementById('code-error');
-    
-    if (code.length !== 5) {
-        showError(errorDiv, 'Please enter a 5-digit code');
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/api/validate-code/${code}`);
-        const data = await response.json();
-        
-        if (data.valid) {
-            currentCode = code;
-            hideError(errorDiv);
-            showStep('step-config');
-        } else {
-            showError(errorDiv, data.error || 'Invalid code');
-        }
-    } catch (error) {
-        showError(errorDiv, 'Connection error. Please try again.');
-    }
-}
-
 function showStep(stepId) {
-    document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
-    document.getElementById(stepId).classList.add('active');
+    // No-op now since we removed step transitions
 }
 
 function nextSection() {
@@ -298,8 +253,9 @@ async function submitConfiguration() {
         const data = await response.json();
         
         if (response.ok) {
-            document.getElementById('used-code').textContent = currentCode;
-            showStep('step-success');
+            // Show success screen
+            document.getElementById('step-config').classList.remove('active');
+            document.getElementById('step-success').classList.add('active');
         } else {
             alert('Error: ' + (data.error || 'Failed to save configuration'));
         }
