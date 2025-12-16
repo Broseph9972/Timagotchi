@@ -2,12 +2,126 @@
 let currentSection = 0;
 const sections = ['schedule', 'canvas', 'custom', 'review'];
 
+// Common schedule templates to quickly pre-fill fields
+const scheduleTemplates = {
+    traditional_7: {
+        time_format: '12',
+        daily_pattern: 'same',
+        school_start: '08:00',
+        school_end: '15:00',
+        num_periods: 7,
+        period_length: 50,
+        passing_time: 5,
+        has_advisory: true,
+        advisory_start: '08:00',
+        advisory_length: 10,
+        advisory_days: ['m'],
+        has_lunch: true,
+        lunch_start: '11:30',
+        lunch_end: '12:00',
+        use_ab_day: false,
+        ab_day_mode: 'auto'
+    },
+    block_ab_4: {
+        time_format: '12',
+        daily_pattern: 'alternate',
+        school_start: '08:00',
+        school_end: '15:00',
+        num_periods: 4,
+        period_length: 90,
+        passing_time: 7,
+        has_advisory: false,
+        has_lunch: true,
+        lunch_start: '11:30',
+        lunch_end: '12:15',
+        use_ab_day: true,
+        ab_day_mode: 'auto'
+    },
+    block_4x4: {
+        time_format: '12',
+        daily_pattern: 'same',
+        school_start: '08:00',
+        school_end: '15:00',
+        num_periods: 4,
+        period_length: 90,
+        passing_time: 7,
+        has_advisory: false,
+        has_lunch: true,
+        lunch_start: '11:30',
+        lunch_end: '12:15',
+        use_ab_day: false,
+        ab_day_mode: 'auto'
+    },
+    rotating_drop: {
+        time_format: '12',
+        daily_pattern: 'alternate',
+        school_start: '08:00',
+        school_end: '15:00',
+        num_periods: 7,
+        period_length: 50,
+        passing_time: 5,
+        has_advisory: true,
+        advisory_start: '09:00',
+        advisory_length: 15,
+        advisory_days: ['w'],
+        has_lunch: true,
+        lunch_start: '11:40',
+        lunch_end: '12:20',
+        use_ab_day: true,
+        ab_day_mode: 'manual'
+    },
+    elementary_specials: {
+        time_format: '12',
+        daily_pattern: 'same',
+        school_start: '08:30',
+        school_end: '15:00',
+        num_periods: 6,
+        period_length: 45,
+        passing_time: 3,
+        has_advisory: false,
+        has_lunch: true,
+        lunch_start: '11:45',
+        lunch_end: '12:30',
+        use_ab_day: false,
+        ab_day_mode: 'auto'
+    },
+    college_mwf_tr: {
+        time_format: '12',
+        daily_pattern: 'alternate',
+        school_start: '08:00',
+        school_end: '17:00',
+        num_periods: 5,
+        period_length: 60,
+        passing_time: 10,
+        has_advisory: false,
+        has_lunch: false,
+        use_ab_day: false,
+        ab_day_mode: 'auto'
+    }
+};
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
 });
 
 function setupEventListeners() {
+    // Schedule template selection
+    document.querySelectorAll('input[name="schedule-template"]').forEach(r => {
+        r.addEventListener('change', (e) => {
+            applyTemplate(e.target.value);
+        });
+    });
+
+    // Daily pattern toggle (same vs alternate)
+    document.querySelectorAll('input[name="daily-pattern"]').forEach(r => {
+        r.addEventListener('change', (e) => {
+            const isAlternate = e.target.value === 'alternate';
+            document.getElementById('use-ab-day').checked = isAlternate;
+            document.getElementById('ab-day-config').style.display = isAlternate ? 'block' : 'none';
+        });
+    });
+
     // Toggle advisory config
     document.getElementById('has-advisory').addEventListener('change', (e) => {
         document.getElementById('advisory-config').style.display = e.target.checked ? 'block' : 'none';
@@ -113,11 +227,70 @@ function addWifiNetwork() {
     container.appendChild(networkDiv);
 }
 
+function applyTemplate(templateKey) {
+    if (templateKey === 'not_sure') {
+        return;
+    }
+    const t = scheduleTemplates[templateKey];
+    if (!t) return;
+
+    // Time format
+    document.getElementById('time-format').value = t.time_format;
+
+    // Daily pattern
+    const daily = document.querySelector(`input[name="daily-pattern"][value="${t.daily_pattern}"]`);
+    if (daily) daily.checked = true;
+    const isAlternate = t.daily_pattern === 'alternate';
+    document.getElementById('use-ab-day').checked = isAlternate || t.use_ab_day;
+    document.getElementById('ab-day-config').style.display = (isAlternate || t.use_ab_day) ? 'block' : 'none';
+    document.getElementById('ab-day-mode').value = t.ab_day_mode || 'auto';
+
+    // Core times
+    document.getElementById('school-start').value = t.school_start;
+    document.getElementById('school-end').value = t.school_end;
+    document.getElementById('num-periods').value = t.num_periods;
+    document.getElementById('period-length').value = t.period_length;
+    document.getElementById('passing-time').value = t.passing_time;
+
+    // Advisory
+    const advisory = !!t.has_advisory;
+    document.getElementById('has-advisory').checked = advisory;
+    document.getElementById('advisory-config').style.display = advisory ? 'block' : 'none';
+    if (advisory) {
+        document.getElementById('advisory-start').value = t.advisory_start || '';
+        document.getElementById('advisory-length').value = t.advisory_length || '';
+        // Clear and set advisory days
+        document.querySelectorAll('.advisory-day').forEach(cb => {
+            cb.checked = t.advisory_days ? t.advisory_days.includes(cb.value) : false;
+        });
+    } else {
+        document.querySelectorAll('.advisory-day').forEach(cb => cb.checked = false);
+        document.getElementById('advisory-start').value = '';
+        document.getElementById('advisory-length').value = '';
+    }
+
+    // Lunch
+    const lunch = !!t.has_lunch;
+    document.getElementById('has-lunch').checked = lunch;
+    document.getElementById('lunch-config').style.display = lunch ? 'block' : 'none';
+    if (lunch) {
+        document.getElementById('lunch-start').value = t.lunch_start || '';
+        document.getElementById('lunch-end').value = t.lunch_end || '';
+    } else {
+        document.getElementById('lunch-start').value = '';
+        document.getElementById('lunch-end').value = '';
+    }
+}
+
 function generateSummary() {
     const summary = document.getElementById('config-summary');
     const config = collectFormData();
     
     let html = '<h3>Schedule</h3>';
+    if (config.schedule.schedule_template) {
+        html += `<p><strong>Template:</strong> ${config.schedule.schedule_template}</p>`;
+    }
+    html += `<p><strong>Pattern:</strong> ${config.schedule.daily_pattern === 'alternate' ? 'Alternates (A/B or rotating)' : 'Same every day'}</p>`;
     html += `<p><strong>School Hours:</strong> ${config.schedule.school_start} - ${config.schedule.school_end}</p>`;
     html += `<p><strong>Periods:</strong> ${config.schedule.num_periods} periods of ${config.schedule.period_length} minutes</p>`;
     html += `<p><strong>Time Format:</strong> ${config.system.use_24_hour ? '24-Hour' : '12-Hour'}</p>`;
@@ -161,6 +334,8 @@ function generateSummary() {
 function collectFormData() {
     // Schedule data
     const schedule = {
+        schedule_template: document.querySelector('input[name="schedule-template"]:checked')?.value || 'not_sure',
+        daily_pattern: document.querySelector('input[name="daily-pattern"]:checked')?.value || 'same',
         school_start: document.getElementById('school-start').value,
         school_end: document.getElementById('school-end').value,
         num_periods: parseInt(document.getElementById('num-periods').value),

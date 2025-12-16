@@ -38,8 +38,63 @@
                 <!-- Section 1: Schedule Configuration -->
                 <div class="section active" id="section-schedule">
                     <div class="card">
-                        <h2>📅 Schedule Configuration</h2>
-                        
+                        <h2>Schedule Templates</h2>
+                        <div class="template-grid" id="schedule-template-grid">
+                            <label class="template-option">
+                                <input type="radio" name="schedule-template" value="not_sure" checked>
+                                <div class="template-body">
+                                    <h3>Not Sure</h3>
+                                    <p>Answer a few questions and we'll shape it for you.</p>
+                                </div>
+                            </label>
+                            <label class="template-option">
+                                <input type="radio" name="schedule-template" value="traditional_7">
+                                <div class="template-body">
+                                    <h3>Traditional 7-Period</h3>
+                                    <p>Same 6-8 periods daily, ~50 min, passing ~5 min.</p>
+                                </div>
+                            </label>
+                            <label class="template-option">
+                                <input type="radio" name="schedule-template" value="block_ab_4">
+                                <div class="template-body">
+                                    <h3>A/B Block (4x90)</h3>
+                                    <p>4 long blocks, alternating A/B days.</p>
+                                </div>
+                            </label>
+                            <label class="template-option">
+                                <input type="radio" name="schedule-template" value="block_4x4">
+                                <div class="template-body">
+                                    <h3>4x4 Semester</h3>
+                                    <p>Four 90-min classes per semester.</p>
+                                </div>
+                            </label>
+                            <label class="template-option">
+                                <input type="radio" name="schedule-template" value="rotating_drop">
+                                <div class="template-body">
+                                    <h3>Rotating/Drop</h3>
+                                    <p>Order rotates; one period may drop daily.</p>
+                                </div>
+                            </label>
+                            <label class="template-option">
+                                <input type="radio" name="schedule-template" value="elementary_specials">
+                                <div class="template-body">
+                                    <h3>Elementary w/ Specials</h3>
+                                    <p>Core blocks with specials rotation.</p>
+                                </div>
+                            </label>
+                            <label class="template-option">
+                                <input type="radio" name="schedule-template" value="college_mwf_tr">
+                                <div class="template-body">
+                                    <h3>College MWF/TR</h3>
+                                    <p>MWF 50 min, TR 75 min patterns.</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2>Schedule Configuration</h2>
+
                         <div class="form-group">
                             <label>Time Display Format</label>
                             <select id="time-format" required>
@@ -48,54 +103,62 @@
                                 <option value="24">24-Hour</option>
                             </select>
                         </div>
-                        
+
+                        <div class="form-group">
+                            <label>Daily Pattern</label>
+                            <div class="radio-row" id="daily-pattern">
+                                <label><input type="radio" name="daily-pattern" value="same" checked> Same every day</label>
+                                <label><input type="radio" name="daily-pattern" value="alternate"> Alternates (A/B or rotating)</label>
+                            </div>
+                        </div>
+
                         <div class="form-group">
                             <label>School Start Time</label>
                             <input type="time" id="school-start" required>
                         </div>
-                        
+
                         <div class="form-group">
                             <label>School End Time</label>
                             <input type="time" id="school-end" required>
                         </div>
-                        
+
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Number of Periods</label>
-                                <input type="number" id="num-periods" min="4" max="8" required>
+                                <input type="number" id="num-periods" min="4" max="10" required>
                             </div>
-                            
+
                             <div class="form-group">
                                 <label>Period Length (minutes)</label>
-                                <input type="number" id="period-length" min="30" max="90" required>
+                                <input type="number" id="period-length" min="30" max="120" required>
                             </div>
-                            
+
                             <div class="form-group">
                                 <label>Passing Time (minutes)</label>
-                                <input type="number" id="passing-time" min="2" max="10" required>
+                                <input type="number" id="passing-time" min="0" max="15" required>
                             </div>
                         </div>
-                        
+
                         <div class="form-group">
                             <label>
                                 <input type="checkbox" id="has-advisory">
                                 School has Advisory Period
                             </label>
                         </div>
-                        
+
                         <div id="advisory-config" style="display: none;">
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Advisory Start Time</label>
                                     <input type="time" id="advisory-start">
                                 </div>
-                                
+
                                 <div class="form-group">
                                     <label>Advisory Length (minutes)</label>
                                     <input type="number" id="advisory-length" min="10" max="60">
                                 </div>
                             </div>
-                            
+
                             <div class="form-group">
                                 <label>Advisory Days (select all that apply)</label>
                                 <div class="checkbox-group">
@@ -107,35 +170,35 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="form-group">
                             <label>
                                 <input type="checkbox" id="has-lunch">
                                 School has separate Lunch Period
                             </label>
                         </div>
-                        
+
                         <div id="lunch-config" style="display: none;">
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Lunch Start Time</label>
                                     <input type="time" id="lunch-start">
                                 </div>
-                                
+
                                 <div class="form-group">
                                     <label>Lunch End Time</label>
                                     <input type="time" id="lunch-end">
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="form-group">
                             <label>
                                 <input type="checkbox" id="use-ab-day">
                                 School uses A/B Day Scheduling
                             </label>
                         </div>
-                        
+
                         <div id="ab-day-config" style="display: none;">
                             <div class="form-group">
                                 <label>A/B Day Mode</label>
@@ -146,7 +209,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <button type="button" onclick="nextSection()" class="btn-primary">Next: Canvas & WiFi</button>
                 </div>
 

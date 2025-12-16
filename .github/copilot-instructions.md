@@ -1,7 +1,7 @@
 # Copilot Instructions for Timagotchi
 
 ## Project Overview
-Timagotchi is a Raspberry Pi Zero WH school schedule display system using a Waveshare 1.44" LCD HAT. It displays the current school period, progress bars, grades from Canvas LMS, and includes embedded games (Tetris, Doom raycaster). The display is 128x128 pixels with GPIO button controls.
+Timagotchi is a Raspberry Pi Zero WH school schedule display system using a Waveshare 1.44" LCD HAT. It displays the current school period, progress bars, grades from Canvas LMS, and includes embedded games (Tetris, Doom raycaster). The display is 128x128 pixels with GPIO button controls. DO NOT USE ANY FUCKING EMOJIS
 
 ## Architecture & Data Flow
 
@@ -48,12 +48,6 @@ Timagotchi is a Raspberry Pi Zero WH school schedule display system using a Wave
 - **Setup**: Creates `canvas_config.json` on first use (base URL + API token)
 - **Caching**: `canvas_cache.json` persists course/grade data; cleared on every boot
 - **Usage**: Fetch courses → select course → view assignments by grade/date
-
-### Games Integration
-- **Tetris**: `tetris_waveshare.py` (128x128 version) and legacy `tetris.py` (Pygame)
-- **Doom**: Built-in raycaster in `doom_raycaster.py` + fallback launcher `doom_wrapper.py`
-- **Launcher**: `games_config.py` defines game commands; `Menu.launch_game()` spawns subprocess
-- **Control**: Games receive GPIO input directly or via stdin based on launcher config
 
 ### Configuration & Persistence
 - **config.py**: All hardcoded; edited manually or via `configure_schedule.py` CLI tool
