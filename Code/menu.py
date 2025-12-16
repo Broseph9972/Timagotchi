@@ -33,6 +33,9 @@ class Menu:
         # Right-nav items as per sketch
         self.nav_items = ["Main Page", "Grades", "Settings"]
         self.nav_selected_index = 0
+        # Cache wifi checks to avoid blocking nmcli on input loop
+        self._wifi_state = False
+        self._wifi_checked_at = 0.0
         # Build settings menu items based on config
         self.settings_menu_items = []
         if abday.lower() == "true":
@@ -282,15 +285,30 @@ class Menu:
         self.display.show_clock(time_str, date_str, self.nav_items, self.nav_selected_index, wifi_connected)
     
     def _get_wifi_connected(self):
-        """Best-effort check for WiFi connectivity (nmcli); fallback to False."""
+        """Cached WiFi check. Avoid blocking the input loop with slow nmcli calls."""
+        now = time.time()
+        # Return cached value if checked within last 30s
+        if now - self._wifi_checked_at < 30:
+            return self._wifi_state
+
         try:
-            result = subprocess.run(['nmcli', '-t', '-f', 'STATE', 'g'], capture_output=True, text=True, timeout=2)
+            # Keep timeout short; nmcli can block on Pi Zero
+            result = subprocess.run(
+                ['nmcli', '-t', '-f', 'STATE', 'g'],
+                capture_output=True,
+                text=True,
+                timeout=0.5
+            )
             state = result.stdout.strip().lower()
-            if 'connected' in state:
-                return True
-        except Exception:
+            self._wifi_state = 'connected' in state
+        except subprocess.TimeoutExpired:
+            # If nmcli hangs, keep last known state
             pass
-        return False
+        except Exception:
+            self._wifi_state = False
+
+        self._wifi_checked_at = now
+        return self._wifi_state
 
     def _get_schedule_summary(self):
         now = datetime.datetime.now()
