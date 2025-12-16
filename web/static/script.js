@@ -103,6 +103,7 @@ const scheduleTemplates = {
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
+    rebuildPeriodFields();
 });
 
 function setupEventListeners() {
@@ -121,6 +122,9 @@ function setupEventListeners() {
             document.getElementById('ab-day-config').style.display = isAlternate ? 'block' : 'none';
         });
     });
+
+    // Rebuild period fields when count changes
+    document.getElementById('num-periods').addEventListener('input', rebuildPeriodFields);
 
     // Toggle advisory config
     document.getElementById('has-advisory').addEventListener('change', (e) => {
@@ -227,6 +231,34 @@ function addWifiNetwork() {
     container.appendChild(networkDiv);
 }
 
+function rebuildPeriodFields() {
+    const num = parseInt(document.getElementById('num-periods').value) || 0;
+    const namesContainer = document.getElementById('period-names-container');
+    const phrasesContainer = document.getElementById('phrases-periods-container');
+    if (!namesContainer || !phrasesContainer) return;
+
+    namesContainer.innerHTML = '';
+    phrasesContainer.innerHTML = '';
+
+    for (let i = 1; i <= num; i++) {
+        const nameWrapper = document.createElement('div');
+        nameWrapper.className = 'stacked-input-row';
+        nameWrapper.innerHTML = `
+            <label>Period ${i} Name</label>
+            <input type="text" class="period-name-input" data-period="${i}" placeholder="Period ${i}">
+        `;
+        namesContainer.appendChild(nameWrapper);
+
+        const phraseWrapper = document.createElement('div');
+        phraseWrapper.className = 'stacked-input-row';
+        phraseWrapper.innerHTML = `
+            <label>Period ${i} Phrases</label>
+            <textarea class="phrase-period-input" data-period="${i}" rows="2" placeholder="e.g., Keep going!, Nice work!"></textarea>
+        `;
+        phrasesContainer.appendChild(phraseWrapper);
+    }
+}
+
 function applyTemplate(templateKey) {
     if (templateKey === 'not_sure') {
         return;
@@ -251,6 +283,8 @@ function applyTemplate(templateKey) {
     document.getElementById('num-periods').value = t.num_periods;
     document.getElementById('period-length').value = t.period_length;
     document.getElementById('passing-time').value = t.passing_time;
+
+    rebuildPeriodFields();
 
     // Advisory
     const advisory = !!t.has_advisory;
@@ -294,6 +328,11 @@ function generateSummary() {
     html += `<p><strong>School Hours:</strong> ${config.schedule.school_start} - ${config.schedule.school_end}</p>`;
     html += `<p><strong>Periods:</strong> ${config.schedule.num_periods} periods of ${config.schedule.period_length} minutes</p>`;
     html += `<p><strong>Time Format:</strong> ${config.system.use_24_hour ? '24-Hour' : '12-Hour'}</p>`;
+
+    if (config.schedule.period_names && config.schedule.period_names.length) {
+        const names = config.schedule.period_names.map((n, idx) => n || `Period ${idx + 1}`);
+        html += `<p><strong>Period Names:</strong> ${names.join(', ')}</p>`;
+    }
     
     if (config.schedule.has_advisory) {
         html += `<p><strong>Advisory:</strong> ${config.schedule.advisory_start} (${config.schedule.advisory_length} min)</p>`;
@@ -345,6 +384,8 @@ function collectFormData() {
         has_lunch: document.getElementById('has-lunch').checked,
         use_ab_day: document.getElementById('use-ab-day').checked
     };
+
+    schedule.period_names = Array.from(document.querySelectorAll('.period-name-input')).map(inp => inp.value.trim());
     
     if (schedule.has_advisory) {
         schedule.advisory_start = document.getElementById('advisory-start').value;
@@ -401,8 +442,17 @@ function collectFormData() {
     if (document.getElementById('enable-custom-phrases').checked) {
         customization.phrases = {
             passing: document.getElementById('phrases-passing').value.split(',').map(s => s.trim()).filter(s => s),
-            lunch: document.getElementById('phrases-lunch').value.split(',').map(s => s.trim()).filter(s => s)
+            lunch: document.getElementById('phrases-lunch').value.split(',').map(s => s.trim()).filter(s => s),
+            periods: {}
         };
+        const perPeriod = document.querySelectorAll('.phrase-period-input');
+        perPeriod.forEach(textarea => {
+            const periodNum = textarea.getAttribute('data-period');
+            const phrases = textarea.value.split(',').map(s => s.trim()).filter(s => s);
+            if (periodNum && phrases.length) {
+                customization.phrases.periods[periodNum] = phrases;
+            }
+        });
     }
     
     return {

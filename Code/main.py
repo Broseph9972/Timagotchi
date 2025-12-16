@@ -34,7 +34,8 @@ try:
         # Configuration successful - restart to load new config
         print("Configuration complete. Restarting...")
         display.clear()
-        os.execv(sys.executable, ['python3'] + sys.argv)
+        # Replace current process with the same Python executable and args
+        os.execv(sys.executable, [sys.executable] + sys.argv)
     
     # Initialize theme manager first
     theme_manager = ThemeManager()
