@@ -109,20 +109,6 @@ echo "To stop: sudo systemctl stop timagotchi"
 echo "To view logs: sudo journalctl -u timagotchi -f"
 
 echo ""
-echo "Setting up optional Canvas config (press Enter to skip)"
-read -p "Canvas base URL (e.g., https://aacps.instructure.com): " CANVAS_URL
-read -p "Canvas API token (e.g., 27449~xxxxx): " CANVAS_TOKEN
-
-if [ -n "$CANVAS_URL" ] && [ -n "$CANVAS_TOKEN" ]; then
-    CFG_PATH="$SCRIPT_DIR/canvas_config.json"
-    echo "{\"base_url\":\"$CANVAS_URL\",\"api_token\":\"$CANVAS_TOKEN\"}" > "$CFG_PATH"
-    chmod 600 "$CFG_PATH"
-    chown $USER:$USER "$CFG_PATH" 2>/dev/null || true
-    echo "✓ Canvas config saved to $CFG_PATH (permissions 600)"
-else
-    echo "Skipping Canvas config creation. You can add Code/canvas_config.json later."
-fi
-
 echo "Installation complete!"
 echo "Reboot required for GPIO permissions and autostart."
 echo ""
