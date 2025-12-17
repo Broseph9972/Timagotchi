@@ -50,9 +50,7 @@ if [ -d "$PYDOOM_DIR" ]; then
 else
     GIT_TERMINAL_PROMPT=0 git clone --depth 1 https://github.com/Pink-Silver/PyDoom.git "$PYDOOM_DIR" || echo "Warning: PyDoom clone failed (optional)"
     if [ -d "$PYDOOM_DIR" ]; then
-        cd "$PYDOOM_DIR"
-        pip3 install --break-system-packages -e . || echo "Warning: PyDoom install failed (optional)"
-        cd -
+        echo "PyDoom cloned successfully. Place doom1.wad in Code/pydoom/ to use."
     fi
 fi
 

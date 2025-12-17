@@ -33,67 +33,74 @@ class ConfigPortal:
     
     def display_pairing_screen(self):
         """Display the pairing code on screen"""
-        if not self.code:
-            self.code = self.request_pairing_code()
+        try:
+            if not self.code:
+                self.code = self.request_pairing_code()
+                
+            if not self.code:
+                # Failed to get code - show error
+                self.display.clear((0, 0, 0))
+                self.display.draw.text((10, 40), "Connection Error", 
+                                     font=self.display.font_medium, 
+                                     fill=(255, 100, 100))
+                self.display.draw.text((10, 60), "Check internet", 
+                                     font=self.display.font_small, 
+                                     fill=(200, 200, 200))
+                self.display.draw.text((10, 80), "Run configure_", 
+                                     font=self.display.font_small, 
+                                     fill=(200, 200, 200))
+                self.display.draw.text((10, 95), "schedule.py", 
+                                     font=self.display.font_small, 
+                                     fill=(200, 200, 200))
+                self.display._render()
+                return False
             
-        if not self.code:
-            # Failed to get code - show error
+            # Display code
             self.display.clear((0, 0, 0))
-            self.display.draw.text((10, 40), "Connection Error", 
+            
+            # Title
+            self.display.draw.text((10, 10), "Configuration", 
                                  font=self.display.font_medium, 
-                                 fill=(255, 100, 100))
-            self.display.draw.text((10, 60), "Check internet", 
+                                 fill=(100, 150, 255))
+            self.display.draw.text((10, 30), "Portal", 
+                                 font=self.display.font_medium, 
+                                 fill=(100, 150, 255))
+            
+            # Instructions
+            self.display.draw.text((10, 55), "Visit:", 
                                  font=self.display.font_small, 
                                  fill=(200, 200, 200))
-            self.display.draw.text((10, 80), "Run configure_", 
+            
+            # Parse URL to show domain only
+            domain = API_BASE_URL.replace('https://', '').replace('http://', '').split('/')[0]
+            # Truncate if too long
+            if len(domain) > 20:
+                domain = domain[:17] + "..."
+            
+            self.display.draw.text((10, 70), domain, 
                                  font=self.display.font_small, 
-                                 fill=(200, 200, 200))
-            self.display.draw.text((10, 95), "schedule.py", 
+                                 fill=(255, 255, 255))
+            
+            # Code display
+            self.display.draw.rectangle((5, 88, 123, 108), fill=(30, 30, 50))
+            self.display.draw.text((64, 98), self.code, 
+                                 font=self.display.font_large, 
+                                 fill=(100, 255, 100),
+                                 anchor="mm")
+            
+            # Status
+            self.display.draw.text((10, 115), "Waiting...", 
                                  font=self.display.font_small, 
-                                 fill=(200, 200, 200))
+                                 fill=(150, 150, 150))
+            
             self.display._render()
+            return True
+            
+        except Exception as e:
+            print(f"Display error in pairing screen: {e}")
+            import traceback
+            traceback.print_exc()
             return False
-        
-        # Display code
-        self.display.clear((0, 0, 0))
-        
-        # Title
-        self.display.draw.text((10, 10), "Configuration", 
-                             font=self.display.font_medium, 
-                             fill=(100, 150, 255))
-        self.display.draw.text((10, 30), "Portal", 
-                             font=self.display.font_medium, 
-                             fill=(100, 150, 255))
-        
-        # Instructions
-        self.display.draw.text((10, 55), "Visit:", 
-                             font=self.display.font_small, 
-                             fill=(200, 200, 200))
-        
-        # Parse URL to show domain only
-        domain = API_BASE_URL.replace('https://', '').replace('http://', '').split('/')[0]
-        # Truncate if too long
-        if len(domain) > 20:
-            domain = domain[:17] + "..."
-        
-        self.display.draw.text((10, 70), domain, 
-                             font=self.display.font_small, 
-                             fill=(255, 255, 255))
-        
-        # Code display
-        self.display.draw.rectangle((5, 88, 123, 108), fill=(30, 30, 50))
-        self.display.draw.text((64, 98), self.code, 
-                             font=self.display.font_large, 
-                             fill=(100, 255, 100),
-                             anchor="mm")
-        
-        # Status
-        self.display.draw.text((10, 115), "Waiting...", 
-                             font=self.display.font_small, 
-                             fill=(150, 150, 150))
-        
-        self.display._render()
-        return True
     
     def poll_for_config(self, timeout=300):
         """
@@ -106,10 +113,11 @@ class ConfigPortal:
         start_time = time.time()
         self.polling = True
         dots = 0
+        update_count = 0
         
         while self.polling and (time.time() - start_time < timeout):
             try:
-                response = requests.get(f"{API_BASE_URL}/api/config/{self.code}", timeout=5)
+                response = requests.get(f"{API_BASE_URL}/api/config/{self.code}", timeout=3)
                 
                 if response.status_code == 200:
                     data = response.json()
@@ -121,27 +129,40 @@ class ConfigPortal:
                     self.polling = False
                     return None
                 
+            except requests.exceptions.Timeout:
+                print("Request timeout, will retry")
+            except requests.exceptions.RequestException as e:
+                print(f"Network error: {e}")
             except Exception as e:
                 print(f"Poll error: {e}")
             
-            # Update waiting animation
-            dots = (dots + 1) % 4
-            status_text = "Waiting" + "." * dots + " " * (3 - dots)
-            
-            self.display.draw.rectangle((10, 115, 118, 125), fill=(0, 0, 0))
-            self.display.draw.text((10, 115), status_text, 
-                                 font=self.display.font_small, 
-                                 fill=(150, 150, 150))
-            self.display._render()
+            # Update waiting animation only every 2 iterations (6 seconds) to reduce display load
+            update_count += 1
+            if update_count % 2 == 0:
+                try:
+                    dots = (dots + 1) % 4
+                    status_text = "Waiting" + "." * dots + " " * (3 - dots)
+                    
+                    self.display.draw.rectangle((10, 115, 118, 125), fill=(0, 0, 0))
+                    self.display.draw.text((10, 115), status_text, 
+                                         font=self.display.font_small, 
+                                         fill=(150, 150, 150))
+                    self.display._render()
+                except Exception as e:
+                    print(f"Display error: {e}")
             
             # Check for manual cancel (any button press)
-            action = self.input_handler.get_input()
-            if action:
-                self.polling = False
-                return None
+            try:
+                action = self.input_handler.get_input()
+                if action:
+                    self.polling = False
+                    return None
+            except Exception as e:
+                print(f"Input error: {e}")
             
-            # Poll every 3 seconds
-            time.sleep(3)
+            # Poll every 3 seconds with small yield for system
+            time.sleep(2.5)
+            time.sleep(0.5)  # Split sleep for better system responsiveness
         
         self.polling = False
         return None
@@ -182,14 +203,25 @@ class ConfigPortal:
                 phrases_path = os.path.join(code_dir, 'Phrases.json')
                 phrases = {}
                 if os.path.exists(phrases_path):
-                    with open(phrases_path, 'r') as f:
-                        phrases = json.load(f)
+                    try:
+                        with open(phrases_path, 'r') as f:
+                            phrases = json.load(f)
+                    except json.JSONDecodeError:
+                        print("Warning: Could not read existing Phrases.json, creating new")
+                        phrases = {}
                 
                 # Update specific phrase categories
                 if config['customization']['phrases'].get('passing'):
                     phrases['passing'] = config['customization']['phrases']['passing']
                 if config['customization']['phrases'].get('lunch'):
                     phrases['lunch'] = config['customization']['phrases']['lunch']
+                
+                # Handle per-period phrases
+                if config['customization']['phrases'].get('periods'):
+                    period_phrases = config['customization']['phrases']['periods']
+                    for period_key, phrase_list in period_phrases.items():
+                        if phrase_list:  # Only add if not empty
+                            phrases[period_key] = phrase_list
                 
                 with open(phrases_path, 'w') as f:
                     json.dump(phrases, f, indent=2)
@@ -223,6 +255,9 @@ class ConfigPortal:
             "",
             "# Period Start Times",
             f"PERIODS = {periods}",
+            "",
+            "# Schedule Template",
+            f'SCHEDULE_TEMPLATE = "{schedule.get("schedule_template", "traditional_7")}"',
             ""
         ]
         
@@ -261,15 +296,34 @@ class ConfigPortal:
                 'LUNCH_END = ""',
                 ""
             ])
-        
-        # A/B Day configuration
-        if schedule.get('use_ab_day'):
+        # Get period names from config or generate defaults
+            period_names = schedule.get('period_names', [])
+            num_periods = schedule.get('num_periods', 6)
+            
+            # Generate default period names if not provided
+            if not period_names or len(period_names) < num_periods:
+                period_names = [f'Period {i}' for i in range(1, num_periods + 1)]
+            
+            # Build period name dictionaries
+            a_day_dict = {i+1: name for i, name in enumerate(period_names[:num_periods])}
+            b_day_dict = {i+1: name for i, name in enumerate(period_names[:num_periods])}
+            
+            # Handle different schedule patterns
+            daily_pattern = schedule.get('daily_pattern', 'same')
+            if daily_pattern == 'alternating' and len(period_names) >= num_periods * 2:
+                # Use first half for A day, second half for B day
+                a_day_dict = {i+1: period_names[i] for i in range(num_periods)}
+                b_day_dict = {i+1: period_names[i+num_periods] for i in range(num_periods)}
+            
             lines.extend([
                 "# A/B Day Scheduling",
                 f'abday = "true"',
                 f'AB_DAY_MODE = "{schedule.get("ab_day_mode", "auto")}"',
                 'MANUAL_AB_DAY = "a"',
                 "",
+                "# Period Names",
+                f"A_DAY_PERIODS = {a_day_dict}",
+                f"B_DAY_PERIODS = {b_day_dict
                 "# Period Names",
                 "A_DAY_PERIODS = {1: 'Period 1', 2: 'Period 2', 3: 'Period 3', 4: 'Period 4', 5: 'Period 5', 6: 'Period 6'}",
                 "B_DAY_PERIODS = {1: 'Period 1', 2: 'Period 2', 3: 'Period 3', 4: 'Period 4', 5: 'Period 5', 6: 'Period 6'}",
@@ -403,23 +457,35 @@ def run_configuration_portal(display, input_handler):
     Main entry point for configuration portal
     Returns True if configuration successful, False otherwise
     """
-    portal = ConfigPortal(display, input_handler)
-    
-    # Display pairing screen
-    if not portal.display_pairing_screen():
+    try:
+        portal = ConfigPortal(display, input_handler)
+        
+        # Display pairing screen
+        if not portal.display_pairing_screen():
+            return False
+        
+        # Poll for configuration with reduced timeout (3 minutes instead of 5)
+        config = portal.poll_for_config(timeout=180)
+        
+        if not config:
+            portal.show_error("Timeout or cancelled")
+            return False
+        
+        # Write configuration files
+        if portal.write_config_files(config):
+            portal.show_success()
+            return True
+        else:
+            portal.show_error("Failed to save files")
+            return False
+            
+    except KeyboardInterrupt:
+        print("\nConfiguration cancelled by user")
         return False
-    
-    # Poll for configuration
-    config = portal.poll_for_config(timeout=300)  # 5 minute timeout
-    
-    if not config:
-        portal.show_error("Timeout or cancelled")
-        return False
-    
-    # Write configuration files
-    if portal.write_config_files(config):
-        portal.show_success()
-        return True
-    else:
-        portal.show_error("Failed to save files")
+    except Exception as e:
+        print(f"Configuration portal error: {e}")
+        try:
+            portal.show_error(f"Error: {str(e)[:30]}")
+        except:
+            pass
         return False
