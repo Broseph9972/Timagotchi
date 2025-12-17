@@ -323,10 +323,7 @@ class ConfigPortal:
                 "",
                 "# Period Names",
                 f"A_DAY_PERIODS = {a_day_dict}",
-                f"B_DAY_PERIODS = {b_day_dict
-                "# Period Names",
-                "A_DAY_PERIODS = {1: 'Period 1', 2: 'Period 2', 3: 'Period 3', 4: 'Period 4', 5: 'Period 5', 6: 'Period 6'}",
-                "B_DAY_PERIODS = {1: 'Period 1', 2: 'Period 2', 3: 'Period 3', 4: 'Period 4', 5: 'Period 5', 6: 'Period 6'}",
+                f"B_DAY_PERIODS = {b_day_dict}",
                 ""
             ])
         else:
@@ -356,7 +353,7 @@ class ConfigPortal:
             f'TIMEZONE = "{system.get("timezone", "America/New_York")}"',
             "",
             "# Progress Bar",
-            'PROGRESS_BAR_MODE = "time_in_class"',
+            f'PROGRESS_BAR_MODE = "{config.get("customization", {}).get("progress_bar_mode", "time_in_class")}"',
             ""
         ])
         

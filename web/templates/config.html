@@ -140,9 +140,11 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Period Names (optional)</label>
-                            <div id="period-names-container" class="stacked-inputs"></div>
-                            <small>Leave blank to use default numbering.</small>
+                            <label>Period Names <span style="color: #ff6b6b;">(enter number of periods above first)</span></label>
+                            <div id="period-names-container" class="stacked-inputs">
+                                <p style="color: #888; font-style: italic;">Enter number of periods above to see name fields...</p>
+                            </div>
+                            <small>Leave blank to use default numbering (Period 1, Period 2, etc.).</small>
                         </div>
 
                         <div class="form-group">
@@ -351,7 +353,21 @@
                     </div>
                     
                     <div class="card">
-                        <h2>💬 Custom Phrases (Optional)</h2>
+                        <h2>� Display Settings</h2>
+                        
+                        <div class="form-group">
+                            <label>Progress Bar Mode</label>
+                            <select id="progress-bar-mode">
+                                <option value="time_in_class">Time in Current Class</option>
+                                <option value="time_in_day">Time in School Day</option>
+                                <option value="lunch_day">Countdown to Lunch</option>
+                            </select>
+                            <small>What the progress bar on the main screen shows</small>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h2>�💬 Custom Phrases (Optional)</h2>
                         <p>Customize what your Timagotchi says during different periods.</p>
                         
                         <div class="form-group">

@@ -240,6 +240,11 @@ function rebuildPeriodFields() {
     namesContainer.innerHTML = '';
     phrasesContainer.innerHTML = '';
 
+    if (num === 0) {
+        namesContainer.innerHTML = '<p style="color: #888; font-style: italic;">Enter number of periods above to see name fields...</p>';
+        return;
+    }
+
     for (let i = 1; i <= num; i++) {
         const nameWrapper = document.createElement('div');
         nameWrapper.className = 'stacked-input-row';
@@ -436,7 +441,8 @@ function collectFormData() {
     
     // Customization data
     const customization = {
-        theme: document.querySelector('input[name="theme"]:checked').value
+        theme: document.querySelector('input[name="theme"]:checked').value,
+        progress_bar_mode: document.getElementById('progress-bar-mode').value
     };
     
     if (document.getElementById('enable-custom-phrases').checked) {
