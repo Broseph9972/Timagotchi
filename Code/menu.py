@@ -1056,6 +1056,11 @@ class Menu:
         time.sleep(0.3)
 
         try:
+            # Add pydoom subfolder to sys.path if it exists
+            pydoom_dir = os.path.join(os.path.dirname(__file__), 'pydoom')
+            if os.path.isdir(pydoom_dir) and pydoom_dir not in sys.path:
+                sys.path.insert(0, pydoom_dir)
+            
             # Try to import pydoom and run it
             try:
                 import pydoom  # type: ignore
@@ -1064,9 +1069,7 @@ class Menu:
                 pydoom_available = False
 
             if not pydoom_available:
-                msg = "PyDoom not installed. Build from source:\n" \
-                      "git clone https://github.com/Pink-Silver/PyDoom\n" \
-                      "(PyDoom is Windows-focused; on Pi it may not build)"
+                msg = "PyDoom not found.\nRun install.sh to install PyDoom\nor place in Code/pydoom/"
                 self.display.show_message("Doom", msg, (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
                 time.sleep(3)
                 self.current_screen = 'secret_menu'
@@ -1077,20 +1080,26 @@ class Menu:
             wad_candidates = [
                 os.path.join(os.path.dirname(__file__), 'doom1.wad'),
                 os.path.join(os.path.dirname(__file__), 'doom.wad'),
+                os.path.join(pydoom_dir, 'doom1.wad'),
+                os.path.join(pydoom_dir, 'doom.wad'),
                 os.path.expanduser('~/timagotchi/roms/doom1.wad'),
                 os.path.expanduser('~/timagotchi/roms/doom.wad'),
             ]
             wad_path = next((p for p in wad_candidates if os.path.exists(p)), None)
             if wad_path is None:
-                self.display.show_message("Doom", "doom1.wad missing (put in Code/)", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                self.display.show_message("Doom", "doom1.wad missing\n(put in Code/ or Code/pydoom/)", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
                 time.sleep(2)
                 self.current_screen = 'secret_menu'
                 self.show_secret_menu()
                 return
 
-            # PyDoom likely opens its own window; run and return to menu after
+            # PyDoom likely opens its own window; run via subprocess with proper path
             try:
-                subprocess.run([sys.executable, '-c', f"import pydoom; pydoom.run('{wad_path}')"], check=False)
+                env = os.environ.copy()
+                if pydoom_dir not in env.get('PYTHONPATH', ''):
+                    env['PYTHONPATH'] = pydoom_dir + ':' + env.get('PYTHONPATH', '')
+                subprocess.run([sys.executable, '-c', f"import sys; sys.path.insert(0, '{pydoom_dir}'); import pydoom; pydoom.run('{wad_path}')"], 
+                             check=False, env=env)
             except Exception as exc:
                 self.display.show_message("Doom", f"PyDoom error: {str(exc)[:60]}", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
                 time.sleep(3)

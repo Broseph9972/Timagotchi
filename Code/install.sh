@@ -43,6 +43,19 @@ echo "Preparing RetroArch ROM storage..."
 sudo mkdir -p "$HOME/timagotchi/roms"
 sudo chown $USER:$USER "$HOME/timagotchi/roms"
 
+echo "Installing PyDoom (optional Doom engine)..."
+PYDOOM_DIR="$(dirname "$(readlink -f "$0")")/pydoom"
+if [ -d "$PYDOOM_DIR" ]; then
+    echo "PyDoom directory already exists, skipping..."
+else
+    GIT_TERMINAL_PROMPT=0 git clone --depth 1 https://github.com/Pink-Silver/PyDoom.git "$PYDOOM_DIR" || echo "Warning: PyDoom clone failed (optional)"
+    if [ -d "$PYDOOM_DIR" ]; then
+        cd "$PYDOOM_DIR"
+        pip3 install --break-system-packages -e . || echo "Warning: PyDoom install failed (optional)"
+        cd -
+    fi
+fi
+
 echo "Time synchronization can be configured in config.py"
 echo "Set TIME_SYNC_MODE to: 'disabled', 'on_boot', or 'periodic'"
 
