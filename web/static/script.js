@@ -241,7 +241,7 @@ function rebuildPeriodFields() {
     phrasesContainer.innerHTML = '';
 
     if (num === 0) {
-        namesContainer.innerHTML = '<p style="color: #888; font-style: italic;">Enter number of periods above to see name fields...</p>';
+        namesContainer.innerHTML = '<p>Enter number of periods above to see name fields...</p>';
         return;
     }
 

@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configure Timagotchi - Device {{ code }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <nav class="navbar">
@@ -21,7 +20,7 @@
 
     <div class="container config-container">
         <header class="config-header">
-            <h1>🎮 Configure Your Timagotchi</h1>
+            <h1>Configure Your Timagotchi</h1>
             <p class="subtitle">Device Code: <strong>{{ code }}</strong></p>
         </header>
 
@@ -140,9 +139,9 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Period Names <span style="color: #ff6b6b;">(enter number of periods above first)</span></label>
+                            <label>Period Names <span>(enter number of periods above first)</span></label>
                             <div id="period-names-container" class="stacked-inputs">
-                                <p style="color: #888; font-style: italic;">Enter number of periods above to see name fields...</p>
+                                <p>Enter number of periods above to see name fields...</p>
                             </div>
                             <small>Leave blank to use default numbering (Period 1, Period 2, etc.).</small>
                         </div>
@@ -224,7 +223,7 @@
                 <!-- Section 2: Canvas & WiFi -->
                 <div class="section" id="section-canvas">
                     <div class="card">
-                        <h2>🎓 Canvas LMS Integration (Optional)</h2>
+                        <h2>Canvas LMS Integration (Optional)</h2>
                         
                         <div class="form-group">
                             <label>
@@ -249,7 +248,7 @@
                     </div>
                     
                     <div class="card">
-                        <h2>📡 WiFi Networks</h2>
+                        <h2>WiFi Networks</h2>
                         
                         <div id="wifi-networks">
                             <div class="wifi-network">
@@ -271,7 +270,7 @@
                     </div>
                     
                     <div class="card">
-                        <h2>⏰ Time Settings</h2>
+                        <h2>Time Settings</h2>
                         
                         <div class="form-group">
                             <label>Timezone</label>
@@ -305,7 +304,7 @@
                 <!-- Section 3: Customization -->
                 <div class="section" id="section-custom">
                     <div class="card">
-                        <h2>🎨 Theme Selection</h2>
+                        <h2>Theme Selection</h2>
                         
                         <div class="theme-selector">
                             <label class="theme-option">
@@ -353,7 +352,7 @@
                     </div>
                     
                     <div class="card">
-                        <h2>� Display Settings</h2>
+                        <h2>Display Settings</h2>
                         
                         <div class="form-group">
                             <label>Progress Bar Mode</label>
@@ -367,7 +366,7 @@
                     </div>
                     
                     <div class="card">
-                        <h2>�💬 Custom Phrases (Optional)</h2>
+                        <h2>Custom Phrases (Optional)</h2>
                         <p>Customize what your Timagotchi says during different periods.</p>
                         
                         <div class="form-group">
@@ -404,12 +403,12 @@
                 <!-- Section 4: Review & Submit -->
                 <div class="section" id="section-review">
                     <div class="card">
-                        <h2>✅ Review Your Configuration</h2>
+                        <h2>Review Your Configuration</h2>
                         <div id="config-summary"></div>
                     </div>
 
                     <div class="card">
-                        <h2>🔐 Enter Your Device Code</h2>
+                        <h2>Enter Your Device Code</h2>
                         <p>Boot up your Timagotchi device and enter the 5-digit code displayed on screen.</p>
                         
                         <div class="form-group">
@@ -422,7 +421,7 @@
                     
                     <div class="button-group">
                         <button type="button" onclick="prevSection()" class="btn-secondary">Back</button>
-                        <button type="submit" class="btn-primary btn-large">🚀 Send to Timagotchi</button>
+                        <button type="submit" class="btn-primary btn-large">Send to Timagotchi</button>
                     </div>
                 </div>
             </form>
