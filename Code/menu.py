@@ -1655,10 +1655,16 @@ class Menu:
     
     def run(self):
         import time
+        try:
+            if os.path.exists(self.canvas_cache_path):
+                os.remove(self.canvas_cache_path)
+        except Exception:
+            pass
         self.show_main_menu()
         
         last_update = time.time()
         update_interval = 1.0
+        self._waking_up = False
         
         while self.running:
             action = self.input_handler.get_input()
@@ -1714,6 +1720,8 @@ class Menu:
                     self.handle_progress_bar_input(action)
                 elif self.current_screen == "backlight":
                     self.handle_backlight_input(action)
+                elif self.current_screen == "power_saver":
+                    self.handle_power_saver_input(action)
                 elif self.current_screen == "set_time_menu":
                     self.handle_set_time_menu_input(action)
                 elif self.current_screen == "set_time":
@@ -1730,7 +1738,7 @@ class Menu:
                     self.handle_secret_menu_input(action)
             
             current_time = time.time()
-            if current_time - last_update > update_interval:
+            if (not getattr(self, '_waking_up', False)) and (current_time - last_update > update_interval):
                 if self.current_screen == "schedule":
                     self.show_schedule_screen()
                 elif self.current_screen == "clock":
@@ -1762,32 +1770,35 @@ class Menu:
 
     def _exit_power_saver_with_wakeup(self):
         """Animate wake up and restore brightness within ~3 seconds."""
+        self._waking_up = True
         self._power_saver_active = False
         start_bl = int(max(5, min(100, getattr(self, 'power_saver_dim', 5))))
         target_bl = int(max(5, min(100, getattr(self, '_prev_backlight_before_ps', self.backlight))))
         steps = 12
         step_delay = 3.0 / steps
-        # Faces to cycle: sleep2 -> awake -> happy
-        faces = ["sleep2", "awake", "happy"]
+        # 1) Render a single minimal frame first to reduce load during ramp
+        try:
+            self.display.show_face_message("Waking...", "", face_name="sleep2", color=(180, 180, 180), nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, wifi_connected=False)
+        except Exception:
+            pass
+        # 2) Ramp brightness only — no repeated full-frame renders
         for i in range(steps):
             try:
                 level = start_bl + int((target_bl - start_bl) * (i + 1) / steps)
                 self.display.set_backlight(level)
-                face = faces[min(len(faces)-1, i // max(1, steps // len(faces)))]
-                now = datetime.datetime.now()
-                time_str = now.strftime("%H:%M") if USE_24_HOUR else now.strftime("%I:%M %p")
-                date_str = now.strftime("%a %b %d")
-                self.display.show_main_page("Waking...", int((i+1)/steps*100), time_str, date_str, None, self._get_wifi_connected(), self.nav_items, self.nav_selected_index, face_name=face, speech_lines=["..."])
             except Exception:
                 pass
             time.sleep(step_delay)
-        # Restore recorded backlight and redraw main screen
+        # 3) Finalize: set target brightness, then draw the main UI once
         try:
             self.display.set_backlight(target_bl)
             self.backlight = target_bl
         except Exception:
             pass
-        self.show_main_menu()
+        try:
+            self.show_main_menu()
+        finally:
+            self._waking_up = False
     
     def run_configuration_portal(self):
         """Launch the configuration portal for pairing with website"""
