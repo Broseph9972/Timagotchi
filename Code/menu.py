@@ -40,7 +40,7 @@ class Menu:
         self.settings_menu_items = []
         if abday.lower() == "true":
             self.settings_menu_items.append("A/B Day")
-        self.settings_menu_items.extend(["WiFi", "Theme", "Progress Bar", "Set Time", "Stopwatch", "Configuration Portal", "Developer", "Update", "Restart"])
+        self.settings_menu_items.extend(["WiFi", "Theme", "Backlight", "Progress Bar", "Set Time", "Stopwatch", "Configuration Portal", "Developer", "Update", "Restart"])
         self.settings_scroll_offset = 0
         self.set_time_menu_items = ["Manual Set"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
@@ -58,7 +58,17 @@ class Menu:
         self.presets_count = 2  # default to 2 presets
         self.current_preset_index = 0  # 0 = A_DAY_PERIODS, 1 = B_DAY_PERIODS
         self.last_advance_date = None
+        # Backlight level (percentage 0-100)
+        try:
+            self.backlight = int(self.display.get_backlight() or 100)
+        except Exception:
+            self.backlight = 100
         self._load_state()
+        # Apply loaded backlight if available
+        try:
+            self.display.set_backlight(int(max(0, min(100, self.backlight))))
+        except Exception:
+            pass
         self._advance_preset_if_new_day()
         # Canvas state
         self.canvas_config_path = os.path.join(os.path.dirname(__file__), 'canvas_config.json')
@@ -129,6 +139,13 @@ class Menu:
                 self.presets_count = int(data.get('presets_count', 2))
                 self.current_preset_index = int(data.get('current_preset_index', 0))
                 self.last_advance_date = data.get('last_advance_date')
+                # Load backlight if present
+                bl = data.get('backlight')
+                if bl is not None:
+                    try:
+                        self.backlight = int(bl)
+                    except Exception:
+                        pass
         except Exception:
             pass
 
@@ -138,6 +155,7 @@ class Menu:
                 'presets_count': self.presets_count,
                 'current_preset_index': self.current_preset_index,
                 'last_advance_date': self.last_advance_date,
+                'backlight': int(self.backlight) if hasattr(self, 'backlight') else 100,
             }
             with open(self.state_path, 'w') as f:
                 json.dump(data, f)
@@ -780,6 +798,9 @@ class Menu:
                 self.current_screen = "theme"
                 self.selected_index = 0
                 self.show_theme_menu()
+            elif selected_item == "Backlight":
+                self.current_screen = "backlight"
+                self.show_backlight_menu()
             elif selected_item == "Progress Bar":
                 self.current_screen = "progress_bar"
                 self.show_progress_bar_menu()
@@ -1465,6 +1486,47 @@ class Menu:
             self.current_screen = "settings"
             self.selected_index = self.settings_menu_items.index("Progress Bar") if "Progress Bar" in self.settings_menu_items else 3
             self.show_settings_menu()
+
+    def show_backlight_menu(self):
+        """Display and adjust backlight brightness percentage."""
+        try:
+            bl = int(max(0, min(100, getattr(self, 'backlight', 100))))
+        except Exception:
+            bl = 100
+        msg = f"Backlight: {bl}%\n\nUp/Down: +/-5%\nSelect: Done"
+        wifi_connected = self._get_wifi_connected()
+        self.display.show_message("Backlight", msg, (150, 200, 255), self.nav_items, self.nav_selected_index, wifi_connected)
+
+    def handle_backlight_input(self, action):
+        changed = False
+        if action == 'up':
+            self.backlight = int(min(100, (self.backlight if hasattr(self, 'backlight') else 100) + 5))
+            changed = True
+        elif action == 'down':
+            self.backlight = int(max(0, (self.backlight if hasattr(self, 'backlight') else 100) - 5))
+            changed = True
+        elif action in ('select', 'right', 'left'):
+            # Save and return to settings
+            try:
+                self._save_state()
+            except Exception:
+                pass
+            self.current_screen = 'settings'
+            # Ensure selection points back to Backlight
+            try:
+                self.selected_index = self.settings_menu_items.index('Backlight')
+            except Exception:
+                self.selected_index = 0
+            self.show_settings_menu()
+            return
+
+        if changed:
+            # Apply to hardware and redraw
+            try:
+                self.display.set_backlight(int(self.backlight))
+            except Exception:
+                pass
+            self.show_backlight_menu()
     
     def restart_program(self):
         """Restart the Timagotchi program"""
@@ -1591,6 +1653,8 @@ class Menu:
                     self.handle_theme_input(action)
                 elif self.current_screen == "progress_bar":
                     self.handle_progress_bar_input(action)
+                elif self.current_screen == "backlight":
+                    self.handle_backlight_input(action)
                 elif self.current_screen == "set_time_menu":
                     self.handle_set_time_menu_input(action)
                 elif self.current_screen == "set_time":

@@ -18,6 +18,11 @@ class ConfigPortal:
         self.input_handler = input_handler
         self.code = None
         self.polling = False
+        # Reuse HTTP session to reduce TLS handshakes and CPU spikes
+        try:
+            self.session = requests.Session()
+        except Exception:
+            self.session = requests
         
     def request_pairing_code(self):
         """Request a new pairing code from the backend"""
@@ -27,7 +32,7 @@ class ConfigPortal:
             time.sleep(2)
             
             # Use shorter timeout on first attempt to prevent Pi brownout
-            response = requests.post(f"{API_BASE_URL}/api/generate-code", timeout=5)
+            response = self.session.post(f"{API_BASE_URL}/api/generate-code", timeout=5)
             response.raise_for_status()
             data = response.json()
             self.code = data['code']
@@ -141,7 +146,7 @@ class ConfigPortal:
         
         while self.polling and (time.time() - start_time < timeout):
             try:
-                response = requests.get(f"{API_BASE_URL}/api/config/{self.code}", timeout=3)
+                response = self.session.get(f"{API_BASE_URL}/api/config/{self.code}", timeout=3)
                 
                 if response.status_code == 200:
                     data = response.json()
@@ -424,7 +429,18 @@ def run_configuration_portal(display, input_handler):
     Main entry point for configuration portal
     Returns True if configuration successful, False otherwise
     """
+    original_bl = None
+    portal = None
     try:
+        # Dim backlight to reduce power while portal runs
+        try:
+            if hasattr(display, "get_backlight"):
+                original_bl = display.get_backlight()
+            if hasattr(display, "dim_for_portal"):
+                display.dim_for_portal()
+        except Exception:
+            original_bl = None
+
         portal = ConfigPortal(display, input_handler)
         
         # Display pairing screen
@@ -452,7 +468,15 @@ def run_configuration_portal(display, input_handler):
     except Exception as e:
         print(f"Configuration portal error: {e}")
         try:
-            portal.show_error(f"Error: {str(e)[:30]}")
+            if portal is not None:
+                portal.show_error(f"Error: {str(e)[:30]}")
         except:
             pass
         return False
+    finally:
+        # Restore backlight to original level if we dimmed it
+        try:
+            if original_bl is not None and hasattr(display, "set_backlight"):
+                display.set_backlight(original_bl)
+        except Exception:
+            pass

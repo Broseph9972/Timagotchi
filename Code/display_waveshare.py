@@ -76,6 +76,14 @@ class WaveshareDisplay:
         # Store theme manager reference
         self.theme_manager = theme_manager
 
+        # Track current backlight level (percentage 0-100)
+        try:
+            self._backlight_level = 100
+            # Ensure BL is at driver-set value
+            self.disp.bl_DutyCycle(self._backlight_level)
+        except Exception:
+            self._backlight_level = None
+
         self.image = Image.new('RGB', (self.width, self.height), color=(0, 0, 0))
         self.draw = ImageDraw.Draw(self.image)
 
@@ -571,3 +579,30 @@ class WaveshareDisplay:
         if self.theme_manager:
             return self.theme_manager.get_text_accent()
         return (100, 200, 255)
+
+    # Backlight control helpers
+    def set_backlight(self, level: int):
+        """Set backlight brightness percentage (0-100)."""
+        try:
+            level = max(0, min(100, int(level)))
+            self.disp.bl_DutyCycle(level)
+            self._backlight_level = level
+        except Exception:
+            pass
+
+    def get_backlight(self):
+        """Return last set backlight percentage or None if unknown."""
+        return self._backlight_level
+
+    def dim_for_portal(self):
+        """Dim backlight to reduce power while in config portal."""
+        # Choose conservative low level that keeps text readable
+        self.set_backlight(20)
+
+    def restore_backlight(self, fallback: int = 100):
+        """Restore backlight to previous level or fallback."""
+        if self._backlight_level is None:
+            self.set_backlight(fallback)
+        else:
+            # Re-apply stored level in case underlying PWM reset
+            self.set_backlight(self._backlight_level)
