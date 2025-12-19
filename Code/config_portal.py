@@ -169,25 +169,19 @@ class ConfigPortal:
     
     def write_config_files(self, config):
         """
-        Write configuration to appropriate files
+        Write configuration to config.json (unified config file)
         Returns True if successful, False otherwise
         """
         try:
             code_dir = os.path.dirname(__file__)
             
-            # Write config.py
-            config_py_path = os.path.join(code_dir, 'config.py')
-            self._write_config_py(config_py_path, config)
+            # Build config.json structure
+            config_json = self._build_config_json(config)
             
-            # Write canvas_config.json if Canvas is enabled
-            if config.get('canvas') and config['canvas'].get('enabled'):
-                canvas_path = os.path.join(code_dir, 'canvas_config.json')
-                canvas_config = {
-                    'base_url': config['canvas']['base_url'],
-                    'api_token': config['canvas']['api_token']
-                }
-                with open(canvas_path, 'w') as f:
-                    json.dump(canvas_config, f, indent=2)
+            # Write config.json
+            config_path = os.path.join(code_dir, 'config.json')
+            with open(config_path, 'w') as f:
+                json.dump(config_json, f, indent=2)
             
             # Update themes.json with selected theme
             themes_path = os.path.join(code_dir, 'themes.json')
@@ -230,135 +224,87 @@ class ConfigPortal:
             
         except Exception as e:
             print(f"Error writing config files: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
-    def _write_config_py(self, path, config):
-        """Generate and write config.py file"""
+    def _build_config_json(self, config):
+        """Build the unified config.json structure"""
         schedule = config['schedule']
         system = config['system']
+        customization = config.get('customization', {})
+        canvas = config.get('canvas', {})
         
         # Calculate period times
         periods = self._calculate_periods(schedule)
         
-        lines = [
-            "# Timagotchi Schedule Configuration",
-            f"# Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-            "",
-            "# School Hours",
-            f'SCHOOL_START = "{schedule["school_start"]}"',
-            f'SCHOOL_END = "{schedule["school_end"]}"',
-            f'USE_24_HOUR = {system["use_24_hour"]}',
-            "",
-            "# Period Timing",
-            f"PERIOD_LENGTH = {schedule['period_length']}",
-            f"PASSING_TIME = {schedule['passing_time']}",
-            "",
-            "# Period Start Times",
-            f"PERIODS = {periods}",
-            "",
-            "# Schedule Template",
-            f'SCHEDULE_TEMPLATE = "{schedule.get("schedule_template", "traditional_7")}"',
-            ""
-        ]
+        # Get period names
+        period_names = schedule.get('period_names', [])
+        num_periods = schedule.get('num_periods', 6)
         
-        # Advisory configuration
-        if schedule.get('has_advisory'):
-            lines.extend([
-                "# Advisory Period",
-                f'advisory = "true"',
-                f'ADVISORY_START = "{schedule.get("advisory_start", "09:20")}"',
-                f'ADVISORY_PERIOD = 0',
-                f'advisorylength = "{schedule.get("advisory_length", 36)}"',
-                f'advisorydays = "{schedule.get("advisory_days", "m,t")}"',
-                f'freetimedaus = "w,th,f"',
-                ""
-            ])
-        else:
-            lines.extend([
-                'advisory = "false"',
-                'ADVISORY_PERIOD = 0',
-                'advisorylength = "0"',
-                'advisorydays = ""',
-                ""
-            ])
+        if not period_names or len(period_names) < num_periods:
+            period_names = [f'Period {i}' for i in range(1, num_periods + 1)]
         
-        # Lunch configuration
-        if schedule.get('has_lunch'):
-            lines.extend([
-                "# Lunch Period",
-                f'LUNCH_START = "{schedule.get("lunch_start", "12:00")}"',
-                f'LUNCH_END = "{schedule.get("lunch_end", "12:30")}"',
-                ""
-            ])
-        else:
-            lines.extend([
-                'LUNCH_START = ""',
-                'LUNCH_END = ""',
-                ""
-            ])
-        # Get period names from config or generate defaults
-            period_names = schedule.get('period_names', [])
-            num_periods = schedule.get('num_periods', 6)
-            
-            # Generate default period names if not provided
-            if not period_names or len(period_names) < num_periods:
-                period_names = [f'Period {i}' for i in range(1, num_periods + 1)]
-            
-            # Build period name dictionaries
-            a_day_dict = {i+1: name for i, name in enumerate(period_names[:num_periods])}
-            b_day_dict = {i+1: name for i, name in enumerate(period_names[:num_periods])}
-            
-            # Handle different schedule patterns
-            daily_pattern = schedule.get('daily_pattern', 'same')
-            if daily_pattern == 'alternating' and len(period_names) >= num_periods * 2:
-                # Use first half for A day, second half for B day
-                a_day_dict = {i+1: period_names[i] for i in range(num_periods)}
-                b_day_dict = {i+1: period_names[i+num_periods] for i in range(num_periods)}
-            
-            lines.extend([
-                "# A/B Day Scheduling",
-                f'abday = "true"',
-                f'AB_DAY_MODE = "{schedule.get("ab_day_mode", "auto")}"',
-                'MANUAL_AB_DAY = "a"',
-                "",
-                "# Period Names",
-                f"A_DAY_PERIODS = {a_day_dict}",
-                f"B_DAY_PERIODS = {b_day_dict}",
-                ""
-            ])
-        else:
-            lines.extend([
-                f'abday = "false"',
-                'AB_DAY_MODE = "auto"',
-                ""
-            ])
+        # Build period name dictionaries
+        a_day_dict = {str(i+1): name for i, name in enumerate(period_names[:num_periods])}
+        b_day_dict = {str(i+1): name for i, name in enumerate(period_names[:num_periods])}
         
-        # WiFi networks
-        wifi_str = '[\n'
-        for ssid, password in system.get('wifi_networks', []):
-            wifi_str += f'    ("{ssid}", "{password}"),\n'
-        wifi_str += ']'
+        # Handle different schedule patterns
+        daily_pattern = schedule.get('daily_pattern', 'same')
+        if daily_pattern == 'alternating' and len(period_names) >= num_periods * 2:
+            a_day_dict = {str(i+1): period_names[i] for i in range(num_periods)}
+            b_day_dict = {str(i+1): period_names[i+num_periods] for i in range(num_periods)}
         
-        lines.extend([
-            "# WiFi Networks",
-            f"WIFI_NETWORKS = {wifi_str}",
-            ""
-        ])
+        # Convert period times to string keys
+        periods_dict = {str(k): v for k, v in periods.items()}
         
-        # Time sync
-        lines.extend([
-            "# Time Synchronization",
-            f'TIME_SYNC_MODE = "{system.get("time_sync_mode", "disabled")}"',
-            'TIME_SYNC_INTERVAL = 6',
-            f'TIMEZONE = "{system.get("timezone", "America/New_York")}"',
-            "",
-            "# Progress Bar",
-            f'PROGRESS_BAR_MODE = "{config.get("customization", {}).get("progress_bar_mode", "time_in_class")}"',
-            ""
-        ])
+        config_json = {
+            "school": {
+                "start": schedule["school_start"],
+                "end": schedule["school_end"],
+                "timezone": system.get("timezone", "America/New_York")
+            },
+            "schedule": {
+                "periods": num_periods,
+                "period_length": schedule['period_length'],
+                "passing_time": schedule['passing_time'],
+                "period_times": periods_dict,
+                "period_names_a": a_day_dict,
+                "period_names_b": b_day_dict,
+                "ab_day": {
+                    "enabled": schedule.get('use_ab_day', False),
+                    "mode": schedule.get('ab_day_mode', 'auto')
+                },
+                "advisory": {
+                    "enabled": schedule.get('has_advisory', False),
+                    "start": schedule.get('advisory_start', '09:20'),
+                    "length": schedule.get('advisory_length', 36),
+                    "days": schedule.get('advisory_days', '')
+                },
+                "lunch": {
+                    "enabled": schedule.get('has_lunch', False),
+                    "start": schedule.get('lunch_start', ''),
+                    "end": schedule.get('lunch_end', '')
+                }
+            },
+            "display": {
+                "time_format": "24h" if system.get("use_24_hour", False) else "12h",
+                "progress_bar_mode": customization.get("progress_bar_mode", "time_in_class"),
+                "theme": customization.get("theme", "dark")
+            },
+            "system": {
+                "time_sync": system.get("time_sync_mode", "disabled"),
+                "time_sync_interval": 6,
+                "wifi_networks": system.get("wifi_networks", [])
+            },
+            "canvas": {
+                "enabled": canvas.get('enabled', False),
+                "base_url": canvas.get('base_url', ''),
+                "api_token": canvas.get('api_token', '')
+            }
+        }
         
-        with open(path, 'w') as f:
-            f.write('\n'.join(lines))
+        return config_json
     
     def _calculate_periods(self, schedule):
         """Calculate period start times based on schedule configuration"""

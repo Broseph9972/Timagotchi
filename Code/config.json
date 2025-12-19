@@ -1,0 +1,66 @@
+{
+  "school": {
+    "start": "09:05",
+    "end": "15:55",
+    "timezone": "America/New_York"
+  },
+  "schedule": {
+    "periods": 6,
+    "period_length": 51,
+    "passing_time": 4,
+    "period_times": {
+      "1": "09:56",
+      "2": "10:51",
+      "3": "11:46",
+      "4": "12:41",
+      "5": "13:36",
+      "6": "14:31"
+    },
+    "period_names_a": {
+      "1": "Spanish",
+      "2": "ELA",
+      "3": "Math",
+      "4": "Gym",
+      "5": "Science",
+      "6": "SS"
+    },
+    "period_names_b": {
+      "1": "Spanish",
+      "2": "ELA",
+      "3": "Math",
+      "4": "Health",
+      "5": "Science",
+      "6": "SS"
+    },
+    "ab_day": {
+      "enabled": true,
+      "mode": "auto"
+    },
+    "advisory": {
+      "enabled": true,
+      "start": "09:20",
+      "length": 36,
+      "days": "m,t"
+    },
+    "lunch": {
+      "enabled": true,
+      "start": "13:40",
+      "end": "14:05"
+    }
+  },
+  "display": {
+    "time_format": "12h",
+    "progress_bar_mode": "time_in_class",
+    "theme": "dark"
+  },
+  "system": {
+    "time_sync": "on_boot",
+    "time_sync_interval": 6,
+    "wifi_networks": []
+  },
+  "canvas": {
+    "enabled": false,
+    "base_url": "",
+    "api_token": ""
+  }
+}
