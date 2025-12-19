@@ -22,11 +22,22 @@ class ConfigPortal:
     def request_pairing_code(self):
         """Request a new pairing code from the backend"""
         try:
-            response = requests.post(f"{API_BASE_URL}/api/generate-code", timeout=10)
+            # Add startup delay to avoid power spike
+            print("Connecting to configuration service...")
+            time.sleep(2)
+            
+            # Use shorter timeout on first attempt to prevent Pi brownout
+            response = requests.post(f"{API_BASE_URL}/api/generate-code", timeout=5)
             response.raise_for_status()
             data = response.json()
             self.code = data['code']
             return self.code
+        except requests.exceptions.Timeout:
+            print("Request timed out. Check WiFi signal strength.")
+            return None
+        except requests.exceptions.ConnectionError:
+            print("Connection error. WiFi may be unavailable.")
+            return None
         except Exception as e:
             print(f"Error requesting pairing code: {e}")
             return None
@@ -35,6 +46,19 @@ class ConfigPortal:
         """Display the pairing code on screen"""
         try:
             if not self.code:
+                # Show connecting message first
+                self.display.clear((0, 0, 0))
+                self.display.draw.text((10, 40), "Connecting...", 
+                                     font=self.display.font_medium, 
+                                     fill=(100, 200, 255))
+                self.display.draw.text((10, 65), "Please wait", 
+                                     font=self.display.font_small, 
+                                     fill=(200, 200, 200))
+                self.display.draw.text((10, 85), "(do not power off)", 
+                                     font=self.display.font_small, 
+                                     fill=(150, 150, 150))
+                self.display._render()
+                
                 self.code = self.request_pairing_code()
                 
             if not self.code:

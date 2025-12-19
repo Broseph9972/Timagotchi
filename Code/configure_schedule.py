@@ -1,3 +1,4 @@
+import json
 
 def get_time_input(prompt, use_24h=False):
     while True:
@@ -231,6 +232,12 @@ def main():
         "# Progress Bar Settings",
         "# Display mode: \"time_in_class\", \"time_in_day\", or \"lunch_day\"",
         'PROGRESS_BAR_MODE = "time_in_class"  # What the progress bar shows',
+        "",
+        "# Canvas LMS Integration (Optional)",
+        "# Leave base_url and api_token empty if not using Canvas",
+        'CANVAS_ENABLED = False',
+        'CANVAS_BASE_URL = ""  # e.g., https://yourschool.instructure.com',
+        'CANVAS_API_TOKEN = ""  # Get from Account > Settings > New Access Token',
     ]
 
     config_content = "\n".join(config_lines)
@@ -239,6 +246,33 @@ def main():
         f.write(config_content)
 
     print("\nConfiguration has been saved to config.py!")
+    
+    # Ask for Canvas configuration
+    print("\n" + "="*50)
+    print("Canvas LMS Integration (Optional)")
+    print("="*50)
+    use_canvas = input("\nDo you use Canvas LMS? (y/n): ").lower() == 'y'
+    
+    if use_canvas:
+        canvas_url = input("Canvas base URL (e.g., https://yourschool.instructure.com): ").strip()
+        canvas_token = input("Canvas API token (from Account > Settings > New Access Token): ").strip()
+        
+        if canvas_url and canvas_token:
+            canvas_config = {
+                "base_url": canvas_url,
+                "api_token": canvas_token
+            }
+            
+            try:
+                with open('canvas_config.json', 'w') as f:
+                    json.dump(canvas_config, f, indent=2)
+                print("Canvas configuration saved to canvas_config.json")
+            except Exception as e:
+                print(f"Error saving Canvas config: {e}")
+        else:
+            print("Canvas configuration skipped.")
+    else:
+        print("Canvas configuration skipped.")
 
 if __name__ == "__main__":
     main()
