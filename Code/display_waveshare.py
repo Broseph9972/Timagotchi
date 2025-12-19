@@ -596,8 +596,8 @@ class WaveshareDisplay:
 
     def dim_for_portal(self):
         """Dim backlight to reduce power while in config portal."""
-        # Choose conservative low level that keeps text readable
-        self.set_backlight(20)
+        # Choose low level that keeps text readable
+        self.set_backlight(5)
 
     def restore_backlight(self, fallback: int = 100):
         """Restore backlight to previous level or fallback."""

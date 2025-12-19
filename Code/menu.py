@@ -40,7 +40,7 @@ class Menu:
         self.settings_menu_items = []
         if abday.lower() == "true":
             self.settings_menu_items.append("A/B Day")
-        self.settings_menu_items.extend(["WiFi", "Theme", "Backlight", "Progress Bar", "Set Time", "Stopwatch", "Configuration Portal", "Developer", "Update", "Restart"])
+        self.settings_menu_items.extend(["WiFi", "Theme", "Backlight", "Power Saver", "Progress Bar", "Set Time", "Stopwatch", "Configuration Portal", "Developer", "Update", "Restart"])
         self.settings_scroll_offset = 0
         self.set_time_menu_items = ["Manual Set"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
@@ -69,6 +69,13 @@ class Menu:
             self.display.set_backlight(int(max(0, min(100, self.backlight))))
         except Exception:
             pass
+        # Power saver settings
+        self.power_saver_enabled = getattr(self, 'power_saver_enabled', False)
+        self.power_saver_timeout = getattr(self, 'power_saver_timeout', 45)  # seconds
+        self.power_saver_dim = getattr(self, 'power_saver_dim', 5)
+        self._power_saver_active = False
+        self._prev_backlight_before_ps = self.backlight
+        self._last_input_time = time.time()
         self._advance_preset_if_new_day()
         # Canvas state
         self.canvas_config_path = os.path.join(os.path.dirname(__file__), 'canvas_config.json')
@@ -146,6 +153,10 @@ class Menu:
                         self.backlight = int(bl)
                     except Exception:
                         pass
+                # Power saver settings
+                self.power_saver_enabled = bool(data.get('power_saver_enabled', False))
+                self.power_saver_timeout = int(data.get('power_saver_timeout', 45))
+                self.power_saver_dim = int(data.get('power_saver_dim', 5))
         except Exception:
             pass
 
@@ -156,6 +167,9 @@ class Menu:
                 'current_preset_index': self.current_preset_index,
                 'last_advance_date': self.last_advance_date,
                 'backlight': int(self.backlight) if hasattr(self, 'backlight') else 100,
+                'power_saver_enabled': bool(getattr(self, 'power_saver_enabled', False)),
+                'power_saver_timeout': int(getattr(self, 'power_saver_timeout', 45)),
+                'power_saver_dim': int(getattr(self, 'power_saver_dim', 5)),
             }
             with open(self.state_path, 'w') as f:
                 json.dump(data, f)
@@ -801,6 +815,9 @@ class Menu:
             elif selected_item == "Backlight":
                 self.current_screen = "backlight"
                 self.show_backlight_menu()
+            elif selected_item == "Power Saver":
+                self.current_screen = "power_saver"
+                self.show_power_saver_menu()
             elif selected_item == "Progress Bar":
                 self.current_screen = "progress_bar"
                 self.show_progress_bar_menu()
@@ -1490,7 +1507,7 @@ class Menu:
     def show_backlight_menu(self):
         """Display and adjust backlight brightness percentage."""
         try:
-            bl = int(max(0, min(100, getattr(self, 'backlight', 100))))
+            bl = int(max(5, min(100, getattr(self, 'backlight', 100))))
         except Exception:
             bl = 100
         msg = f"Backlight: {bl}%\n\nUp/Down: +/-5%\nSelect: Done"
@@ -1503,7 +1520,7 @@ class Menu:
             self.backlight = int(min(100, (self.backlight if hasattr(self, 'backlight') else 100) + 5))
             changed = True
         elif action == 'down':
-            self.backlight = int(max(0, (self.backlight if hasattr(self, 'backlight') else 100) - 5))
+            self.backlight = int(max(5, (self.backlight if hasattr(self, 'backlight') else 100) - 5))
             changed = True
         elif action in ('select', 'right', 'left'):
             # Save and return to settings
@@ -1527,6 +1544,34 @@ class Menu:
             except Exception:
                 pass
             self.show_backlight_menu()
+
+    def show_power_saver_menu(self):
+        """Display Power Saver toggle and hint."""
+        status = "On" if getattr(self, 'power_saver_enabled', False) else "Off"
+        timeout = int(getattr(self, 'power_saver_timeout', 45))
+        msg = f"Power Saver: {status}\nDim at {self.power_saver_dim}%\nIdle: {timeout}s\n\nUp/Down: Toggle\nSelect: Done"
+        wifi_connected = self._get_wifi_connected()
+        self.display.show_message("Power Saver", msg, (150, 200, 255), self.nav_items, self.nav_selected_index, wifi_connected)
+
+    def handle_power_saver_input(self, action):
+        if action in ('up', 'down'):
+            self.power_saver_enabled = not self.power_saver_enabled
+            try:
+                self._save_state()
+            except Exception:
+                pass
+            self.show_power_saver_menu()
+        elif action in ('select', 'right', 'left'):
+            try:
+                self._save_state()
+            except Exception:
+                pass
+            self.current_screen = 'settings'
+            try:
+                self.selected_index = self.settings_menu_items.index('Power Saver')
+            except Exception:
+                self.selected_index = 0
+            self.show_settings_menu()
     
     def restart_program(self):
         """Restart the Timagotchi program"""
@@ -1613,9 +1658,23 @@ class Menu:
         self.show_main_menu()
         
         last_update = time.time()
+        update_interval = 1.0
         
         while self.running:
             action = self.input_handler.get_input()
+            now_ts = time.time()
+            # Idle detection for power saver
+            if action:
+                self._last_input_time = now_ts
+                if self._power_saver_active and self.power_saver_enabled:
+                    # Wake up sequence
+                    self._exit_power_saver_with_wakeup()
+                    update_interval = 1.0
+            else:
+                if self.power_saver_enabled and not self._power_saver_active:
+                    if (now_ts - self._last_input_time) >= self.power_saver_timeout:
+                        self._enter_power_saver()
+                        update_interval = 3.0
             
             if action:
                 # Global key mapping: key1=Main Page, key2=Grades, key3=Settings
@@ -1671,7 +1730,7 @@ class Menu:
                     self.handle_secret_menu_input(action)
             
             current_time = time.time()
-            if current_time - last_update > 1.0:
+            if current_time - last_update > update_interval:
                 if self.current_screen == "schedule":
                     self.show_schedule_screen()
                 elif self.current_screen == "clock":
@@ -1682,7 +1741,53 @@ class Menu:
                     self.show_stopwatch()
                 last_update = current_time
             
-            time.sleep(0.05)
+            time.sleep(0.05 if not self._power_saver_active else 0.08)
+
+    def _enter_power_saver(self):
+        """Dim backlight and mark power saver active."""
+        try:
+            self._prev_backlight_before_ps = int(self.backlight)
+        except Exception:
+            self._prev_backlight_before_ps = 100
+        self._power_saver_active = True
+        try:
+            self.display.set_backlight(int(max(5, min(100, self.power_saver_dim))))
+        except Exception:
+            pass
+        # Optionally show a one-time 'sleep' face without heavy redraw loops
+        try:
+            self.display.show_face_message("Sleeping", "Press any key", face_name="sleep", color=(150,150,150), nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, wifi_connected=self._get_wifi_connected())
+        except Exception:
+            pass
+
+    def _exit_power_saver_with_wakeup(self):
+        """Animate wake up and restore brightness within ~3 seconds."""
+        self._power_saver_active = False
+        start_bl = int(max(5, min(100, getattr(self, 'power_saver_dim', 5))))
+        target_bl = int(max(5, min(100, getattr(self, '_prev_backlight_before_ps', self.backlight))))
+        steps = 12
+        step_delay = 3.0 / steps
+        # Faces to cycle: sleep2 -> awake -> happy
+        faces = ["sleep2", "awake", "happy"]
+        for i in range(steps):
+            try:
+                level = start_bl + int((target_bl - start_bl) * (i + 1) / steps)
+                self.display.set_backlight(level)
+                face = faces[min(len(faces)-1, i // max(1, steps // len(faces)))]
+                now = datetime.datetime.now()
+                time_str = now.strftime("%H:%M") if USE_24_HOUR else now.strftime("%I:%M %p")
+                date_str = now.strftime("%a %b %d")
+                self.display.show_main_page("Waking...", int((i+1)/steps*100), time_str, date_str, None, self._get_wifi_connected(), self.nav_items, self.nav_selected_index, face_name=face, speech_lines=["..."])
+            except Exception:
+                pass
+            time.sleep(step_delay)
+        # Restore recorded backlight and redraw main screen
+        try:
+            self.display.set_backlight(target_bl)
+            self.backlight = target_bl
+        except Exception:
+            pass
+        self.show_main_menu()
     
     def run_configuration_portal(self):
         """Launch the configuration portal for pairing with website"""
