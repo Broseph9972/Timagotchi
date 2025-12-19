@@ -403,7 +403,7 @@ class WaveshareDisplay:
         self._render_wifi_indicator(wifi_connected)
         self._render()
     
-    def show_main_page(self, progress_label, progress_value, time_str, date_str, schedule_summary, wifi_connected, nav_items, selected_index, face_name="awake", speech_lines=None):
+    def show_main_page(self, progress_label, progress_value, time_str, date_str, schedule_summary, wifi_connected, nav_items, selected_index, face_name="awake", speech_lines=None, battery_percent=None, undervolt=False):
         """Render the main page with an ASCII face, optional speech lines, progress bar, clock, sidebar, wifi."""
         self.clear(self._get_bg_color())
 
@@ -427,6 +427,31 @@ class WaveshareDisplay:
             self.draw.rectangle((bar_x, bar_y, bar_x + fill_w, bar_y + bar_h), fill=accent)
         # Label below bar
         self.draw.text((4, bar_h + 2), progress_label, font=self.font_tiny, fill=secondary)
+
+        # Tiny battery indicator on the top bar area (left of sidebar)
+        try:
+            if battery_percent is not None:
+                content_w = self.width - self.SIDEBAR_WIDTH
+                bx = content_w - 14
+                by = 1
+                bw = 12
+                bh = self.PROGRESS_BAR_HEIGHT - 2
+                # Outline
+                color = (100, 255, 100)
+                if battery_percent <= 20:
+                    color = (255, 80, 80)
+                elif battery_percent <= 50:
+                    color = (255, 200, 80)
+                if undervolt:
+                    color = (255, 0, 0)
+                self.draw.rectangle((bx, by, bx + bw - 2, by + bh), outline=color, width=1)
+                # Tip
+                self.draw.rectangle((bx + bw - 2, by + bh // 3, bx + bw, by + 2 * bh // 3), fill=color)
+                # Fill by percentage
+                fill_w = max(0, int((bw - 4) * (battery_percent / 100.0)))
+                self.draw.rectangle((bx + 2, by + 2, bx + 2 + fill_w, by + bh - 2), fill=color)
+        except Exception:
+            pass
 
         # === FACE + SPEECH ===
         # Place face toward left, slightly above the bottom time text

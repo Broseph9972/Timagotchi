@@ -5,7 +5,8 @@
 A school schedule display system for Raspberry Pi Zero WH with Waveshare 1.44" LCD HAT.
 ## LOTS OF CODE IS AI, README IS NOT AI
 ## Overview
-This project is a pi zero scheduler that tells u how much time u have left in school. if you wanna make this pls download from releases, i develop on main branch bc idk what im doing.
+This project is a pi zero scheduler that tells u info about ur schedule w/ lots of features.
+This is my science fair project, MESA Project, and Hackclub blueprint project. I am currently getting others to prototype it with their respective schedules.
 ## Features
 
 ### Display & Navigation
@@ -15,7 +16,7 @@ This project is a pi zero scheduler that tells u how much time u have left in sc
 - **Clock View**: It's a clock.
 - **Theme System**: Funny colors
 - **Sidebar**: shows what page ur on and stuff, idk looks cool
-- **WiFi Status Indicator**: Lil box that tells u if u have wifi or no.
+- **WiFi Status Indicator**: Lil box that tells u if u have wifi or no. kinda broken lol
 
 ### Schedule Management
 - **A/B Day Support**: Automatic or manual A/B day scheduling with preset rotation
@@ -42,7 +43,7 @@ This project is a pi zero scheduler that tells u how much time u have left in sc
 - **Board**: Raspberry Pi Zero WH
 - **Display**: Waveshare 1.44" LCD HAT
 - **Operating System**: Raspberry Pi OS (tested on Bookworm & trixie)
-- **(Not required) Battery**: Battery or battery bank w/ cable
+- **Battery**: Battery or battery bank w/ cable
 
 ## Project Structure
 
@@ -302,7 +303,7 @@ Enter: ↑↑↓↓←→←→ on the Developer screen to unlock:
 - Key3: GPIO 16
 
 ## TODO
-- ~~Weather display~~ (deferred - API complexity)
+- Weather display
 - ~~Multiple schedule profiles~~ (implemented as A/B day presets)
 - ~~Timer/stopwatch mode~~ (implemented)
 - ~~Check grades via Canvas~~ (implemented)
@@ -312,7 +313,9 @@ Enter: ↑↑↓↓←→←→ on the Developer screen to unlock:
 - Add more games to secret menu
 - Sound effects via PWM buzzer
 - Network time sync improvements
-
+- Easily imagable file for easy install
+- Prototype for others to use
+- (Only if it actually works) Ai scans your schedule and gives u a config
 ### auto start w/ systemd service
 
 Copy the included service file and enable it:

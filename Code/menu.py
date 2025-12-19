@@ -40,7 +40,7 @@ class Menu:
         self.settings_menu_items = []
         if abday.lower() == "true":
             self.settings_menu_items.append("A/B Day")
-        self.settings_menu_items.extend(["WiFi", "Theme", "Backlight", "Power Saver", "Progress Bar", "Set Time", "Stopwatch", "Configuration Portal", "Developer", "Update", "Restart"])
+        self.settings_menu_items.extend(["WiFi", "Theme", "Backlight", "Power Saver", "Power", "Weather", "Progress Bar", "Set Time", "Stopwatch", "Configuration Portal", "Developer", "Update", "Restart"])
         self.settings_scroll_offset = 0
         self.set_time_menu_items = ["Manual Set"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
@@ -76,6 +76,14 @@ class Menu:
         self._power_saver_active = False
         self._prev_backlight_before_ps = self.backlight
         self._last_input_time = time.time()
+        # Power samples for simple graph (CPU usage proxy)
+        try:
+            from collections import deque
+            self._power_samples = deque(maxlen=64)
+        except Exception:
+            self._power_samples = []
+        self._last_power_sample = 0.0
+        self._last_power_status = {"battery_percent": None, "undervolt": False, "throttled": False, "cpu_usage": None}
         self._advance_preset_if_new_day()
         # Canvas state
         self.canvas_config_path = os.path.join(os.path.dirname(__file__), 'canvas_config.json')
@@ -384,6 +392,24 @@ class Menu:
         date_str = now.strftime("%a %b %d")
         schedule_summary = self._get_schedule_summary()
         wifi_connected = self._get_wifi_connected()
+        # Update power status periodically and record CPU usage sample
+        try:
+            import power_monitor as _pm
+            tnow = time.time()
+            if tnow - self._last_power_sample > 5:
+                st = _pm.get_power_status()
+                if st:
+                    self._last_power_status = st
+                self._last_power_sample = tnow
+            cpu = self._last_power_status.get('cpu_usage')
+            if cpu is not None and hasattr(self, '_power_samples'):
+                # Keep as float 0..1
+                try:
+                    self._power_samples.append(cpu)
+                except Exception:
+                    pass
+        except Exception:
+            pass
         # Pick a face based on state
         face_name = "awake"
         summary_lower = (schedule_summary or "").lower()
@@ -424,7 +450,14 @@ class Menu:
                 rng = random.Random(bucket)
                 speech_lines = [rng.choice(period_phrases)]
 
-        self.display.show_main_page(label, progress, time_str, date_str, None, wifi_connected, self.nav_items, self.nav_selected_index, face_name, speech_lines)
+        bp = None
+        uv = False
+        try:
+            bp = self._last_power_status.get('battery_percent')
+            uv = bool(self._last_power_status.get('undervolt'))
+        except Exception:
+            pass
+        self.display.show_main_page(label, progress, time_str, date_str, None, wifi_connected, self.nav_items, self.nav_selected_index, face_name, speech_lines, battery_percent=bp, undervolt=uv)
     
     def get_progress_bar(self):
         """Calculate progress bar based on current mode."""
@@ -553,6 +586,12 @@ class Menu:
         elif self.selected_index >= self.settings_scroll_offset + max_visible:
             self.settings_scroll_offset = self.selected_index - max_visible + 1
         self.display.show_menu(self.settings_menu_items, self.selected_index, "Settings", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, start_index=self.settings_scroll_offset, max_visible=max_visible, wifi_connected=wifi_connected)
+            elif selected_item == "Power":
+                self.current_screen = "power"
+                self.show_power_screen()
+            elif selected_item == "Weather":
+                self.current_screen = "weather"
+                self.show_weather_screen()
 
     def _show_presets_menu(self):
         msg = f"Presets: {self.presets_count}\nUp/Down: 1 or 2\nSelect: Save"
@@ -818,6 +857,12 @@ class Menu:
             elif selected_item == "Power Saver":
                 self.current_screen = "power_saver"
                 self.show_power_saver_menu()
+            elif selected_item == "Power":
+                self.current_screen = "power"
+                self.show_power_screen()
+            elif selected_item == "Weather":
+                self.current_screen = "weather"
+                self.show_weather_screen()
             elif selected_item == "Progress Bar":
                 self.current_screen = "progress_bar"
                 self.show_progress_bar_menu()
@@ -965,12 +1010,6 @@ class Menu:
         elif self.grades_selected_index >= self.grades_scroll_offset + max_visible:
             self.grades_scroll_offset = self.grades_selected_index - max_visible + 1
         
-        items = [f"{c['name'][:10]} {self._format_percent(c['percent'])}" for c in self._courses_list]
-        self.display.show_grades_menu(items, self.grades_selected_index, title="Grades", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, start_index=self.grades_scroll_offset, max_visible=max_visible, wifi_connected=self._get_wifi_connected())
-    
-    def handle_grades_input(self, action):
-        if not hasattr(self, '_courses_list') or not self._courses_list:
-            self.show_grades_menu(fetch=True)
             return
         if action == 'up':
             self.grades_selected_index = (self.grades_selected_index - 1) % len(self._courses_list)
