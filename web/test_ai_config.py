@@ -111,11 +111,21 @@ def test_ai_disabled_gracefully():
     print("\nTesting AI endpoints without API key...")
     
     with app.test_client() as client:
+        # Create a simple test image if it doesn't exist
+        import os
+        test_image_path = '/tmp/test_schedules/sample_schedule.png'
+        if not os.path.exists(test_image_path):
+            os.makedirs('/tmp/test_schedules', exist_ok=True)
+            from PIL import Image
+            img = Image.new('RGB', (100, 100), color='white')
+            img.save(test_image_path)
+        
         # Test analyze endpoint should return 503 without key
-        response = client.post('/api/analyze-schedule',
-            data={'image': (open('/tmp/test_schedules/sample_schedule.png', 'rb'), 'schedule.png')},
-            content_type='multipart/form-data'
-        )
+        with open(test_image_path, 'rb') as f:
+            response = client.post('/api/analyze-schedule',
+                data={'image': (f, 'schedule.png')},
+                content_type='multipart/form-data'
+            )
         # Should return 503 (service unavailable) without API key
         if response.status_code == 503:
             print("✓ AI endpoint correctly returns 503 when API key not set")
