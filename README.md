@@ -276,12 +276,7 @@ _All joystick directions and buttons are active-low with pull-ups enabled._
 - **Update**: Check for updates (if configured)
 - **Restart**: Restart the application
 
-#### Secret Menu (Developer → Konami Code)
-Enter: ↑↑↓↓←→←→ on the Developer screen to unlock:
-- **Start Tetris**: Play Tetris
-- **Doom**: Try to run PyDoom (if installed)
-- **Shitty Doom**: Built-in raycaster FPS
-- **Run Custom Script**: Execute custom_script.py
+#### do konami on dev page.
 
 ## GPIO Pin Mapping (Waveshare 1.44" LCD HAT)
 
@@ -310,7 +305,6 @@ Enter: ↑↑↓↓←→←→ on the Developer screen to unlock:
 - ~~Progress bar~~ (implemented with multiple modes)
 - Alarm/notification system
 - Battery level indicator (if using portable power)
-- Add more games to secret menu
 - Sound effects via PWM buzzer
 - Network time sync improvements
 - Easily imagable file for easy install
