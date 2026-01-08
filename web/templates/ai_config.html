@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Schedule Configurator - Timagotchi</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .step {
+            display: none;
+        }
+        
+        .step.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .upload-zone {
+            border: 3px dashed #667eea;
+            border-radius: 12px;
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9ff;
+        }
+        
+        .upload-zone:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+        
+        .upload-zone.dragover {
+            border-color: #764ba2;
+            background: #e8ebff;
+            transform: scale(1.02);
+        }
+        
+        .upload-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        
+        .upload-zone h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 20px;
+        }
+        
+        .upload-zone p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            margin-right: 10px;
+        }
+        
+        .btn-secondary:hover {
+            box-shadow: 0 8px 20px rgba(108, 117, 125, 0.4);
+        }
+        
+        .preview-image {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .analysis-result {
+            background: #f8f9ff;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+        }
+        
+        .analysis-result h3 {
+            color: #667eea;
+            margin-bottom: 16px;
+            font-size: 20px;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .info-item {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .info-item label {
+            display: block;
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .info-item .value {
+            color: #333;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .uncertainty-warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .uncertainty-warning h4 {
+            color: #856404;
+            margin-bottom: 8px;
+        }
+        
+        .uncertainty-warning ul {
+            margin-left: 20px;
+            color: #856404;
+        }
+        
+        .question-section {
+            margin: 30px 0;
+        }
+        
+        .form-group {
+            margin-bottom: 24px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-group small {
+            display: block;
+            margin-top: 6px;
+            color: #666;
+            font-size: 13px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-weight: normal;
+        }
+        
+        .ai-chat {
+            background: #f8f9ff;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .chat-message {
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            border-radius: 8px;
+        }
+        
+        .chat-message.user {
+            background: #667eea;
+            color: white;
+            margin-left: 40px;
+        }
+        
+        .chat-message.ai {
+            background: white;
+            border: 2px solid #e0e0e0;
+            margin-right: 40px;
+        }
+        
+        .chat-input-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        
+        .chat-input-group input {
+            flex: 1;
+        }
+        
+        .success-message {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .success-icon {
+            font-size: 80px;
+            color: #28a745;
+            margin-bottom: 20px;
+        }
+        
+        .code-preview {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+            justify-content: flex-end;
+        }
+        
+        .alert {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AI Schedule Configurator</h1>
+            <p>Upload a photo of your schedule and let AI do the work</p>
+        </div>
+        
+        <div class="content">
+            <!-- Step 1: Upload -->
+            <div id="step-upload" class="step active">
+                <h2>Step 1: Upload Your Schedule</h2>
+                <p style="margin: 16px 0; color: #666;">Take a clear photo of your school schedule or upload an existing image.</p>
+                
+                <div id="upload-zone" class="upload-zone">
+                    <div class="upload-icon">📸</div>
+                    <h3>Drop your schedule image here</h3>
+                    <p>or click to browse</p>
+                    <input type="file" id="file-input" accept="image/*" style="display: none;">
+                    <button class="btn" onclick="document.getElementById('file-input').click()">Choose File</button>
+                </div>
+                
+                <div id="image-preview" style="display: none;">
+                    <img id="preview-img" class="preview-image">
+                    <div class="button-group">
+                        <button class="btn btn-secondary" onclick="resetUpload()">Change Image</button>
+                        <button class="btn" onclick="analyzeImage()">Analyze Schedule</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 2: Analysis Loading -->
+            <div id="step-analyzing" class="step">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <h3>Analyzing your schedule...</h3>
+                    <p>The AI is reading and understanding your schedule. This may take a moment.</p>
+                </div>
+            </div>
+            
+            <!-- Step 3: Review & Questions -->
+            <div id="step-review" class="step">
+                <h2>Step 2: Review AI Analysis</h2>
+                
+                <div id="analysis-display"></div>
+                
+                <div id="uncertainty-section"></div>
+                
+                <div id="questions-section" class="question-section">
+                    <h3>Additional Information</h3>
+                    <p style="margin-bottom: 20px; color: #666;">Please provide or confirm the following details:</p>
+                    
+                    <div class="form-group">
+                        <label>Use Canvas LMS for grades?</label>
+                        <select id="enable-canvas" onchange="toggleCanvasFields()">
+                            <option value="false">No, just show schedule</option>
+                            <option value="true">Yes, integrate Canvas grades</option>
+                        </select>
+                    </div>
+                    
+                    <div id="canvas-fields" style="display: none;">
+                        <div class="form-group">
+                            <label>Canvas Base URL</label>
+                            <input type="url" id="canvas-url" placeholder="https://yourschool.instructure.com">
+                            <small>Your school's Canvas website URL</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Canvas API Token (optional - can be set later on device)</label>
+                            <input type="password" id="canvas-token" placeholder="1234~xxxxxxxxxxxx">
+                            <small>Get from: Account → Settings → New Access Token</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>WiFi Networks</label>
+                        <small style="margin-bottom: 12px;">Add WiFi networks for your Timagotchi to connect to</small>
+                        <div id="wifi-networks"></div>
+                        <button class="btn btn-secondary" onclick="addWifiNetwork()" style="margin-top: 10px;">+ Add Network</button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Timezone</label>
+                        <select id="timezone">
+                            <option value="America/New_York">Eastern (ET)</option>
+                            <option value="America/Chicago">Central (CT)</option>
+                            <option value="America/Denver">Mountain (MT)</option>
+                            <option value="America/Los_Angeles">Pacific (PT)</option>
+                            <option value="America/Phoenix">Arizona (MST)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Display Time Format</label>
+                        <select id="time-format">
+                            <option value="false">12-hour (9:00 AM)</option>
+                            <option value="true">24-hour (09:00)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="ai-chat">
+                    <h4 style="margin-bottom: 16px;">Ask AI Questions</h4>
+                    <div id="chat-messages"></div>
+                    <div class="chat-input-group">
+                        <input type="text" id="chat-input" placeholder="Ask anything about your schedule...">
+                        <button class="btn" onclick="askQuestion()">Ask</button>
+                    </div>
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn btn-secondary" onclick="backToUpload()">Start Over</button>
+                    <button class="btn" onclick="generateConfig()">Generate Config</button>
+                </div>
+            </div>
+            
+            <!-- Step 4: Config Preview -->
+            <div id="step-preview" class="step">
+                <h2>Step 3: Review & Submit</h2>
+                
+                <div class="alert alert-info">
+                    Your configuration has been generated! Review it below and submit when ready.
+                </div>
+                
+                <div class="code-preview" id="config-preview"></div>
+                
+                <div class="form-group" style="margin-top: 30px;">
+                    <label>Device Code</label>
+                    <input type="text" id="device-code" maxlength="5" pattern="[0-9]*" placeholder="12345">
+                    <small>The 5-digit code shown on your Timagotchi device</small>
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn btn-secondary" onclick="backToReview()">Back</button>
+                    <button class="btn" onclick="submitConfig()">Send to Timagotchi</button>
+                </div>
+            </div>
+            
+            <!-- Step 5: Success -->
+            <div id="step-success" class="step">
+                <div class="success-message">
+                    <div class="success-icon">✓</div>
+                    <h2>Configuration Sent Successfully!</h2>
+                    <p style="margin: 20px 0;">Your Timagotchi should sync and start automatically in a few seconds.</p>
+                    <button class="btn" onclick="location.href='/'">Return Home</button>
+                </div>
+            </div>
+            
+            <!-- Error Display -->
+            <div id="error-display" style="display: none;"></div>
+        </div>
+    </div>
+    
+    <script>
+        let currentStep = 'upload';
+        let uploadedImage = null;
+        let analysisData = null;
+        let wifiNetworkCount = 0;
+        
+        // File upload handling
+        const uploadZone = document.getElementById('upload-zone');
+        const fileInput = document.getElementById('file-input');
+        
+        uploadZone.addEventListener('click', () => fileInput.click());
+        
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+        
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+        
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleImageUpload(file);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleImageUpload(file);
+            }
+        });
+        
+        function handleImageUpload(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('preview-img').src = e.target.result;
+                document.getElementById('upload-zone').style.display = 'none';
+                document.getElementById('image-preview').style.display = 'block';
+                uploadedImage = file;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function resetUpload() {
+            document.getElementById('upload-zone').style.display = 'block';
+            document.getElementById('image-preview').style.display = 'none';
+            uploadedImage = null;
+            fileInput.value = '';
+        }
+        
+        async function analyzeImage() {
+            if (!uploadedImage) return;
+            
+            showStep('analyzing');
+            
+            const formData = new FormData();
+            formData.append('image', uploadedImage);
+            
+            try {
+                const response = await fetch('/api/analyze-schedule', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || 'Failed to analyze image');
+                }
+                
+                analysisData = result.analysis;
+                displayAnalysis(result);
+                showStep('review');
+                
+            } catch (error) {
+                showError('Analysis failed: ' + error.message);
+                showStep('upload');
+            }
+        }
+        
+        function displayAnalysis(result) {
+            const analysis = result.analysis;
+            
+            let html = '<div class="analysis-result">';
+            html += '<h3>Extracted Schedule Information</h3>';
+            html += '<div class="info-grid">';
+            
+            if (analysis.school_start) {
+                html += `<div class="info-item"><label>School Start</label><div class="value">${analysis.school_start}</div></div>`;
+            }
+            if (analysis.school_end) {
+                html += `<div class="info-item"><label>School End</label><div class="value">${analysis.school_end}</div></div>`;
+            }
+            if (analysis.num_periods) {
+                html += `<div class="info-item"><label>Periods</label><div class="value">${analysis.num_periods}</div></div>`;
+            }
+            if (analysis.period_length) {
+                html += `<div class="info-item"><label>Period Length</label><div class="value">${analysis.period_length} min</div></div>`;
+            }
+            if (analysis.has_lunch) {
+                html += `<div class="info-item"><label>Lunch</label><div class="value">${analysis.lunch_start} - ${analysis.lunch_end}</div></div>`;
+            }
+            if (analysis.has_ab_day) {
+                html += `<div class="info-item"><label>Schedule Type</label><div class="value">A/B Day</div></div>`;
+            }
+            
+            html += '</div></div>';
+            
+            if (result.has_uncertainties && analysis.uncertain_items && analysis.uncertain_items.length > 0) {
+                html += '<div class="uncertainty-warning">';
+                html += '<h4>Please verify these items:</h4>';
+                html += '<ul>';
+                analysis.uncertain_items.forEach(item => {
+                    html += `<li>${item}</li>`;
+                });
+                html += '</ul>';
+                html += '</div>';
+            }
+            
+            document.getElementById('analysis-display').innerHTML = html;
+            
+            // Add initial wifi network
+            addWifiNetwork();
+        }
+        
+        function toggleCanvasFields() {
+            const enable = document.getElementById('enable-canvas').value === 'true';
+            document.getElementById('canvas-fields').style.display = enable ? 'block' : 'none';
+        }
+        
+        function addWifiNetwork() {
+            const container = document.getElementById('wifi-networks');
+            const index = wifiNetworkCount++;
+            
+            const html = `
+                <div class="form-group" style="border-left: 3px solid #667eea; padding-left: 16px; margin-bottom: 16px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px;">
+                        <input type="text" class="wifi-ssid" placeholder="Network Name" data-index="${index}">
+                        <input type="password" class="wifi-password" placeholder="Password (leave blank for open)" data-index="${index}">
+                        <button class="btn btn-secondary" onclick="removeWifiNetwork(this)" style="padding: 12px 20px;">Remove</button>
+                    </div>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', html);
+        }
+        
+        function removeWifiNetwork(button) {
+            button.closest('.form-group').remove();
+        }
+        
+        async function askQuestion() {
+            const input = document.getElementById('chat-input');
+            const question = input.value.trim();
+            if (!question) return;
+            
+            // Add user message
+            addChatMessage(question, 'user');
+            input.value = '';
+            
+            try {
+                const response = await fetch('/api/ask-question', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        question: question,
+                        context: analysisData
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    addChatMessage(result.answer, 'ai');
+                } else {
+                    addChatMessage('Sorry, I could not process that question.', 'ai');
+                }
+                
+            } catch (error) {
+                addChatMessage('Error: ' + error.message, 'ai');
+            }
+        }
+        
+        function addChatMessage(text, sender) {
+            const container = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            div.className = `chat-message ${sender}`;
+            div.textContent = text;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        async function generateConfig() {
+            // Collect all user inputs
+            const userInputs = {
+                use_24_hour: document.getElementById('time-format').value === 'true',
+                timezone: document.getElementById('timezone').value,
+                canvas_enabled: document.getElementById('enable-canvas').value === 'true',
+                canvas_url: document.getElementById('canvas-url')?.value || '',
+                canvas_token: document.getElementById('canvas-token')?.value || '',
+                wifi_networks: []
+            };
+            
+            // Collect WiFi networks
+            const ssids = document.querySelectorAll('.wifi-ssid');
+            const passwords = document.querySelectorAll('.wifi-password');
+            for (let i = 0; i < ssids.length; i++) {
+                const ssid = ssids[i].value.trim();
+                if (ssid) {
+                    userInputs.wifi_networks.push([ssid, passwords[i].value]);
+                }
+            }
+            
+            try {
+                const response = await fetch('/api/generate-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        analysis: analysisData,
+                        user_inputs: userInputs
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('config-preview').textContent = result.config_content;
+                    window.generatedConfig = result.config_content;
+                    showStep('preview');
+                } else {
+                    throw new Error(result.error || 'Failed to generate config');
+                }
+                
+            } catch (error) {
+                showError('Failed to generate config: ' + error.message);
+            }
+        }
+        
+        async function submitConfig() {
+            const code = document.getElementById('device-code').value.trim();
+            
+            if (!/^\d{5}$/.test(code)) {
+                alert('Please enter a valid 5-digit device code');
+                return;
+            }
+            
+            try {
+                // Submit the generated config to the pairing code
+                const response = await fetch(`/api/config/${code}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        schedule: analysisData,
+                        system: {
+                            timezone: document.getElementById('timezone').value,
+                            use_24_hour: document.getElementById('time-format').value === 'true'
+                        },
+                        canvas: {
+                            enabled: document.getElementById('enable-canvas').value === 'true',
+                            base_url: document.getElementById('canvas-url')?.value || '',
+                            api_token: document.getElementById('canvas-token')?.value || ''
+                        },
+                        config_py_content: window.generatedConfig
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showStep('success');
+                } else {
+                    throw new Error(result.error || 'Failed to submit config');
+                }
+                
+            } catch (error) {
+                showError('Failed to submit config: ' + error.message);
+            }
+        }
+        
+        function showStep(step) {
+            document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+            document.getElementById(`step-${step}`).classList.add('active');
+            currentStep = step;
+        }
+        
+        function backToUpload() {
+            showStep('upload');
+            resetUpload();
+        }
+        
+        function backToReview() {
+            showStep('review');
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('error-display');
+            errorDiv.innerHTML = `<div class="alert alert-error">${message}</div>`;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Allow Enter key in chat
+        document.getElementById('chat-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                askQuestion();
+            }
+        });
+    </script>
+</body>
+</html>
