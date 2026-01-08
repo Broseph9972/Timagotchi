@@ -2,6 +2,18 @@
 
 Cloud-hosted web interface for configuring Timagotchi devices via pairing codes.
 
+## NEW: AI-Powered Configuration
+
+Upload a photo of your school schedule and let AI extract all the details automatically!
+
+See [AI_CONFIG_README.md](AI_CONFIG_README.md) for complete AI configuration documentation.
+
+**Quick Start:**
+1. Get a free Gemini API key
+2. Set `GEMINI_API_KEY` environment variable
+3. Visit `/ai-config` on your deployed portal
+4. Upload schedule photo and let AI do the work
+
 ## Overview
 
 This Flask application provides a web-based configuration portal that pairs with Timagotchi devices using simple 5-digit codes. Users configure their schedule, Canvas LMS integration, WiFi networks, themes, and custom phrases through a modern web interface instead of running command-line scripts.
@@ -23,11 +35,13 @@ This Flask application provides a web-based configuration portal that pairs with
 2. Create a new Web Service on [Render](https://render.com)
 3. Connect your GitHub repository
 4. Configure the service:
-   - **Root Directory**: `config-portal-backend`
+   - **Root Directory**: `web`
    - **Build Command**: `pip install -r requirements.txt`
    - **Start Command**: `gunicorn app:app`
    - **Environment**: Python 3
-5. Deploy!
+5. Add Environment Variables:
+   - `GEMINI_API_KEY` = your Gemini API key (for AI features)
+6. Deploy!
 
 Your portal will be available at: `https://your-app-name.onrender.com`
 

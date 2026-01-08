@@ -9,6 +9,11 @@ This project is a pi zero scheduler that tells u info about ur schedule w/ lots 
 This is my science fair project, MESA Project, and Hackclub blueprint project. I am currently getting others to prototype it with their respective schedules.
 ## Features
 
+### Configuration
+- **AI-Powered Setup (NEW)**: Upload a photo of your schedule and let AI extract all the details automatically
+- **Manual Configuration**: Traditional web-based form for manual entry
+- **Web Portal**: Cloud-hosted configuration interface with 5-digit pairing codes
+
 ### Display & Navigation
 - **Main Page**: lil guy i stole from Pwnagotchi
 - **Schedule View**: Shows current pd, based off ur schedule
@@ -224,6 +229,45 @@ Edit `Code/Phrases.json` to customize what your character says:
 ```
 
 ## Usage
+
+### Web Configuration (Recommended)
+
+The easiest way to configure your Timagotchi is through the web portal:
+
+#### Method 1: AI-Powered Configuration (NEW)
+
+1. Visit the web portal (see `web/README.md` for deployment)
+2. Click "Use AI Configurator"
+3. Upload a photo of your school schedule
+4. AI analyzes and extracts all schedule details
+5. Answer any clarification questions
+6. Configure Canvas LMS and WiFi if needed
+7. Enter your device's 5-digit pairing code
+8. Submit and your device will sync automatically
+
+**Requirements:**
+- Free Gemini AI API key (see `web/AI_CONFIG_README.md`)
+- Clear photo of your schedule
+- Internet connection
+
+**Supported Schedule Types:**
+- Traditional 7-period schedules
+- A/B block schedules
+- 4x4 semester blocks
+- Rotating schedules
+- Elementary with specials
+- College MWF/TR patterns
+
+#### Method 2: Manual Web Configuration
+
+1. Visit the web portal
+2. Click "Manual Configuration"
+3. Fill out the detailed form with your schedule
+4. Configure Canvas and WiFi
+5. Enter device pairing code
+6. Submit
+
+See `web/README.md` for full web portal documentation.
 
 ### Run Manually
 
