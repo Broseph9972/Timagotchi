@@ -42,7 +42,7 @@ class Menu:
             self.settings_menu_items.append("A/B Day")
         self.settings_menu_items.extend(["WiFi", "Theme", "Backlight", "Power Saver", "Progress Bar", "Set Time", "Stopwatch", "Configuration Portal", "Developer", "Update", "Restart"])
         self.settings_scroll_offset = 0
-        self.set_time_menu_items = ["Manual Set"]
+        self.set_time_menu_items = ["Manual Set", "Sync Now"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
         self.adjust_hour = 0
         self.adjust_minute = 0
@@ -601,21 +601,23 @@ class Menu:
         # Get available networks
         try:
             result = subprocess.run(
-                ['nmcli', 'device', 'wifi', 'list'],
+                ['nmcli', '-t', '-f', 'SSID,SIGNAL', 'device', 'wifi', 'list'],
                 capture_output=True,
                 text=True,
                 timeout=5
             )
-            lines = result.stdout.strip().split('\n')[1:]  # Skip header
+            lines = [l for l in result.stdout.strip().split('\n') if l.strip()]
             
             self.wifi_networks = []
             for line in lines:
-                parts = line.split()
-                if len(parts) >= 2:
-                    ssid = parts[0]
-                    # Get signal strength (last column)
-                    signal = parts[-2] if len(parts) > 1 else "0"
-                    self.wifi_networks.append((ssid, signal))
+                # NMCLI -t with SSID,SIGNAL returns lines like "MySSID:70" or ":52" for hidden SSIDs
+                try:
+                    ssid, signal = line.rsplit(':', 1)
+                except ValueError:
+                    ssid = line
+                    signal = "0"
+                ssid = ssid if ssid else "<hidden>"
+                self.wifi_networks.append((ssid, signal))
             
             if not self.wifi_networks:
                 self.display.show_message("WiFi", "No networks found.\nMake sure WiFi is enabled.", (200, 100, 100), self.nav_items, self.nav_selected_index, wifi_connected)
@@ -749,6 +751,11 @@ class Menu:
                 self.adjust_hour = now.hour
                 self.adjust_minute = now.minute
                 self.show_set_time_screen()
+            elif selected_item == "Sync Now":
+                # Trigger NTP sync
+                self.sync_time_now()
+                # Return to set time menu
+                self.show_set_time_menu()
         elif action == 'left':
             self.current_screen = "settings"
             self.selected_index = 0
@@ -1653,9 +1660,30 @@ class Menu:
             for pin in self.input_handler.pins:
                 self.input_handler.last_press[pin] = current_time
     
-    def run(self):
-        import time
-        self.show_main_menu()
+    def sync_time_now(self):
+        """Enable NTP sync now and report status."""
+        try:
+            # Enable NTP (timedatectl allowed via sudoers in install)
+            result = subprocess.run(['sudo', 'timedatectl', 'set-ntp', 'true'], capture_output=True, text=True, timeout=10)
+            if result.returncode != 0:
+                err = result.stderr.strip() or result.stdout.strip()
+                self.display.show_message("Sync Failed", err[:40], (255, 100, 100), self.nav_items, self.nav_selected_index)
+                time.sleep(2)
+                return
+            # Give it a short moment to begin syncing
+            time.sleep(2)
+            # Check sync status
+            check = subprocess.run(['timedatectl', 'show', '-p', 'NTPSynchronized', '-p', 'NTP'], capture_output=True, text=True, timeout=5)
+            out = check.stdout.strip()
+            if 'NTPSynchronized=yes' in out or 'NTPSynchronized=true' in out:
+                self.display.show_message("Synced", "Time synchronized", (100, 255, 100), self.nav_items, self.nav_selected_index)
+            else:
+                self.display.show_message("Sync", "NTP enabled. Syncing...", (150, 200, 255), self.nav_items, self.nav_selected_index)
+            time.sleep(2)
+        except Exception as e:
+            self.display.show_message("Sync Error", str(e)[:40], (255, 100, 100), self.nav_items, self.nav_selected_index)
+            time.sleep(2)
+
         
         last_update = time.time()
         update_interval = 1.0
