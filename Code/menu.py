@@ -33,9 +33,16 @@ class Menu:
         # Right-nav items as per sketch
         self.nav_items = ["Main Page", "Grades", "Settings"]
         self.nav_selected_index = 0
-        # Cache wifi checks to avoid blocking nmcli on input loop
+        # Cache wifi checks to avoid blocking nmcli on input loop.
+        # Only refresh at most every 10s. State will also be set on boot
+        # (initial check) and immediately after a successful connection.
         self._wifi_state = False
         self._wifi_checked_at = 0.0
+        # Initial quick check at boot to set indicator once early
+        try:
+            self._update_wifi_state()
+        except Exception:
+            pass
         # Build settings menu items based on config
         self.settings_menu_items = []
         if abday.lower() == "true":
@@ -317,10 +324,15 @@ class Menu:
         self.display.show_clock(time_str, date_str, self.nav_items, self.nav_selected_index, wifi_connected)
     
     def _get_wifi_connected(self):
-        """Cached WiFi check. Avoid blocking the input loop with slow nmcli calls."""
+        """Return cached WiFi state.
+
+        This only queries nmcli at most once every 10 seconds to avoid
+        blocking the input loop. The cached state is also updated on boot
+        (initial check) and immediately after a successful connection.
+        """
         now = time.time()
-        # Return cached value if checked within last 30s
-        if now - self._wifi_checked_at < 30:
+        # Return cached value if checked within last 10s
+        if now - self._wifi_checked_at < 10:
             return self._wifi_state
 
         try:
@@ -333,13 +345,13 @@ class Menu:
             )
             state = result.stdout.strip().lower()
             self._wifi_state = 'connected' in state
+            self._wifi_checked_at = now
         except subprocess.TimeoutExpired:
-            # If nmcli hangs, keep last known state
-            pass
+            # If nmcli hangs, update checked timestamp to avoid repeated timeouts
+            self._wifi_checked_at = now
         except Exception:
-            self._wifi_state = False
-
-        self._wifi_checked_at = now
+            # Keep last known state but update timestamp
+            self._wifi_checked_at = now
         return self._wifi_state
 
     def _get_schedule_summary(self):
@@ -678,6 +690,9 @@ class Menu:
             )
             
             if result.returncode == 0:
+                # Mark the indicator connected immediately (successful connect event)
+                self._wifi_state = True
+                self._wifi_checked_at = time.time()
                 time.sleep(1)
                 self.display.show_message("WiFi", f"Connected to\n{ssid}!", (100, 255, 100), self.nav_items, self.nav_selected_index, True)
                 time.sleep(2)
@@ -1683,6 +1698,20 @@ class Menu:
         except Exception as e:
             self.display.show_message("Sync Error", str(e)[:40], (255, 100, 100), self.nav_items, self.nav_selected_index)
             time.sleep(2)
+
+    def _update_wifi_state(self):
+        """Force an immediate wifi state refresh (used on boot).
+
+        This does a single quick nmcli query and updates the cached state and timestamp.
+        """
+        try:
+            result = subprocess.run(['nmcli', '-t', '-f', 'STATE', 'g'], capture_output=True, text=True, timeout=1)
+            state = result.stdout.strip().lower()
+            self._wifi_state = 'connected' in state
+        except Exception:
+            pass
+        finally:
+            self._wifi_checked_at = time.time()
 
         
         last_update = time.time()
