@@ -315,7 +315,12 @@ class Menu:
         
         time_remaining_str = self.format_timedelta(time_remaining) if time_remaining else None
         
-        self.display.show_schedule(period, period_name, time_remaining_str, lunch_time_str, end_time_str, current_time_str, self.nav_items, self.nav_selected_index, wifi_connected)
+        # Extract minutes for display under period
+        minutes_remaining = 0
+        if time_remaining:
+            minutes_remaining = int(time_remaining.total_seconds() // 60)
+        
+        self.display.show_schedule(period, period_name, time_remaining_str, lunch_time_str, end_time_str, current_time_str, self.nav_items, self.nav_selected_index, wifi_connected, minutes_remaining)
     
     def show_clock_screen(self):
         now = datetime.datetime.now()

@@ -261,7 +261,7 @@ class WaveshareDisplay:
         color = (0, 200, 0) if wifi_connected else (200, 0, 0)
         self.draw.rectangle((sidebar_x, y0, self.width, self.height), fill=color)
 
-    def show_schedule(self, period, period_name, time_remaining, lunch_time, end_time, current_time_str, nav_items=None, selected_index=0, wifi_connected=False):
+    def show_schedule(self, period, period_name, time_remaining, lunch_time, end_time, current_time_str, nav_items=None, selected_index=0, wifi_connected=False, minutes_remaining=0):
         self.clear(self._get_bg_color())
         
         y_offset = 2
@@ -277,6 +277,8 @@ class WaveshareDisplay:
         elif period is not None:
             self.draw.text((2, y_offset), f"Period {period}", font=self.font_large, fill=self._get_text_primary_color())
             y_offset += 20
+            self.draw.text((2, y_offset), f"{minutes_remaining}m", font=self.font_small, fill=(100, 255, 100))
+            y_offset += 12
             self.draw.text((2, y_offset), period_name, font=self.font_small, fill=self._get_text_secondary_color())
         else:
             self.draw.text((2, y_offset), "Passing", font=self.font_large, fill=self._get_text_secondary_color())
