@@ -108,6 +108,12 @@ class Menu:
         self.stopwatch_start_ts = 0.0
         self.stopwatch_elapsed = 0.0
         
+        # WiFi password keyboard state
+        self.wifi_password = ""
+        self.wifi_password_ssid = ""
+        self.wifi_keyboard_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()"
+        self.wifi_keyboard_index = 0
+        
         # Load phrases from JSON file
         self.phrases = self._load_phrases()
         # Secret/Konami state (shorter sequence for Developer screen)
