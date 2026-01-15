@@ -1726,6 +1726,9 @@ class Menu:
         finally:
             self._wifi_checked_at = time.time()
 
+    def run(self):
+        import time
+        self.show_main_menu()
         
         last_update = time.time()
         update_interval = 1.0
