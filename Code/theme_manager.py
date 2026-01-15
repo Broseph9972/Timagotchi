@@ -106,6 +106,10 @@ class ThemeManager:
     def get_warning(self):
         return self.get_color('warning', (255, 200, 100))
     
+    def get_sidebar_indicator(self):
+        # Color for the selection indicator line in the sidebar
+        return self.get_color('sidebar_indicator', (255, 255, 0))
+    
     def _get_default_themes(self):
         """Return default themes"""
         return {

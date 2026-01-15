@@ -182,84 +182,65 @@ class WaveshareDisplay:
         self.draw.rectangle((0, 0, self.width, self.height), fill=color)
 
     # Layout constants
-    SIDEBAR_WIDTH = 8  # ultra-narrow gutter for icon placeholders
+    SIDEBAR_WIDTH = 10  # width for sidebar with letter labels
     PROGRESS_BAR_HEIGHT = 8
-    WIFI_BOX_SIZE = 8  # height of wifi indicator bar at sidebar bottom
+    WIFI_BOX_SIZE = 0  # removed wifi box
 
     def _render_sidebar(self, nav_items, selected_index):
-        """Draw the right-side vertical navigation with icons."""
-        if not nav_items:
+        """Draw the right-side vertical navigation with letter labels (M, G, S)."""
+        if not nav_items or len(nav_items) == 0:
             return
-        secondary = self._get_text_secondary_color()
-        accent_sel = (255, 255, 0)
+        
         bg = self._get_bg_color()
-        # Theme-driven colors
         box_fill = self.theme_manager.get_sidebar_box() if self.theme_manager else (30, 30, 30)
         box_fill_sel = self.theme_manager.get_sidebar_box_selected() if self.theme_manager else (60, 60, 40)
-        divider_color = self.theme_manager.get_divider() if self.theme_manager else (80, 80, 80)
+        indicator_color = self.theme_manager.get_sidebar_indicator() if self.theme_manager else (255, 255, 0)
+        
+        # Sidebar area
+        sidebar_x = self.width - self.SIDEBAR_WIDTH
         
         # Clear sidebar area
-        sidebar_x = self.width - self.SIDEBAR_WIDTH
         self.draw.rectangle((sidebar_x, 0, self.width, self.height), fill=bg)
         
-        # Distribute items evenly along sidebar height (leave room for wifi box at bottom)
-        usable_height = self.height - self.WIFI_BOX_SIZE - 2
-        item_height = usable_height // len(nav_items)
+        # Calculate chunk dimensions: divide height into 3 equal parts with 1px gaps
+        num_items = min(len(nav_items), 3)  # Only support 3 items max
+        chunk_height = (self.height - (num_items - 1)) // num_items  # -1 for each gap between items
         
-        for i, item in enumerate(nav_items):
-            y_start = i * item_height
-            y_end = (i + 1) * item_height
-            y_center = y_start + item_height // 2
-            color = accent_sel if i == selected_index else secondary
+        # Letter labels for the three menu items
+        labels = ['M', 'G', 'S']  # Main, Grades, Settings
+        
+        for i in range(num_items):
+            y_start = i * (chunk_height + 1)  # +1 for the gap
+            y_end = y_start + chunk_height
+            
+            # Determine color based on selection
             fill = box_fill_sel if i == selected_index else box_fill
             
-            # Fill box for this item
-            self.draw.rectangle((sidebar_x + 1, y_start + 1, self.width - 1, y_end - 1), fill=fill)
+            # Draw the box
+            self.draw.rectangle((sidebar_x, y_start, self.width - 1, y_end - 1), fill=fill)
             
-            # Divider line between items
-            if i > 0:
-                self.draw.line((sidebar_x, y_start, self.width, y_start), fill=divider_color, width=1)
+            # Draw letter label
+            label = labels[i] if i < len(labels) else ""
+            text_color = self._get_text_primary_color()
             
-            # Try to display icon for this nav item
-            icon_name = self._get_nav_item_icon_name(item)
-            icon = self._get_icon(icon_name) if icon_name else None
+            # Center the letter in the box
+            text_bbox = self.draw.textbbox((0, 0), label, font=self.font_small)
+            text_width = text_bbox[2] - text_bbox[0]
+            text_height = text_bbox[3] - text_bbox[1]
             
-            if icon:
-                # Resize icon to fit in sidebar box
-                margin = 1
-                max_size = self.SIDEBAR_WIDTH - 2 * margin
-                icon_resized = icon.copy()
-                icon_resized.thumbnail((max_size, item_height - 2 * margin), Image.LANCZOS)
-                
-                # Center icon in the box
-                paste_x = sidebar_x + (self.SIDEBAR_WIDTH - icon_resized.width) // 2
-                paste_y = y_start + (item_height - icon_resized.height) // 2
-                # Use alpha channel as mask for transparency
-                if icon_resized.mode == 'RGBA':
-                    self.image.paste(icon_resized, (paste_x, paste_y), icon_resized)
-                else:
-                    self.image.paste(icon_resized, (paste_x, paste_y))
-            else:
-                # Fallback: draw placeholder box if icon not found
-                inner_margin = 1
-                inner_x0 = sidebar_x + inner_margin
-                inner_y0 = y_start + inner_margin
-                inner_x1 = self.width - inner_margin
-                inner_y1 = y_end - inner_margin
-                self.draw.rectangle((inner_x0, inner_y0, inner_x1, inner_y1), outline=divider_color)
+            text_x = sidebar_x + (self.SIDEBAR_WIDTH - text_width) // 2
+            text_y = y_start + (chunk_height - text_height) // 2
             
-            # Selection indicator: small bar to the left
+            self.draw.text((text_x, text_y), label, font=self.font_small, fill=text_color)
+            
+            # Draw selection indicator line to the left of selected item
             if i == selected_index:
                 bar_x = sidebar_x - 2
-                self.draw.line((bar_x, y_start + 2, bar_x, y_end - 2), fill=accent_sel, width=2)
+                self.draw.line((bar_x, y_start, bar_x, y_end - 1), fill=indicator_color, width=2)
 
     def _render_wifi_indicator(self, wifi_connected):
-        """Draw a status bar that matches the sidebar width at the bottom."""
-        bar_height = self.WIFI_BOX_SIZE
-        sidebar_x = self.width - self.SIDEBAR_WIDTH
-        y0 = self.height - bar_height
-        color = (0, 200, 0) if wifi_connected else (200, 0, 0)
-        self.draw.rectangle((sidebar_x, y0, self.width, self.height), fill=color)
+        """Wifi indicator removed - no longer displayed."""
+        pass
 
     def show_schedule(self, period, period_name, time_remaining, lunch_time, end_time, current_time_str, nav_items=None, selected_index=0, wifi_connected=False, minutes_remaining=0):
         self.clear(self._get_bg_color())
