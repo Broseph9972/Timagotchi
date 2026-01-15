@@ -10,7 +10,8 @@ from config import (
     PERIOD_LENGTH, PASSING_TIME, A_DAY_PERIODS, B_DAY_PERIODS,
     freetimedaus, USE_24_HOUR,
     AB_DAY_MODE, MANUAL_AB_DAY, abday, PROGRESS_BAR_MODE,
-    ADVISORY_START, ADVISORY_PERIOD, advisory, advisorylength, advisorydays
+    ADVISORY_START, ADVISORY_PERIOD, advisory, advisorylength, advisorydays,
+    WIFI_NETWORKS
 )
 from input_handler import InputHandler
 from theme_manager import ThemeManager
@@ -618,15 +619,19 @@ class Menu:
             self.show_settings_menu()
     
     def show_wifi_menu(self):
-        """Show WiFi networks available."""
+        """Show WiFi networks available with color-coding for known/open vs unknown/secured."""
         wifi_connected = self._get_wifi_connected()
-        message = "Scanning WiFi...\nPlease wait."
+        message = "Scanning WiFi..."
+Please wait."
         self.display.show_message("WiFi", message, (100, 200, 255), self.nav_items, self.nav_selected_index, wifi_connected)
         
-        # Get available networks
+        # Build set of known network SSIDs from config
+        known_networks = {ssid for ssid, pwd in WIFI_NETWORKS}
+        
+        # Get available networks with security info
         try:
             result = subprocess.run(
-                ['nmcli', '-t', '-f', 'SSID,SIGNAL', 'device', 'wifi', 'list'],
+                ['nmcli', '-t', '-f', 'SSID,SIGNAL,SECURITY', 'device', 'wifi', 'list'],
                 capture_output=True,
                 text=True,
                 timeout=5
@@ -635,14 +640,32 @@ class Menu:
             
             self.wifi_networks = []
             for line in lines:
-                # NMCLI -t with SSID,SIGNAL returns lines like "MySSID:70" or ":52" for hidden SSIDs
-                try:
-                    ssid, signal = line.rsplit(':', 1)
-                except ValueError:
-                    ssid = line
-                    signal = "0"
+                # NMCLI -t with SSID,SIGNAL,SECURITY returns: "SSID:signal:security"
+                # Security is either "" (open) or something like "WPA2" etc.
+                parts = line.rsplit(':', 2)  # Split from right to get last 2 items (signal, security)
+                if len(parts) == 3:
+                    ssid, signal, security = parts
+                elif len(parts) == 2:
+                    ssid = parts[0]
+                    signal = parts[1]
+                    security = ""
+                else:
+                    continue
+                
                 ssid = ssid if ssid else "<hidden>"
-                self.wifi_networks.append((ssid, signal))
+                security = security if security else ""  # Empty string means open network
+                
+                # Determine if network is known or open
+                is_known = ssid in known_networks
+                is_open = security == ""
+                
+                # Green: known or open. Red: unknown with password.
+                if is_known or is_open:
+                    color = "green"
+                else:
+                    color = "red"
+                
+                self.wifi_networks.append((ssid, signal, security, color))
             
             if not self.wifi_networks:
                 self.display.show_message("WiFi", "No networks found.\nMake sure WiFi is enabled.", (200, 100, 100), self.nav_items, self.nav_selected_index, wifi_connected)
@@ -654,20 +677,23 @@ class Menu:
             self.display.show_message("WiFi", f"Error: {str(e)[:50]}\nMake sure nmcli\nis installed", (200, 100, 100), self.nav_items, self.nav_selected_index, wifi_connected)
     
     def _draw_wifi_list(self):
-        """Draw the WiFi network list."""
+        """Draw the WiFi network list with color-coded security."""
         wifi_connected = self._get_wifi_connected()
         if not hasattr(self, 'wifi_networks') or not self.wifi_networks:
             self.display.show_message("WiFi", "No networks", (200, 100, 100), self.nav_items, self.nav_selected_index, wifi_connected)
             return
         
-        # Show current selection
+        # Show current selection with color legend
         if self.wifi_selected < len(self.wifi_networks):
-            ssid, signal = self.wifi_networks[self.wifi_selected]
-            message = f"SSID: {ssid}\nSignal: {signal}\n\nSelect to\nconnect"
+            ssid, signal, security, color = self.wifi_networks[self.wifi_selected]
+            # Convert color name to RGB
+            color_rgb = (0, 255, 0) if color == "green" else (255, 0, 0)
+            security_label = "Open" if security == "" else "Locked"
+            message = f"SSID: {ssid}\nSignal: {signal}\n{security_label}\n\nSelect to connect"
+            self.display.show_message("WiFi", message, color_rgb, self.nav_items, self.nav_selected_index, wifi_connected)
         else:
             message = "No selection"
-        
-        self.display.show_message("WiFi", message, (100, 200, 255), self.nav_items, self.nav_selected_index, wifi_connected)
+            self.display.show_message("WiFi", message, (100, 200, 255), self.nav_items, self.nav_selected_index, wifi_connected)
     
     def handle_wifi_input(self, action):
         """Handle WiFi menu navigation and connection."""
@@ -682,7 +708,7 @@ class Menu:
             self._draw_wifi_list()
         elif action in ('select', 'right'):
             if self.wifi_networks and self.wifi_selected < len(self.wifi_networks):
-                ssid, _ = self.wifi_networks[self.wifi_selected]
+                ssid, _, _, _ = self.wifi_networks[self.wifi_selected]
                 self._connect_to_wifi(ssid)
         elif action == 'left':
             self.current_screen = "settings"
