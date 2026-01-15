@@ -627,8 +627,7 @@ class Menu:
     def show_wifi_menu(self):
         """Show WiFi networks available with color-coding for known/open vs unknown/secured."""
         wifi_connected = self._get_wifi_connected()
-        message = "Scanning WiFi..."
-Please wait."
+        message = "Scanning WiFi...\nPlease wait."
         self.display.show_message("WiFi", message, (100, 200, 255), self.nav_items, self.nav_selected_index, wifi_connected)
         
         # Build set of known network SSIDs from config
