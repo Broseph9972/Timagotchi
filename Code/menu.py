@@ -714,25 +714,80 @@ Please wait."
             self._draw_wifi_list()
         elif action in ('select', 'right'):
             if self.wifi_networks and self.wifi_selected < len(self.wifi_networks):
-                ssid, _, _, _ = self.wifi_networks[self.wifi_selected]
-                self._connect_to_wifi(ssid)
+                ssid, _, security, _ = self.wifi_networks[self.wifi_selected]
+                self._connect_to_wifi(ssid, security)
         elif action == 'left':
             self.current_screen = "settings"
             self.selected_index = 0
             self.show_settings_menu()
     
-    def _connect_to_wifi(self, ssid):
-        """Attempt to connect to a WiFi network."""
+    def _connect_to_wifi(self, ssid, security=""):
+        """Initiate WiFi connection. If secured, prompt for password."""
+        if security and security != "":
+            # Network requires password - show keyboard
+            self.wifi_password = ""
+            self.wifi_password_ssid = ssid
+            self.wifi_keyboard_index = 0
+            self.current_screen = "wifi_password"
+            self.show_wifi_keyboard()
+        else:
+            # Open network - attempt direct connection
+            self._attempt_wifi_connect(ssid, "")
+    
+    def show_wifi_keyboard(self):
+        """Display WiFi password keyboard."""
+        wifi_connected = self._get_wifi_connected()
+        current_char = self.wifi_keyboard_chars[self.wifi_keyboard_index]
+        masked_password = "*" * len(self.wifi_password)
+        message = f"Enter password:\n{masked_password}\n\nChar: {current_char}\n\nUp/Dn: Select\nSel: Add\nL: Back"
+        self.display.show_message("WiFi Password", message, (150, 200, 255), self.nav_items, self.nav_selected_index, wifi_connected)
+    
+    def handle_wifi_password_input(self, action):
+        """Handle WiFi password keyboard input."""
+        if action == 'up':
+            self.wifi_keyboard_index = (self.wifi_keyboard_index - 1) % len(self.wifi_keyboard_chars)
+            self.show_wifi_keyboard()
+        elif action == 'down':
+            self.wifi_keyboard_index = (self.wifi_keyboard_index + 1) % len(self.wifi_keyboard_chars)
+            self.show_wifi_keyboard()
+        elif action in ('select', 'right'):
+            # Add current character to password
+            self.wifi_password += self.wifi_keyboard_chars[self.wifi_keyboard_index]
+            self.show_wifi_keyboard()
+        elif action == 'key1':
+            # Backspace - remove last character
+            if self.wifi_password:
+                self.wifi_password = self.wifi_password[:-1]
+            self.show_wifi_keyboard()
+        elif action == 'key2':
+            # Connect with current password
+            self._attempt_wifi_connect(self.wifi_password_ssid, self.wifi_password)
+        elif action == 'key3' or action == 'left':
+            # Cancel and return to WiFi menu
+            self.current_screen = "wifi"
+            self.show_wifi_menu()
+    
+    def _attempt_wifi_connect(self, ssid, password):
+        """Attempt actual connection to WiFi network."""
         self.display.show_message("WiFi", f"Connecting to\n{ssid}...", (100, 200, 255), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
         
         try:
-            # Try to connect to the network (assumes it's open or remembers password)
-            result = subprocess.run(
-                ['nmcli', 'device', 'wifi', 'connect', ssid],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
+            if password:
+                # Connect with password
+                result = subprocess.run(
+                    ['nmcli', 'device', 'wifi', 'connect', ssid, 'password', password],
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+            else:
+                # Connect to open network
+                result = subprocess.run(
+                    ['nmcli', 'device', 'wifi', 'connect', ssid],
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
             
             if result.returncode == 0:
                 # Mark the indicator connected immediately (successful connect event)
@@ -750,6 +805,7 @@ Please wait."
             time.sleep(2)
         
         # Return to WiFi menu
+        self.current_screen = "wifi"
         self.show_wifi_menu()
     
     def show_ab_day_menu(self):
@@ -1811,6 +1867,8 @@ Please wait."
                     self.handle_settings_input(action)
                 elif self.current_screen == "wifi":
                     self.handle_wifi_input(action)
+                elif self.current_screen == "wifi_password":
+                    self.handle_wifi_password_input(action)
                 elif self.current_screen == "ab_day":
                     self.handle_ab_day_input(action)
                 elif self.current_screen == "theme":
