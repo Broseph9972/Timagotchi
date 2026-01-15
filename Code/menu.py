@@ -40,9 +40,13 @@ class Menu:
         self._wifi_checked_at = 0.0
         # Initial quick check at boot to set indicator once early
         try:
-            self._update_wifi_state()
+            result = subprocess.run(['nmcli', '-t', '-f', 'STATE', 'g'], capture_output=True, text=True, timeout=1)
+            state = result.stdout.strip().lower()
+            self._wifi_state = 'connected' in state
         except Exception:
             pass
+        finally:
+            self._wifi_checked_at = time.time()
         # Build settings menu items based on config
         self.settings_menu_items = []
         if abday.lower() == "true":
