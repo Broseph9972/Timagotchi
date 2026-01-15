@@ -229,6 +229,10 @@ class Menu:
             period_start = datetime.datetime.combine(datetime.date.today(), period_start_time)
             period_end = period_start + datetime.timedelta(minutes=PERIOD_LENGTH)
             
+            # If period end would extend into lunch, cap it at lunch start
+            if period_end > lunch_start and period_start < lunch_start:
+                period_end = lunch_start
+            
             if period_start <= current_time < period_end:
                 time_remaining = period_end - current_time
                 hours = time_remaining.seconds // 3600
