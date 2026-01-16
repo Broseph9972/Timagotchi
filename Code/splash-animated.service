@@ -1,15 +1,20 @@
 [Unit]
 Description=Timagotchi Animated Splash Screen
-After=network.target
-Before=schedule-display.service
+DefaultDependencies=no
+After=sysinit.target
+Before=multi-user.target
 
 [Service]
 Type=oneshot
 User=root
+Group=root
 WorkingDirectory=/home/pi/schedule-display/Code
 ExecStart=/usr/bin/python3 splash_animated.py
 Restart=no
-RemainAfterExit=no
+RemainAfterExit=yes
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONUNBUFFERED=1
 
 [Install]
 WantedBy=multi-user.target
