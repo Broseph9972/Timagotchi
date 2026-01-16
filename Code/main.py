@@ -50,6 +50,16 @@ try:
     menu = Menu(display, input_handler)
     print("Menu system ready")
     
+    # Signal splash screen that we're ready
+    # This allows the animated splash to exit gracefully
+    try:
+        ready_file = '/tmp/timagotchi_ready'
+        with open(ready_file, 'w') as f:
+            f.write('1')
+        print("Sent ready signal to splash screen")
+    except Exception as e:
+        print(f"Warning: Could not write ready signal: {e}")
+    
     menu.run()
     
     print("Exiting...")

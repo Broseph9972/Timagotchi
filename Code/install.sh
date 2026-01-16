@@ -91,8 +91,36 @@ SERVICEFILE
 # Fix permissions on service file
 sudo chmod 644 /etc/systemd/system/timagotchi.service
 
+# Install splash-animated.service
+echo "Installing Splash screen service..."
+sudo tee /etc/systemd/system/splash-animated.service > /dev/null <<SPLASHFILE
+[Unit]
+Description=Timagotchi Animated Splash Screen
+After=network.target
+Before=timagotchi.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+WorkingDirectory=$SCRIPT_DIR
+ExecStart=/usr/bin/python3 $SCRIPT_DIR/splash_animated.py
+Restart=no
+RemainAfterExit=no
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+SPLASHFILE
+
+# Fix permissions on splash service file
+sudo chmod 644 /etc/systemd/system/splash-animated.service
+
 # Enable and reload
 sudo systemctl daemon-reload
+sudo systemctl enable splash-animated.service
 sudo systemctl enable timagotchi.service
 
 # Verify service is enabled

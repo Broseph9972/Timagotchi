@@ -1,6 +1,7 @@
 [Unit]
 Description=Pi Schedule Display
-After=network.target
+After=network.target splash-animated.service
+Wants=splash-animated.service
 
 [Service]
 Type=simple
