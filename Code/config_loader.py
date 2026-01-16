@@ -33,6 +33,23 @@ PASSING_TIME = _config['schedule']['passing_time']
 A_DAY_PERIODS = {int(k): v for k, v in _config['schedule']['period_names_a'].items()}
 B_DAY_PERIODS = {int(k): v for k, v in _config['schedule']['period_names_b'].items()}
 
+# Day presets (new format supporting multiple presets beyond A/B)
+DAY_PRESETS = {}
+NUM_DAY_PRESETS = 2
+try:
+    if 'day_presets' in _config['schedule']:
+        # New format with multiple presets
+        DAY_PRESETS = {k: {int(pk): pv for pk, pv in v.items()} 
+                       for k, v in _config['schedule']['day_presets'].items()}
+        NUM_DAY_PRESETS = len(DAY_PRESETS)
+    else:
+        # Fallback to legacy A/B format
+        DAY_PRESETS = {'A': A_DAY_PERIODS, 'B': B_DAY_PERIODS}
+        NUM_DAY_PRESETS = 2
+except Exception:
+    DAY_PRESETS = {'A': A_DAY_PERIODS, 'B': B_DAY_PRESETS}
+    NUM_DAY_PRESETS = 2
+
 # Lunch
 LUNCH_START = _config['schedule']['lunch']['start']
 LUNCH_END = _config['schedule']['lunch']['end']
@@ -76,8 +93,8 @@ PROGRESS_BAR_MODE = _config['display']['progress_bar_mode']
 def reload_config():
     """Reload configuration from JSON file"""
     global _config, SCHOOL_START, SCHOOL_END, USE_24_HOUR, PERIODS, PERIOD_LENGTH
-    global PASSING_TIME, A_DAY_PERIODS, B_DAY_PERIODS, LUNCH_START, LUNCH_END
-    global lunchlength, ADVISORY_START, advisory, advisorylength, advisorydays
+    global PASSING_TIME, A_DAY_PERIODS, B_DAY_PERIODS, DAY_PRESETS, NUM_DAY_PRESETS
+    global LUNCH_START, LUNCH_END, lunchlength, ADVISORY_START, advisory, advisorylength, advisorydays
     global abday, AB_DAY_MODE, MANUAL_AB_DAY, WIFI_NETWORKS, TIME_SYNC_MODE
     global TIME_SYNC_INTERVAL, TIMEZONE, PROGRESS_BAR_MODE
     
@@ -92,6 +109,18 @@ def reload_config():
     PASSING_TIME = _config['schedule']['passing_time']
     A_DAY_PERIODS = {int(k): v for k, v in _config['schedule']['period_names_a'].items()}
     B_DAY_PERIODS = {int(k): v for k, v in _config['schedule']['period_names_b'].items()}
+    # Reload day presets
+    try:
+        if 'day_presets' in _config['schedule']:
+            DAY_PRESETS = {k: {int(pk): pv for pk, pv in v.items()} 
+                           for k, v in _config['schedule']['day_presets'].items()}
+            NUM_DAY_PRESETS = len(DAY_PRESETS)
+        else:
+            DAY_PRESETS = {'A': A_DAY_PERIODS, 'B': B_DAY_PERIODS}
+            NUM_DAY_PRESETS = 2
+    except Exception:
+        DAY_PRESETS = {'A': A_DAY_PERIODS, 'B': B_DAY_PERIODS}
+        NUM_DAY_PRESETS = 2
     LUNCH_START = _config['schedule']['lunch']['start']
     LUNCH_END = _config['schedule']['lunch']['end']
     lunchlength = str(_config['schedule']['lunch'].get('duration', 25))

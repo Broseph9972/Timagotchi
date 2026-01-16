@@ -28,13 +28,34 @@ def get_time_input(prompt, use_24h=False):
         except ValueError:
             print("Invalid time format. Please try again.")
 
-def get_period_names(day_label, num_periods=6):
+def get_period_names(day_label, num_periods=6, previous_periods=None):
+    """
+    Get period names for a day preset.
+    
+    Args:
+        day_label: Label for the day (e.g., "A day", "B day", "C day")
+        num_periods: Number of periods
+        previous_periods: Dict of period names from previous day to optionally copy from
+    """
     periods = {}
-    print(f"\nEnter {day_label} period names (or press Enter to skip):")
+    print(f"\nEnter {day_label} period names:")
+    print("(Press Enter to skip, or 'c' to copy from previous day preset)" if previous_periods else "(Press Enter to skip):")
+    
     for i in range(1, num_periods + 1):
-        name = input(f"{day_label} period {i} name: ").strip()
-        if name:
+        prompt = f"{day_label} period {i} name"
+        if previous_periods and i in previous_periods:
+            prompt += f" (previous: '{previous_periods[i]}')"
+        prompt += ": "
+        
+        name = input(prompt).strip()
+        
+        if name.lower() == 'c' and previous_periods and i in previous_periods:
+            # Copy from previous day
+            periods[i] = previous_periods[i]
+            print(f"  → Copied: {periods[i]}")
+        elif name:
             periods[i] = name
+    
     return periods
 def main():
     print("School Schedule Configuration\n")
@@ -101,29 +122,65 @@ def main():
 
         current_time = next_start
 
-    has_ab = input("\nDoes your school use A/B day scheduling? (y/n): ").lower() == 'y'
-    a_day_periods = {}
-    b_day_periods = {}
+    has_ab = input("\nDoes your school use rotating day presets? (y/n): ").lower() == 'y'
+    day_presets = {}
     ab_day_mode = "auto"
     manual_ab_day = "a"
     
     if has_ab:
-        a_day_periods = get_period_names("A day", num_periods)
-        b_day_periods = get_period_names("B day", num_periods)
-        
-        # A/B Day Mode Configuration
+        # Ask how many day presets
         print("\n" + "="*50)
-        print("A/B Day Mode Configuration")
+        print("Day Preset Configuration")
         print("="*50)
-        print("Choose A/B day mode:")
+        print("Examples: 2 presets (A/B days), 3 presets (A/B/C days), etc.")
+        
+        num_presets_str = input("How many day presets? (default: 2): ").strip()
+        try:
+            num_presets = int(num_presets_str)
+            if num_presets < 1:
+                num_presets = 2
+        except ValueError:
+            num_presets = 2
+        
+        # Generate preset names/labels
+        preset_labels = []
+        if num_presets == 2:
+            preset_labels = ["A day", "B day"]
+        elif num_presets == 3:
+            preset_labels = ["A day", "B day", "C day"]
+        else:
+            for i in range(num_presets):
+                preset_labels.append(chr(65 + i) + " day")  # A day, B day, C day, etc.
+        
+        # Get period names for each preset
+        previous_periods = None
+        for idx, label in enumerate(preset_labels):
+            day_presets[idx] = get_period_names(label, num_periods, previous_periods)
+            previous_periods = day_presets[idx]
+        
+        # Day Preset Mode Configuration
+        print("\n" + "="*50)
+        print("Day Preset Mode Configuration")
+        print("="*50)
+        print("Choose rotation mode:")
         print("1. Auto (rotates based on calendar)")
-        print("2. Manual (you set current day as A or B)")
-        ab_mode_choice = input("Select mode (1 or 2, default: 1): ").strip()
-        ab_day_mode = "auto" if ab_mode_choice != "2" else "manual"
+        print("2. Manual (you set current preset)")
+        mode_choice = input("Select mode (1 or 2, default: 1): ").strip()
+        ab_day_mode = "auto" if mode_choice != "2" else "manual"
+        
         if ab_day_mode == "manual":
-            manual_ab_day = input("Set current day as (a or b, default: a): ").strip().lower()
-            if manual_ab_day not in ["a", "b"]:
-                manual_ab_day = "a"
+            print(f"\nAvailable presets: {', '.join(preset_labels)}")
+            manual_ab_day = input(f"Set current preset (1-{num_presets}, default: 1): ").strip()
+            try:
+                preset_idx = int(manual_ab_day) - 1
+                if preset_idx < 0 or preset_idx >= num_presets:
+                    manual_ab_day = "0"
+                else:
+                    manual_ab_day = str(preset_idx)
+            except ValueError:
+                manual_ab_day = "0"
+        else:
+            manual_ab_day = "0"  # First preset by default
 
     # WiFi Network Configuration
     print("\n" + "="*50)
@@ -199,10 +256,36 @@ def main():
         f'LUNCH_START = "{lunch_start}"',
         f'LUNCH_END = "{lunch_end}"',
         "",
-        "# Period names",
-        f"A_DAY_PERIODS = {a_day_periods}",
+        "# Period names - Day presets",
+        "# DAY_PRESETS is a dictionary where each key is the preset name and value is the periods dict",
+        "DAY_PRESETS = {",
+    ]
+    
+    # Add each day preset
+    if has_ab:
+        for idx, label in enumerate(preset_labels):
+            preset_key = chr(65 + idx)  # A, B, C, etc.
+            config_lines.append(f'    "{preset_key}": {day_presets[idx]},')
+    
+    config_lines.extend([
+        "}",
         "",
-        f"B_DAY_PERIODS = {b_day_periods}",
+        "# Legacy support (for backward compatibility)",
+        "# A_DAY_PERIODS and B_DAY_PERIODS are deprecated; use DAY_PRESETS instead",
+    ])
+    
+    # Add legacy A_DAY_PERIODS and B_DAY_PERIODS if they exist
+    if has_ab and len(day_presets) >= 1:
+        config_lines.append(f"A_DAY_PERIODS = {day_presets[0]}")
+    else:
+        config_lines.append("A_DAY_PERIODS = {}")
+    
+    if has_ab and len(day_presets) >= 2:
+        config_lines.append(f"B_DAY_PERIODS = {day_presets[1]}")
+    else:
+        config_lines.append("B_DAY_PERIODS = {}")
+    
+    config_lines.extend([
         "",
         "# Period lengths (in minutes)",
         f"PERIOD_LENGTH = {period_length}",
@@ -211,10 +294,10 @@ def main():
         "# Additional settings",
         f'lunchlength = "{lunch_length}"',
         f'abday = "{str(has_ab).lower()}"',
-        "# Manual A/B day selection (can be \"auto\", \"a\", or \"b\")",
-        "# Set to \"a\" or \"b\" to manually select, or \"auto\" for automatic rotation",
+        f'NUM_DAY_PRESETS = {num_presets if has_ab else 1}  # Number of rotating day presets',
+        "# Manual day preset selection (\"auto\" for rotation, or 0-based index like \"0\", \"1\", \"2\")",
         f'AB_DAY_MODE = "{ab_day_mode}"  # "auto" or "manual"',
-        f'MANUAL_AB_DAY = "{manual_ab_day}"   # Current day when in manual mode ("a" or "b")',
+        f'MANUAL_AB_DAY = "{manual_ab_day}"   # Current preset when in manual mode (0-based index)',
         "",
         "# WiFi Networks",
         "# List of (SSID, PASSWORD) tuples. Use empty string \"\" for open networks",

@@ -20,6 +20,14 @@ import requests
 from urllib.parse import urljoin
 from games_config import get_game_command
 
+# Try to load newer config with DAY_PRESETS and NUM_DAY_PRESETS
+try:
+    from config_loader import DAY_PRESETS, NUM_DAY_PRESETS
+except ImportError:
+    # Fallback to legacy A/B day format
+    DAY_PRESETS = {"A": A_DAY_PERIODS, "B": B_DAY_PERIODS}
+    NUM_DAY_PRESETS = 2
+
 class Menu:
     def __init__(self, display, input_handler):
         self.display = display
@@ -51,24 +59,28 @@ class Menu:
         # Build settings menu items based on config
         self.settings_menu_items = []
         if abday.lower() == "true":
-            self.settings_menu_items.append("A/B Day")
+            # Label based on number of presets
+            if NUM_DAY_PRESETS > 2:
+                self.settings_menu_items.append("Day Presets")
+            else:
+                self.settings_menu_items.append("A/B Day")
         self.settings_menu_items.extend(["WiFi", "Theme", "Backlight", "Power Saver", "Progress Bar", "Set Time", "Stopwatch", "Configuration Portal", "Developer", "Update", "Restart"])
         self.settings_scroll_offset = 0
         self.set_time_menu_items = ["Manual Set", "Sync Now"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
         self.adjust_hour = 0
         self.adjust_minute = 0
-        self.ab_day_mode = AB_DAY_MODE  # "auto", "a", or "b"
-        self.manual_ab_day = MANUAL_AB_DAY  # "a" or "b" when in manual mode
+        self.ab_day_mode = AB_DAY_MODE  # "auto" or "manual"
+        self.manual_ab_day = MANUAL_AB_DAY  # 0-based index when in manual mode
         self.last_sync_error = None  # Track last time-setting error
         self.progress_bar_modes = ["time_in_class", "time_in_day", "lunch_day"]
         self.progress_bar_mode = PROGRESS_BAR_MODE
         self.progress_bar_mode_index = self.progress_bar_modes.index(self.progress_bar_mode) if self.progress_bar_mode in self.progress_bar_modes else 0
         
-        # Preset scheduling state (1=single schedule, 2=two presets that rotate daily)
+        # Preset scheduling state
         self.state_path = os.path.join(os.path.dirname(__file__), 'schedule_state.json')
-        self.presets_count = 2  # default to 2 presets
-        self.current_preset_index = 0  # 0 = A_DAY_PERIODS, 1 = B_DAY_PERIODS
+        self.presets_count = NUM_DAY_PRESETS  # Number of presets (A, B, C, etc.)
+        self.current_preset_index = 0  # Current preset index
         self.last_advance_date = None
         # Backlight level (percentage 0-100)
         try:
@@ -301,16 +313,10 @@ class Menu:
         elif period == "LUNCH":
             period_name = "Lunch"
         elif period is not None and isinstance(period, int):
-            # Determine period name based on presets
-            if self.presets_count == 2:
-                if self.current_preset_index == 1 and period in B_DAY_PERIODS:
-                    period_name = B_DAY_PERIODS[period]
-                elif period in A_DAY_PERIODS:
-                    period_name = A_DAY_PERIODS[period]
-                else:
-                    period_name = f"Period {period}"
-            else:
-                period_name = A_DAY_PERIODS.get(period, f"Period {period}")
+            # Get period name based on current preset
+            preset_key = list(DAY_PRESETS.keys())[self.current_preset_index % len(DAY_PRESETS)]
+            current_preset = DAY_PRESETS.get(preset_key, {})
+            period_name = current_preset.get(period, f"Period {period}")
         
         lunch_time_str = None
         lunch_start_dt = datetime.datetime.strptime(LUNCH_START, "%H:%M").time()
@@ -398,11 +404,10 @@ class Menu:
         # map to name
         if isinstance(period, int):
             if abday.lower() == "true":
-                current_day = self.get_current_ab_day()
-                if current_day == "b" and period in B_DAY_PERIODS:
-                    name = B_DAY_PERIODS[period]
-                else:
-                    name = A_DAY_PERIODS.get(period, f"Period {period}")
+                # Get period name from current preset
+                preset_key = list(DAY_PRESETS.keys())[self.current_preset_index % len(DAY_PRESETS)]
+                current_preset = DAY_PRESETS.get(preset_key, {})
+                name = current_preset.get(period, f"Period {period}")
             else:
                 name = A_DAY_PERIODS.get(period, f"Period {period}")
             rem = self.format_timedelta(time_remaining) if time_remaining else ""
@@ -503,13 +508,10 @@ class Menu:
                         elapsed = (now - start_dt).total_seconds()
                         total = (end_dt - start_dt).total_seconds()
                         progress = int((elapsed / total) * 100) if total > 0 else 0
-                        # Get class name from A_DAY or B_DAY periods
-                        class_name = "Class"
-                        if self.presets_count == 2:
-                            day_periods = A_DAY_PERIODS if self.current_preset_index == 0 else B_DAY_PERIODS
-                            class_name = day_periods.get(p, f"Period {p}")
-                        else:
-                            class_name = A_DAY_PERIODS.get(p, f"Period {p}")
+                        # Get class name from current preset
+                        preset_key = list(DAY_PRESETS.keys())[self.current_preset_index % len(DAY_PRESETS)]
+                        current_preset = DAY_PRESETS.get(preset_key, {})
+                        class_name = current_preset.get(p, f"Period {p}")
                         return f"{class_name}: {progress}% - {p}", progress
 
                 # Not in class: determine if Passing, Before school, or After school
@@ -808,10 +810,18 @@ class Menu:
         self.show_wifi_menu()
     
     def show_ab_day_menu(self):
-        label = 'A' if self.current_preset_index == 0 else 'B'
-        message = f"A/B Day: {label}\n\nUp/Down: Toggle\nSelect: Done"
+        preset_keys = list(DAY_PRESETS.keys())
+        current_label = preset_keys[self.current_preset_index % len(preset_keys)]
+        
+        if len(preset_keys) > 2:
+            message = f"Day Preset: {current_label}\n\nUp/Down: Change\nSelect: Done"
+            title = "Day Preset"
+        else:
+            message = f"A/B Day: {current_label}\n\nUp/Down: Toggle\nSelect: Done"
+            title = "A/B Day"
+        
         wifi_connected = self._get_wifi_connected()
-        self.display.show_message("A/B Day", message, (200, 150, 255), self.nav_items, self.nav_selected_index, wifi_connected)
+        self.display.show_message(title, message, (200, 150, 255), self.nav_items, self.nav_selected_index, wifi_connected)
     
     def show_set_time_menu(self):
         wifi_connected = self._get_wifi_connected()
@@ -877,9 +887,14 @@ class Menu:
             self.show_settings_menu()
     
     def handle_ab_day_input(self, action):
+        preset_keys = list(DAY_PRESETS.keys())
+        num_presets = len(preset_keys)
+        
         if action in ('up', 'down'):
-            # Toggle between A and B
-            self.current_preset_index = 0 if self.current_preset_index == 1 else 1
+            if action == 'up':
+                self.current_preset_index = (self.current_preset_index - 1) % num_presets
+            else:
+                self.current_preset_index = (self.current_preset_index + 1) % num_presets
             self.last_advance_date = datetime.date.today().isoformat()
             self._save_state()
             self.show_ab_day_menu()
@@ -927,7 +942,7 @@ class Menu:
             if selected_item == "WiFi":
                 self.current_screen = "wifi"
                 self.show_wifi_menu()
-            elif selected_item == "A/B Day":
+            elif selected_item in ("A/B Day", "Day Presets"):
                 self.current_screen = "ab_day"
                 self.show_ab_day_menu()
             elif selected_item == "Theme":
