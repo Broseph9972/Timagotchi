@@ -2,6 +2,9 @@
 ## MESSAGE TO BLUEPRINT - My project has no real wiring because i decided to use a power bank and a premade HAT. one of you asked for that, so im just keeping this here for now.
 ![Pic of it working](Pics/IMG_0855.jpeg)
 ![Pic of it working 2](Pics/IMG_0856.jpeg)
+![Case](Pics/Case.jpg)
+![Joystick](Pics/joystick.png)
+![Button](Pics/button.png)
 A school schedule display system for Raspberry Pi Zero WH with Waveshare 1.44" LCD HAT.
 ## LOTS OF CODE IS AI, README IS NOT AI
 ## Overview
