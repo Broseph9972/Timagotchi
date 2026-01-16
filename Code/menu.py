@@ -5,7 +5,7 @@ import time
 import json
 import os
 import sys
-from config import (
+from config_loader import (
     PERIODS, SCHOOL_START, SCHOOL_END, LUNCH_START, LUNCH_END,
     PERIOD_LENGTH, PASSING_TIME, A_DAY_PERIODS, B_DAY_PERIODS,
     freetimedaus, USE_24_HOUR,

@@ -34,18 +34,21 @@
     },
     "ab_day": {
       "enabled": true,
-      "mode": "auto"
+      "mode": "auto",
+      "manual_selection": "a"
     },
     "advisory": {
       "enabled": true,
       "start": "09:20",
       "length": 36,
+      "duration": 25,
       "days": "m,t"
     },
     "lunch": {
       "enabled": true,
       "start": "13:40",
-      "end": "14:05"
+      "end": "14:05",
+      "duration": 25
     }
   },
   "display": {
@@ -54,7 +57,7 @@
     "theme": "dark"
   },
   "system": {
-    "time_sync": "on_boot",
+    "time_sync": "disabled",
     "time_sync_interval": 6,
     "wifi_networks": []
   },
