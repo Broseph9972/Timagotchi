@@ -252,10 +252,16 @@ class WaveshareDisplay:
 
         if period == "LUNCH":
             self.draw.text((2, y_offset), "LUNCH", font=self.font_large, fill=(255, 200, 0))
+            y_offset += 20
+            self.draw.text((2, y_offset), f"{minutes_remaining}m", font=self.font_small, fill=(100, 255, 100))
         elif period == "ADVISORY":
             self.draw.text((2, y_offset), "ADVISORY", font=self.font_large, fill=(0, 255, 150))
+            y_offset += 20
+            self.draw.text((2, y_offset), f"{minutes_remaining}m", font=self.font_small, fill=(100, 255, 100))
         elif period == "FREETIME":
             self.draw.text((2, y_offset), "FREE TIME", font=self.font_medium, fill=(150, 255, 150))
+            y_offset += 20
+            self.draw.text((2, y_offset), f"{minutes_remaining}m", font=self.font_small, fill=(100, 255, 100))
         elif period is not None:
             self.draw.text((2, y_offset), f"Period {period}", font=self.font_large, fill=self._get_text_primary_color())
             y_offset += 20

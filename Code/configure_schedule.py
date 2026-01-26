@@ -117,8 +117,8 @@ def main():
 
         # If this is the period after which lunch should occur, insert lunch
         if i == lunch_after_period:
-            # Insert lunch instead of next period
-            next_start = lunch_end_time
+            # Insert lunch, then add passing time after lunch ends
+            next_start = lunch_end_time + timedelta(minutes=pass_min)
 
         current_time = next_start
 

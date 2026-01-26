@@ -226,15 +226,16 @@ class Menu:
     
     def get_current_period(self, current_time):
         lunch_start = datetime.datetime.strptime(LUNCH_START, "%H:%M").time()
-        lunch_start = datetime.datetime.combine(datetime.date.today(), lunch_start)
+        lunch_start_dt = datetime.datetime.combine(datetime.date.today(), lunch_start)
         lunch_end = datetime.datetime.strptime(LUNCH_END, "%H:%M").time()
-        lunch_end = datetime.datetime.combine(datetime.date.today(), lunch_end)
+        lunch_end_dt = datetime.datetime.combine(datetime.date.today(), lunch_end)
         
-        if lunch_start <= current_time < lunch_end:
-            time_remaining = lunch_end - current_time
-            return "LUNCH", time_remaining, True
+        # Check if currently in lunch
+        if lunch_start_dt <= current_time < lunch_end_dt:
+            time_remaining = lunch_end_dt - current_time
+            return "LUNCH", time_remaining, False
         
-        # Advisory every weekday before period 1 (ignore advisorydays)
+        # Advisory every weekday before period 1
         if advisory.lower() == "true":
             if datetime.date.today().weekday() < 5:
                 advisory_start = datetime.datetime.strptime(ADVISORY_START, "%H:%M").time()
@@ -245,24 +246,30 @@ class Menu:
                     time_remaining = advisory_end - current_time
                     return "ADVISORY", time_remaining, False
         
-        for period in range(1, 9):
-            if period not in PERIODS:
-                continue
+        # Get sorted period list
+        sorted_periods = sorted(PERIODS.keys())
+        
+        for i, period in enumerate(sorted_periods):
             period_start_time = datetime.datetime.strptime(PERIODS[period], "%H:%M").time()
             period_start = datetime.datetime.combine(datetime.date.today(), period_start_time)
-            period_end = period_start + datetime.timedelta(minutes=PERIOD_LENGTH)
             
-            # If period end would extend into lunch, cap it at lunch start
-            if period_end > lunch_start and period_start < lunch_start:
-                period_end = lunch_start
+            # Calculate period end time
+            # If this is not the last period, next period start is the limit
+            if i + 1 < len(sorted_periods):
+                next_period_time = datetime.datetime.strptime(PERIODS[sorted_periods[i + 1]], "%H:%M").time()
+                next_period_start = datetime.datetime.combine(datetime.date.today(), next_period_time)
+                # Period ends at next period start or lunch start, whichever is earlier
+                period_end = min(next_period_start, lunch_start_dt)
+            else:
+                # Last period: use PERIOD_LENGTH, but cap at lunch start if before lunch
+                period_end = period_start + datetime.timedelta(minutes=PERIOD_LENGTH)
+                period_end = min(period_end, lunch_start_dt) if period_start < lunch_start_dt else period_end
             
+            # Check if current time is in this period
             if period_start <= current_time < period_end:
                 time_remaining = period_end - current_time
-                hours = time_remaining.seconds // 3600
-                minutes = (time_remaining.seconds % 3600) // 60
-                formatted_time = datetime.timedelta(hours=hours, minutes=minutes)
-                return period, formatted_time, False
-                
+                return period, time_remaining, False
+        
         return None, None, False
     
     def get_time_until(self, target_time, current_time):
