@@ -70,29 +70,42 @@ def main():
     passing_time = input("\nPassing time between periods (minutes): ")
     period_length = input("Regular period length (minutes): ")
 
-    # Advisory period configuration
-    has_advisory = input("\nDoes your school have advisory? (y/n): ").lower() == 'y'
-    advisory_period = 0  # Default to period 0 (advisory comes before period 1)
+    # Advisory/Homeroom configuration
+    has_advisory = input("\nDoes your school have advisory/homeroom? (y/n): ").lower() == 'y'
     if has_advisory:
-        advisory_start = get_time_input("Advisory start time", use_24h)
-        advisory_length = input("Advisory length (minutes): ")
-        advisory_period = int(input("Which period number is advisory? (e.g., 1, 2, 3, etc.): "))
-        print("\nWhich days have advisory?")
+        advisory_start = get_time_input("Advisory/homeroom start time", use_24h)
+        advisory_length = input("Advisory/homeroom length (minutes): ")
+        print("\nWhich days have advisory/homeroom?")
         print("Enter days as comma-separated abbreviations: m,t,w,th,f")
-        advisory_days = input("Advisory days (e.g., m,t): ").strip().lower()
+        print("Or enter 'all' for every weekday")
+        advisory_days = input("Advisory days (e.g., m,t or all): ").strip().lower()
+        if advisory_days == 'all':
+            advisory_days = 'm,t,w,th,f'
     else:
         advisory_start = school_start
         advisory_length = "0"
         advisory_days = ""
 
-    lunch_start = get_time_input("\nLunch start time", use_24h)
-    lunch_end = get_time_input("Lunch end time", use_24h)
-    lunch_start_time = datetime.strptime(lunch_start, "%H:%M")
-    lunch_end_time = datetime.strptime(lunch_end, "%H:%M")
-    lunch_length = str(int((lunch_end_time - lunch_start_time).seconds / 60))
+    # Get number of regular class periods
+    num_periods = int(input("\nHow many regular class periods are there (not including lunch/advisory)? "))
+    
+    # Lunch configuration
+    has_lunch = input("\nDoes your schedule include lunch? (y/n): ").lower() == 'y'
+    if has_lunch:
+        lunch_start = get_time_input("Lunch start time", use_24h)
+        lunch_end = get_time_input("Lunch end time", use_24h)
+        lunch_start_time = datetime.strptime(lunch_start, "%H:%M")
+        lunch_end_time = datetime.strptime(lunch_end, "%H:%M")
+        lunch_length = str(int((lunch_end_time - lunch_start_time).seconds / 60))
+        lunch_after_period = int(input("Which period does lunch come after? "))
+    else:
+        lunch_start = school_start
+        lunch_end = school_start
+        lunch_start_time = datetime.strptime(lunch_start, "%H:%M")
+        lunch_end_time = datetime.strptime(lunch_end, "%H:%M")
+        lunch_length = "0"
+        lunch_after_period = 0
 
-    num_periods = int(input("\nHow many periods are there (not including lunch and advisory)? "))
-    lunch_after_period = int(input("Which period does lunch come after? "))
     print("\nCalculating period start times...")
     periods = {}
 
@@ -100,12 +113,20 @@ def main():
     school_start_time = datetime.strptime(school_start, "%H:%M")
     school_end_time = datetime.strptime(school_end, "%H:%M")
 
-    # Simulate timeline from school start and assign period start times.
-    # Lunch comes after the specified period.
+    # Build complete schedule with advisory (if present) as first "period"
+    # Then regular periods 1-N with lunch inserted at correct position
     current_time = school_start_time
     period_len = int(period_length)
     pass_min = int(passing_time)
 
+    # Add advisory as special period "advisory" if enabled
+    if has_advisory:
+        periods['advisory'] = advisory_start
+        # After advisory, add passing time before period 1
+        advisory_end = datetime.strptime(advisory_start, "%H:%M") + timedelta(minutes=int(advisory_length))
+        current_time = advisory_end + timedelta(minutes=pass_min)
+    
+    # Add regular numbered periods
     for i in range(1, num_periods + 1):
         periods[i] = current_time.strftime("%H:%M")
 
@@ -116,8 +137,10 @@ def main():
         next_start = class_end + timedelta(minutes=pass_min)
 
         # If this is the period after which lunch should occur, insert lunch
-        if i == lunch_after_period:
-            # Insert lunch, then add passing time after lunch ends
+        if has_lunch and i == lunch_after_period:
+            # Add lunch as special period "lunch"
+            periods['lunch'] = lunch_end_time.strftime("%H:%M")  # Store end of lunch as "start" for next class calc
+            # Next class starts after lunch + passing time
             next_start = lunch_end_time + timedelta(minutes=pass_min)
 
         current_time = next_start
@@ -238,28 +261,41 @@ def main():
         f'SCHOOL_END = "{school_end}"    # Regular school end time',
         f"USE_24_HOUR = {str(use_24h)}  # Set to False for 12-hour format (e.g. \"3:45 PM\")",
         "",
-        "# Advisory period",
+        "# Advisory/Homeroom configuration",
         f'ADVISORY_START = "{advisory_start}"',
-        f'ADVISORY_PERIOD = {advisory_period}',
         f'advisory = "{str(has_advisory).lower()}"',
         f'advisorylength = "{advisory_length}"',
         f'advisorydays = "{advisory_days}"',
-        '# Free time days (no advisory)',
-        'freetimedaus = "w,th,f"',
         "",
-        "# Period start times",
-        "PERIODS = {",
-        "    " + ", ".join(f'{k}: "{v}"' for k, v in periods.items()),
-        "}",
-        "",
-        "# Lunch information",
+        "# Lunch configuration",
+        f'has_lunch = "{str(has_lunch).lower()}"',
         f'LUNCH_START = "{lunch_start}"',
         f'LUNCH_END = "{lunch_end}"',
+        f'lunchlength = "{lunch_length}"',
+        "",
+        "# Period start times",
+        "# Special periods: 'advisory' (homeroom), 'lunch'",
+        "# Regular periods: 1, 2, 3, etc.",
+        "PERIODS = {",
+    ]
+    
+    # Add periods with proper formatting
+    period_items = []
+    for k, v in sorted(periods.items(), key=lambda x: (isinstance(x[0], str), x[0])):
+        if isinstance(k, str):
+            period_items.append(f'    "{k}": "{v}"')
+        else:
+            period_items.append(f'    {k}: "{v}"')
+    
+    config_lines.append(",\n".join(period_items))
+    config_lines.extend([
+        "}",
         "",
         "# Period names - Day presets",
         "# DAY_PRESETS is a dictionary where each key is the preset name and value is the periods dict",
+        "# Only regular periods (1, 2, 3, etc.) need names - advisory/lunch are auto-labeled",
         "DAY_PRESETS = {",
-    ]
+    ])
     
     # Add each day preset
     if has_ab:
@@ -292,7 +328,6 @@ def main():
         f"PASSING_TIME = {passing_time}",
         "",
         "# Additional settings",
-        f'lunchlength = "{lunch_length}"',
         f'abday = "{str(has_ab).lower()}"',
         f'NUM_DAY_PRESETS = {num_presets if has_ab else 1}  # Number of rotating day presets',
         "# Manual day preset selection (\"auto\" for rotation, or 0-based index like \"0\", \"1\", \"2\")",

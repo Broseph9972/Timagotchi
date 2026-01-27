@@ -233,45 +233,58 @@ class Menu:
             pass
     
     def get_current_period(self, current_time):
-        lunch_start = datetime.datetime.strptime(LUNCH_START, "%H:%M").time()
-        lunch_start_dt = datetime.datetime.combine(datetime.date.today(), lunch_start)
-        lunch_end = datetime.datetime.strptime(LUNCH_END, "%H:%M").time()
-        lunch_end_dt = datetime.datetime.combine(datetime.date.today(), lunch_end)
+        """
+        Determine current period. Now handles PERIODS dict with special string keys:
+        - 'advisory': Advisory/homeroom period
+        - 'lunch': Lunch period  
+        - 1, 2, 3, etc.: Regular numbered class periods
         
-        # Check if currently in lunch
-        if lunch_start_dt <= current_time < lunch_end_dt:
-            time_remaining = lunch_end_dt - current_time
-            return "LUNCH", time_remaining, False
-        
-        # Advisory every weekday before period 1
-        if advisory.lower() == "true":
-            if datetime.date.today().weekday() < 5:
-                advisory_start = datetime.datetime.strptime(ADVISORY_START, "%H:%M").time()
+        Returns: (period_identifier, time_remaining, is_lunch)
+        """
+        # Check for advisory period first (if it exists in PERIODS)
+        if 'advisory' in PERIODS and advisory.lower() == "true":
+            # Check if today has advisory
+            weekday_abbr = {0: 'm', 1: 't', 2: 'w', 3: 'th', 4: 'f', 5: 'sat', 6: 'sun'}
+            today_abbr = weekday_abbr.get(datetime.date.today().weekday(), '')
+            advisory_day_list = [d.strip() for d in advisorydays.split(',')]
+            
+            if today_abbr in advisory_day_list:
+                advisory_start = datetime.datetime.strptime(PERIODS['advisory'], "%H:%M").time()
                 advisory_start_dt = datetime.datetime.combine(datetime.date.today(), advisory_start)
                 advisory_len = int(advisorylength)
                 advisory_end = advisory_start_dt + datetime.timedelta(minutes=advisory_len)
+                
                 if advisory_start_dt <= current_time < advisory_end:
                     time_remaining = advisory_end - current_time
                     return "ADVISORY", time_remaining, False
         
-        # Get sorted period list
-        sorted_periods = sorted(PERIODS.keys())
+        # Check for lunch period (if it exists in PERIODS)
+        if 'lunch' in PERIODS:
+            lunch_start = datetime.datetime.strptime(LUNCH_START, "%H:%M").time()
+            lunch_start_dt = datetime.datetime.combine(datetime.date.today(), lunch_start)
+            lunch_end = datetime.datetime.strptime(LUNCH_END, "%H:%M").time()
+            lunch_end_dt = datetime.datetime.combine(datetime.date.today(), lunch_end)
+            
+            if lunch_start_dt <= current_time < lunch_end_dt:
+                time_remaining = lunch_end_dt - current_time
+                return "LUNCH", time_remaining, True
         
-        for i, period in enumerate(sorted_periods):
+        # Get only numbered periods (filter out string keys like 'advisory', 'lunch')
+        numbered_periods = sorted([p for p in PERIODS.keys() if isinstance(p, int)])
+        
+        for i, period in enumerate(numbered_periods):
             period_start_time = datetime.datetime.strptime(PERIODS[period], "%H:%M").time()
             period_start = datetime.datetime.combine(datetime.date.today(), period_start_time)
             
             # Calculate period end time
-            # If this is not the last period, next period start is the limit
-            if i + 1 < len(sorted_periods):
-                next_period_time = datetime.datetime.strptime(PERIODS[sorted_periods[i + 1]], "%H:%M").time()
-                next_period_start = datetime.datetime.combine(datetime.date.today(), next_period_time)
-                # Period ends at next period start or lunch start, whichever is earlier
-                period_end = min(next_period_start, lunch_start_dt)
+            if i + 1 < len(numbered_periods):
+                # Next period exists - use its start time
+                next_period = numbered_periods[i + 1]
+                next_period_time = datetime.datetime.strptime(PERIODS[next_period], "%H:%M").time()
+                period_end = datetime.datetime.combine(datetime.date.today(), next_period_time)
             else:
-                # Last period: use PERIOD_LENGTH, but cap at lunch start if before lunch
+                # Last period - use PERIOD_LENGTH
                 period_end = period_start + datetime.timedelta(minutes=PERIOD_LENGTH)
-                period_end = min(period_end, lunch_start_dt) if period_start < lunch_start_dt else period_end
             
             # Check if current time is in this period
             if period_start <= current_time < period_end:
@@ -300,9 +313,10 @@ class Menu:
     
     def get_next_period(self, current_time):
         """Get the next period after current time. Returns (period_num, period_name, time_until) or (None, None, None)"""
-        sorted_periods = sorted(PERIODS.keys())
+        # Get only numbered periods (exclude 'advisory', 'lunch')
+        numbered_periods = sorted([p for p in PERIODS.keys() if isinstance(p, int)])
         
-        for period in sorted_periods:
+        for period in numbered_periods:
             period_start_time = datetime.datetime.strptime(PERIODS[period], "%H:%M").time()
             period_start = datetime.datetime.combine(datetime.date.today(), period_start_time)
             
@@ -528,11 +542,14 @@ class Menu:
             # Determine actual end based on last period if available
             actual_school_end = school_end_dt
             if PERIODS:
-                last_period = max(PERIODS.keys())
-                last_start_dt = datetime.datetime.combine(
-                    datetime.date.today(), datetime.datetime.strptime(PERIODS[last_period], "%H:%M").time()
-                )
-                actual_school_end = last_start_dt + datetime.timedelta(minutes=PERIOD_LENGTH)
+                # Get only numbered periods for calculating end time
+                numbered_periods = [p for p in PERIODS.keys() if isinstance(p, int)]
+                if numbered_periods:
+                    last_period = max(numbered_periods)
+                    last_start_dt = datetime.datetime.combine(
+                        datetime.date.today(), datetime.datetime.strptime(PERIODS[last_period], "%H:%M").time()
+                    )
+                    actual_school_end = last_start_dt + datetime.timedelta(minutes=PERIOD_LENGTH)
 
             mode = self.progress_bar_modes[self.progress_bar_mode_index]
             if mode == "time_in_class":
@@ -540,9 +557,9 @@ class Menu:
                 if lunch_start_dt <= now < lunch_end_dt:
                     return "Lunch", 100
 
-                # Progress within current class period
-                sorted_periods = sorted(PERIODS.keys())
-                for p in sorted_periods:
+                # Progress within current class period (only numbered periods)
+                numbered_periods = sorted([p for p in PERIODS.keys() if isinstance(p, int)])
+                for p in numbered_periods:
                     start_dt = datetime.datetime.combine(
                         datetime.date.today(), datetime.datetime.strptime(PERIODS[p], "%H:%M").time()
                     )
@@ -555,16 +572,28 @@ class Menu:
                         preset_key = list(DAY_PRESETS.keys())[self.current_preset_index % len(DAY_PRESETS)]
                         current_preset = DAY_PRESETS.get(preset_key, {})
                         class_name = current_preset.get(p, f"Period {p}")
-                        return f"{class_name}: {progress}% - {p}", progress
+                        return f"{class_name}: {progress}%", progress
+
+                # Check advisory period explicitly
+                if 'advisory' in PERIODS and advisory.lower() == "true":
+                    advisory_start_dt = datetime.datetime.combine(
+                        datetime.date.today(), datetime.datetime.strptime(PERIODS['advisory'], "%H:%M").time()
+                    )
+                    advisory_end_dt = advisory_start_dt + datetime.timedelta(minutes=int(advisorylength))
+                    if advisory_start_dt <= now < advisory_end_dt:
+                        elapsed = (now - advisory_start_dt).total_seconds()
+                        total = (advisory_end_dt - advisory_start_dt).total_seconds()
+                        progress = int((elapsed / total) * 100) if total > 0 else 0
+                        return f"Advisory: {progress}%", progress
 
                 # Not in class: determine if Passing, Before school, or After school
                 if now < school_start_dt:
                     return "Before school", 0
 
                 # Compute actual end (last period end)
-                if sorted_periods:
+                if numbered_periods:
                     last_start_dt = datetime.datetime.combine(
-                        datetime.date.today(), datetime.datetime.strptime(PERIODS[sorted_periods[-1]], "%H:%M").time()
+                        datetime.date.today(), datetime.datetime.strptime(PERIODS[numbered_periods[-1]], "%H:%M").time()
                     )
                     actual_class_end = last_start_dt + datetime.timedelta(minutes=PERIOD_LENGTH)
                 else:
@@ -574,9 +603,9 @@ class Menu:
                     return "After school", 100
 
                 # Determine if within passing time between periods
-                for i in range(len(sorted_periods) - 1):
-                    p_curr = sorted_periods[i]
-                    p_next = sorted_periods[i + 1]
+                for i in range(len(numbered_periods) - 1):
+                    p_curr = numbered_periods[i]
+                    p_next = numbered_periods[i + 1]
                     curr_start = datetime.datetime.combine(
                         datetime.date.today(), datetime.datetime.strptime(PERIODS[p_curr], "%H:%M").time()
                     )

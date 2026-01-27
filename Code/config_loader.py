@@ -24,8 +24,16 @@ SCHOOL_START = _config['school']['start']
 SCHOOL_END = _config['school']['end']
 USE_24_HOUR = _config['display']['time_format'] == '24h'
 
-# Periods
-PERIODS = {int(k): v for k, v in _config['schedule']['period_times'].items()}
+# Periods - now supports special string keys like 'advisory' and 'lunch'
+_period_times = _config['schedule']['period_times']
+PERIODS = {}
+for k, v in _period_times.items():
+    # Convert numeric strings to int, keep string keys as is
+    try:
+        PERIODS[int(k)] = v
+    except ValueError:
+        PERIODS[k] = v  # Keep 'advisory', 'lunch' as string keys
+
 PERIOD_LENGTH = _config['schedule']['period_length']
 PASSING_TIME = _config['schedule']['passing_time']
 
@@ -59,13 +67,12 @@ lunchlength = str(_config['schedule']['lunch'].get('duration', 25))
 ADVISORY_START = _config['schedule']['advisory']['start']
 advisory = str(_config['schedule']['advisory']['enabled']).lower()
 advisorylength = str(_config['schedule']['advisory']['length'])
-ADVISORY_PERIOD = 0
-# Convert "m,t" format to list of day names
+# ADVISORY_PERIOD is deprecated - advisory is now a special key in PERIODS dict
+ADVISORY_PERIOD = 0  # Keep for backward compatibility but not used
+# Convert "m,t" format to list of day abbreviations
 _advisory_days_str = _config['schedule']['advisory']['days']
 if isinstance(_advisory_days_str, str):
-    # Convert abbreviations: m->monday, t->tuesday, w->wednesday, th->thursday, f->friday
-    day_map = {'m': 'monday', 't': 'tuesday', 'w': 'wednesday', 'th': 'thursday', 'f': 'friday'}
-    advisorydays = ",".join(day_map.get(d.strip(), d.strip()) for d in _advisory_days_str.split(','))
+    advisorydays = _advisory_days_str.lower()  # Keep as abbreviations like "m,t,w,th,f"
 else:
     advisorydays = ",".join(_advisory_days_str)
 
