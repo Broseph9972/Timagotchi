@@ -450,7 +450,7 @@ class WaveshareDisplay:
 
         # === FACE + SPEECH ===
         # Place face toward left, slightly above the bottom time text
-        bottom_y = self.height - (self.WIFI_BOX_SIZE + 18)
+        clock_bottom_y = self.height - (self.WIFI_BOX_SIZE + 26)
         face_text = self._get_face(face_name)
         face_font = self.font_large
         try:
@@ -461,7 +461,7 @@ class WaveshareDisplay:
             face_w, face_h = face_font.getsize(face_text)
 
         face_x = 6
-        face_y = max(bar_h + 12, bottom_y - face_h - 6)
+        face_y = max(bar_h + 12, clock_bottom_y - face_h - 12)
         self.draw.text((face_x, face_y), face_text, font=face_font, fill=primary)
 
         # Single speech line (if any), centered above the face; draw "<┛" to the right of head
