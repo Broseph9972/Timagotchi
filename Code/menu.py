@@ -1148,6 +1148,61 @@ class Menu:
                 self.selected_index = self.settings_menu_items.index("Update") if "Update" in self.settings_menu_items else 0
                 self.show_settings_menu()
 
+    def check_updates_on_boot(self):
+        """Check for updates on boot (silent, non-blocking). Returns True if update was applied and restart is needed."""
+        try:
+            repo_dir = "/home/pi/Timagotchi"
+
+            # Verify git exists
+            git_check = subprocess.run(['git', '--version'], capture_output=True, text=True, timeout=5)
+            if git_check.returncode != 0:
+                return False
+
+            # Mark safe directory
+            try:
+                subprocess.run(['git', 'config', '--global', '--add', 'safe.directory', repo_dir], 
+                             capture_output=True, text=True, timeout=5)
+            except Exception:
+                pass
+
+            # Ensure origin exists
+            remote = subprocess.run(['git', '-C', repo_dir, 'config', '--get', 'remote.origin.url'], 
+                                  capture_output=True, text=True, timeout=5)
+            if remote.returncode != 0 or not remote.stdout.strip():
+                origin_url = 'https://github.com/broseph9972/Timagotchi'
+                subprocess.run(['git', '-C', repo_dir, 'remote', 'add', 'origin', origin_url], 
+                             capture_output=True, text=True, timeout=10)
+
+            # Determine branch
+            branch = subprocess.run(['git', '-C', repo_dir, 'rev-parse', '--abbrev-ref', 'HEAD'], 
+                                  capture_output=True, text=True, timeout=5)
+            current_branch = branch.stdout.strip() or 'main'
+            if current_branch in ('HEAD', ''):
+                current_branch = 'main'
+
+            # Fetch silently (timeout quickly to not block boot)
+            subprocess.run(['sudo', '-n', 'git', '-C', repo_dir, 'fetch', '--all', '--prune'], 
+                         capture_output=True, text=True, timeout=10)
+            
+            # Try pull
+            result = subprocess.run(['sudo', '-n', 'git', '-C', repo_dir, 'pull', '--ff-only', 'origin', current_branch], 
+                                  capture_output=True, text=True, timeout=15)
+
+            if result.returncode == 0:
+                stdout_msg = result.stdout.strip().lower() or "up to date"
+                # If output doesn't contain "already up to date", an update was applied
+                if "already up to date" not in stdout_msg:
+                    print("[Boot Update] Updates found and applied. Restart recommended.")
+                    return True
+            
+            return False
+        except subprocess.TimeoutExpired:
+            # Boot check timed out - silently continue without blocking
+            return False
+        except Exception as e:
+            # Silent fail - don't block boot
+            return False
+
     def show_grades_menu(self, fetch=True):
         """Display grades menu. fetch=True to fetch from API, False to redraw cached list."""
         if fetch:

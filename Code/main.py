@@ -50,6 +50,13 @@ try:
     menu = Menu(display, input_handler)
     print("Menu system ready")
     
+    # Check for updates on boot (non-blocking, silent check)
+    print("Checking for updates...")
+    if menu.check_updates_on_boot():
+        print("Updates found and applied. Restarting...")
+        display.clear()
+        os.execv(sys.executable, [sys.executable] + sys.argv)
+    
     # Signal splash screen that we're ready
     # This allows the animated splash to exit gracefully
     try:
