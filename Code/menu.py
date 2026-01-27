@@ -15,6 +15,7 @@ from config_loader import (
 )
 from input_handler import InputHandler
 from theme_manager import ThemeManager
+from font_manager import FontManager
 import json as _json
 import requests
 from urllib.parse import urljoin
@@ -38,6 +39,9 @@ class Menu:
         
         # Initialize theme manager
         self.theme_manager = ThemeManager()
+        
+        # Initialize font manager
+        self.font_manager = FontManager()
         
         # Right-nav items as per sketch
         self.nav_items = ["Main Page", "Grades", "Settings"]
@@ -64,10 +68,12 @@ class Menu:
                 self.settings_menu_items.append("Day Presets")
             else:
                 self.settings_menu_items.append("A/B Day")
-        self.settings_menu_items.extend(["WiFi", "Theme", "Backlight", "Power Saver", "Progress Bar", "Set Time", "Stopwatch", "Configuration Portal", "Developer", "Update", "Restart"])
+        self.settings_menu_items.extend(["WiFi", "Appearance", "Backlight", "Power Saver", "Progress Bar", "Set Time", "Stopwatch", "Configuration Portal", "Developer", "Update", "Restart"])
         self.settings_scroll_offset = 0
         self.set_time_menu_items = ["Manual Set", "Sync Now"]
+        self.appearance_menu_items = ["Colors", "Fonts"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
+        self.font_menu_items = self.font_manager.get_font_names()
         self.adjust_hour = 0
         self.adjust_minute = 0
         self.ab_day_mode = AB_DAY_MODE  # "auto" or "manual"
@@ -952,10 +958,10 @@ class Menu:
             elif selected_item in ("A/B Day", "Day Presets"):
                 self.current_screen = "ab_day"
                 self.show_ab_day_menu()
-            elif selected_item == "Theme":
-                self.current_screen = "theme"
+            elif selected_item == "Appearance":
+                self.current_screen = "appearance"
                 self.selected_index = 0
-                self.show_theme_menu()
+                self.show_appearance_menu()
             elif selected_item == "Backlight":
                 self.current_screen = "backlight"
                 self.show_backlight_menu()
@@ -1607,14 +1613,78 @@ class Menu:
             self.display.show_message("Theme Set", f"Changed to\n{selected_theme.title()}", 
                                      self.theme_manager.get_success(), self.nav_items, self.nav_selected_index, wifi_connected)
             time.sleep(1)
-            self.current_screen = "settings"
-            # Find the Theme option index
-            self.selected_index = self.settings_menu_items.index("Theme") if "Theme" in self.settings_menu_items else 2
-            self.show_settings_menu()
+            self.current_screen = "appearance"
+            # Return to Colors option in Appearance menu
+            self.selected_index = 0
+            self.show_appearance_menu()
+        elif action == 'left':
+            self.current_screen = "appearance"
+            self.selected_index = 0
+            self.show_appearance_menu()
+    
+    def show_appearance_menu(self):
+        """Display appearance submenu with Colors and Fonts options"""
+        wifi_connected = self._get_wifi_connected()
+        self.display.show_menu(self.appearance_menu_items, self.selected_index, "Appearance", 
+                              nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, 
+                              wifi_connected=wifi_connected)
+    
+    def handle_appearance_input(self, action):
+        """Handle input for appearance submenu"""
+        if action == 'up':
+            self.selected_index = (self.selected_index - 1) % len(self.appearance_menu_items)
+            self.show_appearance_menu()
+        elif action == 'down':
+            self.selected_index = (self.selected_index + 1) % len(self.appearance_menu_items)
+            self.show_appearance_menu()
+        elif action == 'select' or action == 'right':
+            selected_item = self.appearance_menu_items[self.selected_index]
+            if selected_item == "Colors":
+                self.current_screen = "theme"
+                self.selected_index = 0
+                self.show_theme_menu()
+            elif selected_item == "Fonts":
+                self.current_screen = "fonts"
+                self.selected_index = 0
+                self.show_font_menu()
         elif action == 'left':
             self.current_screen = "settings"
-            self.selected_index = self.settings_menu_items.index("Theme") if "Theme" in self.settings_menu_items else 2
+            self.selected_index = self.settings_menu_items.index("Appearance") if "Appearance" in self.settings_menu_items else 2
             self.show_settings_menu()
+    
+    def show_font_menu(self):
+        """Display font selection menu"""
+        wifi_connected = self._get_wifi_connected()
+        self.display.show_menu(self.font_menu_items, self.selected_index, "Fonts", 
+                              nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, 
+                              wifi_connected=wifi_connected)
+    
+    def handle_font_input(self, action):
+        """Handle input for font selection menu"""
+        if action == 'up':
+            self.selected_index = (self.selected_index - 1) % len(self.font_menu_items)
+            self.show_font_menu()
+        elif action == 'down':
+            self.selected_index = (self.selected_index + 1) % len(self.font_menu_items)
+            self.show_font_menu()
+        elif action == 'select' or action == 'right':
+            selected_font = self.font_menu_items[self.selected_index]
+            self.font_manager.set_font(selected_font)
+            # Reload display fonts with new selection
+            self.display.reload_fonts()
+            wifi_connected = self._get_wifi_connected()
+            self.display.show_message("Font Set", f"Changed to\\n{selected_font}", 
+                                     self.theme_manager.get_success(), self.nav_items, 
+                                     self.nav_selected_index, wifi_connected)
+            time.sleep(1)
+            self.current_screen = "appearance"
+            # Return to Fonts option in Appearance menu
+            self.selected_index = 1
+            self.show_appearance_menu()
+        elif action == 'left':
+            self.current_screen = "appearance"
+            self.selected_index = 1
+            self.show_appearance_menu()
     
     def show_progress_bar_menu(self):
         """Display progress bar mode selection"""
@@ -1892,8 +1962,12 @@ class Menu:
                     self.handle_wifi_password_input(action)
                 elif self.current_screen == "ab_day":
                     self.handle_ab_day_input(action)
+                elif self.current_screen == "appearance":
+                    self.handle_appearance_input(action)
                 elif self.current_screen == "theme":
                     self.handle_theme_input(action)
+                elif self.current_screen == "fonts":
+                    self.handle_font_input(action)
                 elif self.current_screen == "progress_bar":
                     self.handle_progress_bar_input(action)
                 elif self.current_screen == "backlight":

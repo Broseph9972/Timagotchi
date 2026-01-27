@@ -4,6 +4,7 @@ import sys
 import importlib.util
 from PIL import Image, ImageDraw, ImageFont
 import time
+from font_manager import FontManager
 
 
 def _load_lcd_driver():
@@ -88,16 +89,11 @@ class WaveshareDisplay:
         self.image = Image.new('RGB', (self.width, self.height), color=(0, 0, 0))
         self.draw = ImageDraw.Draw(self.image)
 
-        try:
-            self.font_large = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16)
-            self.font_medium = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 14)
-            self.font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 12)
-            self.font_tiny = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 10)
-        except:
-            self.font_large = ImageFont.load_default()
-            self.font_medium = ImageFont.load_default()
-            self.font_small = ImageFont.load_default()
-            self.font_tiny = ImageFont.load_default()
+        # Initialize font manager
+        self.font_manager = FontManager()
+        
+        # Load fonts using font manager
+        self._load_fonts()
         
         # Icon cache for sidebar and main menu
         self.icon_cache = {}
@@ -156,6 +152,40 @@ class WaveshareDisplay:
                     self.icon_cache[key] = img
             except Exception as e:
                 pass  # Silently skip icons that fail to load
+    
+    def _load_fonts(self):
+        """Load fonts using font manager with fallback to defaults"""
+        try:
+            # Get font paths from font manager
+            regular_path = self.font_manager.get_font_path('regular')
+            bold_path = self.font_manager.get_font_path('bold')
+            
+            # Load fonts at different sizes
+            self.font_large = ImageFont.truetype(bold_path, 16)
+            self.font_medium = ImageFont.truetype(regular_path, 14)
+            self.font_small = ImageFont.truetype(regular_path, 12)
+            self.font_tiny = ImageFont.truetype(regular_path, 10)
+        except Exception as e:
+            print(f"Error loading custom fonts: {e}")
+            # Fall back to default fonts
+            try:
+                self.font_large = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16)
+                self.font_medium = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 14)
+                self.font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 12)
+                self.font_tiny = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 10)
+            except:
+                # Ultimate fallback to PIL default
+                self.font_large = ImageFont.load_default()
+                self.font_medium = ImageFont.load_default()
+                self.font_small = ImageFont.load_default()
+                self.font_tiny = ImageFont.load_default()
+    
+    def reload_fonts(self):
+        """Reload fonts after font selection change"""
+        # Reload font manager to get latest selection
+        self.font_manager.load_fonts()
+        # Reload all font objects
+        self._load_fonts()
     
     def _get_icon(self, icon_name):
         """Get a cached icon by name."""

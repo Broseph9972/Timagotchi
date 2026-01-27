@@ -1,0 +1,17 @@
+{
+  "fonts": {
+    "DejaVu Sans": {
+      "name": "DejaVu Sans",
+      "path": "DejaVuSans.ttf",
+      "regular": "DejaVuSans.ttf",
+      "bold": "DejaVuSans-Bold.ttf"
+    },
+    "DejaVu Sans Bold": {
+      "name": "DejaVu Sans Bold",
+      "path": "DejaVuSans-Bold.ttf",
+      "regular": "DejaVuSans-Bold.ttf",
+      "bold": "DejaVuSans-Bold.ttf"
+    }
+  },
+  "current_font": "DejaVu Sans"
+}
