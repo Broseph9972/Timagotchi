@@ -298,6 +298,30 @@ class Menu:
         else:
             return f"{minutes}m"
     
+    def get_next_period(self, current_time):
+        """Get the next period after current time. Returns (period_num, period_name, time_until) or (None, None, None)"""
+        sorted_periods = sorted(PERIODS.keys())
+        
+        for period in sorted_periods:
+            period_start_time = datetime.datetime.strptime(PERIODS[period], "%H:%M").time()
+            period_start = datetime.datetime.combine(datetime.date.today(), period_start_time)
+            
+            if period_start > current_time:
+                # This is the next period
+                time_until = period_start - current_time
+                
+                # Get period name from current preset
+                if abday.lower() == "true":
+                    preset_key = list(DAY_PRESETS.keys())[self.current_preset_index % len(DAY_PRESETS)]
+                    current_preset = DAY_PRESETS.get(preset_key, {})
+                    period_name = current_preset.get(period, f"Period {period}")
+                else:
+                    period_name = A_DAY_PERIODS.get(period, f"Period {period}")
+                
+                return period, period_name, time_until
+        
+        return None, None, None
+    
     def show_schedule_screen(self):
         current_time = datetime.datetime.now()
         period, time_remaining, is_lunch = self.get_current_period(current_time)
@@ -415,6 +439,10 @@ class Menu:
         if period == "ADVISORY":
             return "Advisory"
         if period is None:
+            # In passing - show next period
+            next_period, next_name, time_until = self.get_next_period(now)
+            if next_period is not None:
+                return f"Passing • Next: {next_name}"
             return "Passing"
         # map to name
         if isinstance(period, int):
