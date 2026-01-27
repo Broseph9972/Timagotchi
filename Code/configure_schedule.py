@@ -321,7 +321,7 @@ def main():
         'CANVAS_ENABLED = False',
         'CANVAS_BASE_URL = ""  # e.g., https://yourschool.instructure.com',
         'CANVAS_API_TOKEN = ""  # Get from Account > Settings > New Access Token',
-    ]
+    ])
 
     config_content = "\n".join(config_lines)
 
