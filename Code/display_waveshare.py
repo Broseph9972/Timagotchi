@@ -524,7 +524,7 @@ class WaveshareDisplay:
 
         # === BOTTOM: Clock only (WiFi is in sidebar area) ===
         # Move up a bit to avoid overlap with summary/wifi
-        bottom_y = self.height - (self.WIFI_BOX_SIZE + 18)
+        bottom_y = self.height - (self.WIFI_BOX_SIZE + 26)
         self.draw.text((4, bottom_y - 2), time_str, font=self.font_small, fill=accent)
         self.draw.text((4, bottom_y + 10), date_str, font=self.font_tiny, fill=secondary)
 

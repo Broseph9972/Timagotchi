@@ -73,7 +73,9 @@ class Menu:
         self.set_time_menu_items = ["Manual Set", "Sync Now"]
         self.appearance_menu_items = ["Colors", "Fonts"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
+        self.theme_scroll_offset = 0
         self.font_menu_items = self.font_manager.get_font_names()
+        self.font_scroll_offset = 0
         self.adjust_hour = 0
         self.adjust_minute = 0
         self.ab_day_mode = AB_DAY_MODE  # "auto" or "manual"
@@ -961,6 +963,8 @@ class Menu:
             elif selected_item == "Appearance":
                 self.current_screen = "appearance"
                 self.selected_index = 0
+                self.theme_scroll_offset = 0
+                self.font_scroll_offset = 0
                 self.show_appearance_menu()
             elif selected_item == "Backlight":
                 self.current_screen = "backlight"
@@ -1597,7 +1601,16 @@ class Menu:
     
     def show_theme_menu(self):
         wifi_connected = self._get_wifi_connected()
-        self.display.show_menu(self.theme_menu_items, self.selected_index, "Theme", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, wifi_connected=wifi_connected)
+        max_visible = 6
+        # Keep selection in view
+        if self.selected_index < self.theme_scroll_offset:
+            self.theme_scroll_offset = self.selected_index
+        elif self.selected_index >= self.theme_scroll_offset + max_visible:
+            self.theme_scroll_offset = self.selected_index - max_visible + 1
+        self.display.show_menu(self.theme_menu_items, self.selected_index, "Theme",
+                               nav_items=self.nav_items, nav_selected_index=self.nav_selected_index,
+                               start_index=self.theme_scroll_offset, max_visible=max_visible,
+                               wifi_connected=wifi_connected)
     
     def handle_theme_input(self, action):
         if action == 'up':
@@ -1616,10 +1629,12 @@ class Menu:
             self.current_screen = "appearance"
             # Return to Colors option in Appearance menu
             self.selected_index = 0
+            self.theme_scroll_offset = 0
             self.show_appearance_menu()
         elif action == 'left':
             self.current_screen = "appearance"
             self.selected_index = 0
+            self.theme_scroll_offset = 0
             self.show_appearance_menu()
     
     def show_appearance_menu(self):
@@ -1642,10 +1657,12 @@ class Menu:
             if selected_item == "Colors":
                 self.current_screen = "theme"
                 self.selected_index = 0
+                self.theme_scroll_offset = 0
                 self.show_theme_menu()
             elif selected_item == "Fonts":
                 self.current_screen = "fonts"
                 self.selected_index = 0
+                self.font_scroll_offset = 0
                 self.show_font_menu()
         elif action == 'left':
             self.current_screen = "settings"
@@ -1655,8 +1672,16 @@ class Menu:
     def show_font_menu(self):
         """Display font selection menu"""
         wifi_connected = self._get_wifi_connected()
-        self.display.show_menu(self.font_menu_items, self.selected_index, "Fonts", 
-                              nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, 
+        # Refresh font list in case new files were added
+        self.font_menu_items = self.font_manager.get_font_names()
+        max_visible = 6
+        if self.selected_index < self.font_scroll_offset:
+            self.font_scroll_offset = self.selected_index
+        elif self.selected_index >= self.font_scroll_offset + max_visible:
+            self.font_scroll_offset = self.selected_index - max_visible + 1
+        self.display.show_menu(self.font_menu_items, self.selected_index, "Fonts",
+                              nav_items=self.nav_items, nav_selected_index=self.nav_selected_index,
+                              start_index=self.font_scroll_offset, max_visible=max_visible,
                               wifi_connected=wifi_connected)
     
     def handle_font_input(self, action):
@@ -1680,10 +1705,12 @@ class Menu:
             self.current_screen = "appearance"
             # Return to Fonts option in Appearance menu
             self.selected_index = 1
+            self.font_scroll_offset = 0
             self.show_appearance_menu()
         elif action == 'left':
             self.current_screen = "appearance"
             self.selected_index = 1
+            self.font_scroll_offset = 0
             self.show_appearance_menu()
     
     def show_progress_bar_menu(self):
