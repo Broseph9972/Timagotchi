@@ -93,14 +93,54 @@ body {
 
 .hero h1 {
     font-size: 3.5rem;
-    color: var(--dark-bg);
+    color: #ffffff;
     margin-bottom: 1rem;
 }
 
 .subtitle {
     font-size: 1.5rem;
-    color: #666;
+    color: #c9d1d9;
     font-weight: 300;
+    margin-top: 2rem;
+}
+
+/* ASCII Text Container */
+#ascii-text-container {
+    margin: 0 auto;
+    max-width: 100%;
+}
+
+#ascii-text-container canvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    image-rendering: optimizeSpeed;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -o-crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: optimize-contrast;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+}
+
+#ascii-text-container pre {
+    margin: 0;
+    user-select: none;
+    padding: 0;
+    line-height: 1em;
+    text-align: left;
+    position: absolute;
+    left: 0;
+    top: 0;
+    background-image: radial-gradient(circle, #ff6188 0%, #fc9867 50%, #ffd866 100%);
+    background-attachment: fixed;
+    -webkit-text-fill-color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    z-index: 9;
+    mix-blend-mode: difference;
 }
 
 /* Image Section */
@@ -128,7 +168,7 @@ body {
 }
 
 .description h2 {
-    color: var(--dark-bg);
+    color: var(--text-light);
     margin-bottom: 1rem;
     font-size: 2rem;
 }
@@ -137,6 +177,16 @@ body {
     margin-bottom: 1rem;
     font-size: 1.1rem;
     line-height: 1.8;
+}
+
+.description h3 {
+    color: var(--text-light);
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.description ul {
+    color: var(--text-light);
 }
 
 /* Features Section */

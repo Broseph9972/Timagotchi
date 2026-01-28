@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Timagotchi</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
     <!-- Navigation Bar -->
@@ -29,8 +30,8 @@
     <main class="container">
         <!-- Hero Section -->
         <section class="hero">
-            <h1>Timagotchi</h1>
-            <p class="subtitle">School scheduler by Jqseph9972</p>
+            <div id="ascii-text-container" style="position: relative; width: 100%; height: 300px;"></div>
+            <p class="subtitle">Open source School scheduler by Jqseph9972</p>
         </section>
 
         <!-- Carousel Section -->
@@ -57,7 +58,7 @@
                     </div>
                     <div class="carousel-item">
                         <div class="carousel-item-header">
-                            <img src="Pics/Grades (1).jpg" alt="Grades">
+                            <img src="Pics/20260127_141913 (1).jpg" alt="Grades">
                         </div>
                         <div class="carousel-item-content">
                             <div class="carousel-item-title">Canvas Grades</div>
@@ -66,7 +67,7 @@
                     </div>
                     <div class="carousel-item">
                         <div class="carousel-item-header">
-                            <img src="Pics/Mainmenu (1).jpg" alt="Main Menu">
+                            <img src="Pics/20260127_141952 (1).jpg" alt="Main Menu">
                         </div>
                         <div class="carousel-item-content">
                             <div class="carousel-item-title">Main Menu</div>
@@ -75,7 +76,7 @@
                     </div>
                     <div class="carousel-item">
                         <div class="carousel-item-header">
-                            <img src="Pics/Settings (1).jpg" alt="Settings">
+                            <img src="Pics/20260127_141958 (1).jpg" alt="Settings">
                         </div>
                         <div class="carousel-item-content">
                             <div class="carousel-item-title">Settings</div>
@@ -84,7 +85,7 @@
                     </div>
                     <div class="carousel-item">
                         <div class="carousel-item-header">
-                            <img src="Pics/Settings2 (1).jpg" alt="Settings 2">
+                            <img src="Pics/20260127_142834 (1).jpg" alt="Settings 2">
                         </div>
                         <div class="carousel-item-content">
                             <div class="carousel-item-title">Advanced Settings</div>
@@ -93,7 +94,7 @@
                     </div>
                     <div class="carousel-item">
                         <div class="carousel-item-header">
-                            <img src="Pics/Themes (1).jpg" alt="Themes">
+                            <img src="Pics/20260127_142910 (1).jpg" alt="Themes">
                         </div>
                         <div class="carousel-item-content">
                             <div class="carousel-item-title">Theme Selector</div>
@@ -102,7 +103,7 @@
                     </div>
                     <div class="carousel-item">
                         <div class="carousel-item-header">
-                            <img src="Pics/Wifi (1).jpg" alt="WiFi">
+                            <img src="Pics/20260127_143006.jpg" alt="WiFi">
                         </div>
                         <div class="carousel-item-content">
                             <div class="carousel-item-title">WiFi Status</div>
@@ -185,9 +186,10 @@
 
     <!-- Footer -->
     <footer>
-        <p>&copy; 2026 Timagotchi | Made by Jqseph9972</p>
+        <p>&copy; 2026 Timagotchi | Made by Jqseph9972 | Carousel and Ascii text taken from <a href="https://reactbits.dev">reactbits</a></p>
     </footer>
 
+    <script src="ascii-text.js"></script>
     <script src="carousel.js"></script>
 </body>
 </html>
