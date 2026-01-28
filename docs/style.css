@@ -438,6 +438,68 @@ footer {
     margin-top: 4rem;
 }
 
+footer a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
+
+.footer-embeds {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.footer-embed-container {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+}
+
+.footer-embed-container h3 {
+    color: var(--text-light);
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.footer-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    transition: all 0.3s ease;
+    text-decoration: none !important;
+    justify-content: center;
+}
+
+.footer-badge:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 12px rgba(88, 166, 255, 0.2);
+}
+
+.footer-badge span {
+    color: var(--text-light);
+    font-weight: 500;
+}
+
+.footer-badge img,
+.footer-badge svg {
+    height: 36px;
+    width: auto;
+}
+
 /* Carousel Styles - ReactBits Design */
 .carousel-wrapper {
     display: flex;
