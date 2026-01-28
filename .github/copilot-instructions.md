@@ -1,7 +1,7 @@
 # Copilot Instructions for Timagotchi
 
 ## Project Overview
-Timagotchi is a Raspberry Pi Zero WH school schedule display system using a Waveshare 1.44" LCD HAT. It displays the current school period, progress bars, grades from Canvas LMS, and includes embedded games (Tetris, Doom raycaster). The display is 128x128 pixels with GPIO button controls. DO NOT USE ANY FUCKING EMOJIS DONT MAKE USELESS MD FILES
+Timagotchi is a Raspberry Pi Zero WH school schedule display system using a Waveshare 1.44" LCD HAT. It displays the current school period, progress bars, grades from Canvas LMS, and includes embedded games (Tetris, Doom raycaster). The display is 128x128 pixels with GPIO button controls. DO NOT USE ANY EMOJIS DONT MAKE USELESS MD FILES
 
 ## Architecture & Data Flow
 
