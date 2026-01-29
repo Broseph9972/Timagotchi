@@ -6,6 +6,17 @@
     <title>Timagotchi</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "motion": "https://esm.sh/motion@11.15.0",
+          "motion/react": "https://esm.sh/motion@11.15.0/react",
+          "react": "https://esm.sh/react@18.3.1",
+          "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
+          "react-dom/client": "https://esm.sh/react-dom@18.3.1/client"
+        }
+      }
+    </script>
 </head>
 <body>
     <!-- Navigation Bar -->
@@ -175,7 +186,7 @@
             </div>
         </section>
         <section class="cta">
-            <h2>~$35 to build</h2>
+            <h2>~$<span id="price-counter">35</span> to build</h2>
             <p>I would love to have testers to give feedback, especially from other school systems.</p>
             <div class="button-group">
                 <a href="docs.html" class="btn btn-primary">Read the Docs</a>
@@ -200,5 +211,117 @@
     </script>
     <script src="ascii-text.js"></script>
     <script src="carousel.js"></script>
+    <script type="module">
+      import { useInView, useMotionValue, useSpring } from 'motion/react';
+      import { useEffect, useRef, useCallback } from 'react';
+      import { createRoot } from 'react-dom/client';
+      import { jsx } from 'react/jsx-runtime';
+
+      function CountUp({
+        to,
+        from = 0,
+        direction = 'up',
+        delay = 0,
+        duration = 2,
+        className = '',
+        startWhen = true,
+        separator = '',
+        onStart,
+        onEnd
+      }) {
+        const ref = useRef(null);
+        const motionValue = useMotionValue(direction === 'down' ? to : from);
+
+        const damping = 20 + 40 * (1 / duration);
+        const stiffness = 100 * (1 / duration);
+
+        const springValue = useSpring(motionValue, {
+          damping,
+          stiffness
+        });
+
+        const isInView = useInView(ref, { once: true, margin: '0px' });
+
+        const getDecimalPlaces = num => {
+          const str = num.toString();
+
+          if (str.includes('.')) {
+            const decimals = str.split('.')[1];
+
+            if (parseInt(decimals) !== 0) {
+              return decimals.length;
+            }
+          }
+
+          return 0;
+        };
+
+        const maxDecimals = Math.max(getDecimalPlaces(from), getDecimalPlaces(to));
+
+        const formatValue = useCallback(
+          latest => {
+            const hasDecimals = maxDecimals > 0;
+
+            const options = {
+              useGrouping: !!separator,
+              minimumFractionDigits: hasDecimals ? maxDecimals : 0,
+              maximumFractionDigits: hasDecimals ? maxDecimals : 0
+            };
+
+            const formattedNumber = Intl.NumberFormat('en-US', options).format(latest);
+
+            return separator ? formattedNumber.replace(/,/g, separator) : formattedNumber;
+          },
+          [maxDecimals, separator]
+        );
+
+        useEffect(() => {
+          if (ref.current) {
+            ref.current.textContent = formatValue(direction === 'down' ? to : from);
+          }
+        }, [from, to, direction, formatValue]);
+
+        useEffect(() => {
+          if (isInView && startWhen) {
+            if (typeof onStart === 'function') onStart();
+
+            const timeoutId = setTimeout(() => {
+              motionValue.set(direction === 'down' ? from : to);
+            }, delay * 1000);
+
+            const durationTimeoutId = setTimeout(
+              () => {
+                if (typeof onEnd === 'function') onEnd();
+              },
+              delay * 1000 + duration * 1000
+            );
+
+            return () => {
+              clearTimeout(timeoutId);
+              clearTimeout(durationTimeoutId);
+            };
+          }
+        }, [isInView, startWhen, motionValue, direction, from, to, delay, onStart, onEnd, duration]);
+
+        useEffect(() => {
+          const unsubscribe = springValue.on('change', latest => {
+            if (ref.current) {
+              ref.current.textContent = formatValue(latest);
+            }
+          });
+
+          return () => unsubscribe();
+        }, [springValue, formatValue]);
+
+        return jsx('span', { className, ref });
+      }
+
+      // Mount the CountUp component
+      const container = document.getElementById('price-counter');
+      if (container) {
+        const root = createRoot(container);
+        root.render(jsx(CountUp, { to: 35, from: 0, duration: 2, delay: 0.5 }));
+      }
+    </script>
 </body>
 </html>
