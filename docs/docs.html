@@ -7,13 +7,13 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Navigation Bar -->
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-brand">Timagotchi</div>
             <ul class="nav-menu">
                 <li><a href="index.html">Home</a></li>
                 <li><a href="docs.html" class="active">Docs</a></li>
+                <li><a href="tutorial.html">How It Works</a></li>
                 <li>
                     <a href="https://github.com/Broseph9972/Timagotchi" target="_blank" class="github-link">
                         <svg height="24" viewBox="0 0 16 16" width="24" fill="currentColor">
@@ -25,31 +25,25 @@
         </div>
     </nav>
 
-    <!-- Main Content -->
     <main class="container">
         <div class="docs-container">
-            <!-- Sidebar -->
             <aside class="docs-sidebar">
                 <h3>Documentation</h3>
                 <ul>
                     <li><a href="#getting-started">Getting Started</a></li>
-                    <li><a href="#installation">Installation</a></li>
                     <li><a href="#hardware">Hardware Setup</a></li>
+                    <li><a href="#installation">Installation</a></li>
                     <li><a href="#configuration">Configuration</a></li>
-                    <li><a href="#usage">Usage</a></li>
-                    <li><a href="#customization">Customization</a></li>
                     <li><a href="#troubleshooting">Troubleshooting</a></li>
                 </ul>
             </aside>
 
-            <!-- Documentation Content -->
             <article class="docs-content">
                 <h1>Timagotchi Docs</h1>
                 
                 <section id="getting-started">
                     <h2>Setup</h2>
                     <p>
-                        <!-- WRITE YOUR GETTING STARTED SECTION HERE -->
                         These docs are temporary and were made in like an hr with ai. create a gh issue and i will
                         respond as fast as i can if anything dosent work for you.
                     
@@ -60,6 +54,14 @@
                         <li>MicroSD card</li>
                         <li>Power supply or battery bank (I reccomend a minimum of 10kmah)</li>
                     </ul>
+                </section>
+
+                <section id="hardware">
+                    <h2>Hardware Setup</h2>
+                    <p>
+                        The Waveshare 1.44" LCD HAT connects directly to the Raspberry Pi Zero's GPIO header.
+                        Simply align the 40-pin header and press down firmly until seated.
+                    </p>
                 </section>
 
                 <section id="installation">
@@ -117,71 +119,24 @@ pip3 install -r requirements.txt</code></pre>
                     <pre><code>{
   "base_url": "https://yourschool.instructure.com",
   "api_token": "your_canvas_api_token_here"
-}</code></pre>
-
-                    <p>To get a Canvas API token:</p>
-                    <ol>
-                        <li>Log into Canvas</li>
-                        <li>Account → Settings → New Access Token</li>
-                        <li>Copy token to canvas_config.json</li>
-                    </ol>
                 </section>
-
-                <section id="hardware">
-                    <h2>Hardware Setup</h2>
-                    <!-- ADD HARDWARE SETUP INSTRUCTIONS HERE -->
-                    <p>
-                        The Waveshare 1.44" LCD HAT connects directly to the Raspberry Pi Zero's GPIO header.
-                        Simply align the 40-pin header and press down firmly until seated.
-                    </p>
-                </section>
-
                 <section id="configuration">
                     <h2>Configuration</h2>
-                    <!-- ADD CONFIGURATION INSTRUCTIONS HERE -->
                     <h3>Schedule Configuration</h3>
                     <p>Run the interactive configuration tool:</p>
                     <pre><code>python3 configure_schedule.py</code></pre>
 
-                    <h3>Canvas Integration</h3>
-                    <p>Create <code>Code/canvas_config.json</code>:</p>
-                    <pre><code>{
-  "base_url": "https://yourschool.instructure.com",
-  "api_token": "your_api_token_here"
-}</code></pre>
-                </section>
-
-                <section id="usage">
-                    <h2>Usage</h2>
-                    <!-- ADD USAGE INSTRUCTIONS HERE -->
-                    <h3>Controls</h3>
-                    <ul>
-                        <li><strong>Joystick</strong> Left is back, right is select.</li>
-                        <li><strong>Key1:</strong> Main Page</li>
-                        <li><strong>Key2:</strong> Grades</li>
-                        <li><strong>Key3:</strong> Settings</li>
-                    </ul>
-                </section>
-
-                <section id="customization">
-                    <h2>Customization</h2>
-                    <!-- ADD CUSTOMIZATION INSTRUCTIONS HERE -->
-                    <h3>Themes</h3>
-                    <p>Edit <code>Code/themes.json</code> to add custom color themes.</p>
-
-                    <h3>Custom Phrases</h3>
-                    <p>Edit <code>Code/Phrases.json</code> to customize what your Timagotchi says per period.</p>
-                </section>
-
                 <section id="troubleshooting">
                     <h2>Troubleshooting</h2>
-                    <!-- ADD TROUBLESHOOTING INFO HERE -->
                     <h3>Display Not Working</h3>
                     <ul>
                         <li>Check that SPI is enabled: <code>sudo raspi-config</code></li>
                         <li>If code seems broken, it's my fault most likely. just revert to the latest "Release"</li>
                         <li>Re-run <code>./install.sh</code> to repair driver installation</li>
                     </ul>
+
+                    <h3>Getting Started</h3>
+                    <p>Once you've completed installation and configuration, head over to the <a href="tutorial.html">How It Works</a> page to learn how to use Timagotchi.</p>
 
                     <h3>Need More Help?</h3>
                     <p>
@@ -193,11 +148,19 @@ pip3 install -r requirements.txt</code></pre>
         </div>
     </main>
 
-    <!-- Footer -->
     <footer>
         <p>&copy; 2026 Timagotchi | Made by Jqseph9972</p>
     </footer>
 
+        <script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
+        <script>
+            kofiWidgetOverlay.draw('jqseph', {
+                'type': 'floating-chat',
+                'floating-chat.donateButton.text': 'Support me',
+                'floating-chat.donateButton.background-color': '#f45d22',
+                'floating-chat.donateButton.text-color': '#fff'
+            });
+        </script>
     <script src="copy-button.js"></script>
 </body>
 </html>

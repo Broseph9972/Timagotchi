@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How It Works - Timagotchi</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">Timagotchi</div>
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="docs.html">Docs</a></li>
+                <li><a href="tutorial.html" class="active">How It Works</a></li>
+                <li>
+                    <a href="https://github.com/Broseph9972/Timagotchi" target="_blank" class="github-link">
+                        <svg height="24" viewBox="0 0 16 16" width="24" fill="currentColor">
+                            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                        </svg>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="hero">
+            <h1>How It Works</h1>
+            <p class="subtitle">guide to using your Timagotchi</p>
+        </section>
+
+        <section class="tutorial-section">
+            <h2>Getting Started</h2>
+            <div class="tutorial-content">
+                <div class="tutorial-step">
+                    <div class="tutorial-step">
+                    <h3>Read the <a href="docs.html">docs</a> if you haven't already</h3>
+                    <p>The Waveshare 1.44" LCD HAT includes a joystick and three function keys:</p>
+                    <ul>
+                        <li><strong>Joystick Up/Down:</strong> Navigate menu items vertically</li>
+                        <li><strong>Joystick Left/Right:</strong> Navigate menu items horizontally, turn in games, adjust settings</li>
+                        <li><strong>Joystick Center Press:</strong> Select item (can be hard to press - use Right as alternative)</li>
+                        <li><strong>Key1 (top right):</strong> Navigate to Main Page from anywhere</li>
+                        <li><strong>Key2 (middle right):</strong> Navigate to Grades from anywhere</li>
+                        <li><strong>Key3 (bottom right):</strong> Navigate to Settings from anywhere</li>
+                    </ul>
+                    <div class="tutorial-image-placeholder">
+                        <p class="placeholder-text">[Image: Button layout diagram]</p>
+                    </div>
+                </div>
+
+                <div class="tutorial-step">
+                    <h3>Step 3: Main Page Overview</h3>
+                    <p>The Main Page displays:</p>
+                    <ul>
+                        <li><strong>Animated Character:</strong> Shows current status with Pwnagotchi-inspired ASCII faces</li>
+                        <li><strong>Current Period:</strong> Displays which class you're in or "passing" between periods</li>
+                        <li><strong>Time Remaining:</strong> Shows how much time is left in the current period</li>
+                        <li><strong>Progress Bar:</strong> Visual representation of time (mode changeable in Settings)</li>
+                        <li><strong>WiFi Status:</strong> Small indicator box showing connection status</li>
+                        <li><strong>Custom Phrases:</strong> Context-aware messages based on current period</li>
+                    </ul>
+                    <div class="tutorial-image-placeholder">
+                        <p class="placeholder-text">[Image: Main page screenshot]</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="tutorial-section">
+            <h2>Navigating Menus</h2>
+            <div class="tutorial-content">
+                <div class="tutorial-step">
+                    <h3>Main Navigation</h3>
+                    <p>The right sidebar shows your current location and available pages:</p>
+                    <ul>
+                        <li><strong>Main Page (Key1):</strong> Schedule and character display</li>
+                        <li><strong>Grades (Key2):</strong> Canvas grades and assignments</li>
+                        <li><strong>Settings (Key3):</strong> Themes, time, A/B day, stopwatch, and more</li>
+                    </ul>
+                    <p>Use the joystick or function keys to navigate between these main sections.</p>
+                    <div class="tutorial-image-placeholder">
+                        <p class="placeholder-text">[Image: Navigation sidebar]</p>
+                    </div>
+                </div>
+
+                <div class="tutorial-step">
+                    <h3>Viewing Grades</h3>
+                    <p>If you've configured Canvas integration during setup:</p>
+                    <ol>
+                        <li>Press Key2 or navigate to the Grades page</li>
+                        <li>Select a course from the list</li>
+                        <li>View current grade percentage and assignments</li>
+                        <li>Browse assignments by grade/date</li>
+                        <li>Use "Update Grades" to refresh data from Canvas</li>
+                    </ol>
+                    <div class="tutorial-image-placeholder">
+                        <p class="placeholder-text">[Image: Grades screen]</p>
+                    </div>
+                </div>
+
+                <div class="tutorial-step">
+                    <h3>Settings Menu</h3>
+                    <p>Access various customization options:</p>
+                    <ul>
+                        <li><strong>A/B Day:</strong> Toggle between auto/manual A/B day scheduling</li>
+                        <li><strong>Theme:</strong> Choose from multiple color themes</li>
+                        <li><strong>Progress Bar:</strong> Change visualization mode (time in class, time in day, lunch countdown)</li>
+                        <li><strong>Set Time:</strong> Manually adjust system time using on-screen controls</li>
+                        <li><strong>Stopwatch:</strong> Built-in timer with start/stop/reset</li>
+                        <li><strong>Developer:</strong> Enter Konami code for secret menu</li>
+                    </ul>
+                    <div class="tutorial-image-placeholder">
+                        <p class="placeholder-text">[Image: Settings menu]</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="tutorial-section">
+            <h2>Advanced Features</h2>
+            <div class="tutorial-content">
+                <div class="tutorial-step">
+                    <h3>Secret Menu</h3>
+                    <p>Navigate to Settings → Developer and enter the Konami code:</p>
+                    <p><code>↑ ↑ ↓ ↓ ← → ← →</code></p>
+                    <p>This unlocks:</p>
+                    <ul>
+                        <li><strong>Start Tetris:</strong> Play the built-in Tetris game</li>
+                        <li><strong>Doom:</strong> Try to run PyDoom if installed</li>
+                        <li><strong>Shitty Doom:</strong> Built-in raycaster FPS engine</li>
+                        <li><strong>Run Custom Script:</strong> Execute your custom_script.py</li>
+                    </ul>
+                    <div class="tutorial-image-placeholder">
+                        <p class="placeholder-text">[Image: Secret menu screen]</p>
+                    </div>
+                </div>
+
+                <div class="tutorial-step">
+                    <h3>Game Controls</h3>
+                    <p><strong>Tetris:</strong></p>
+                    <ul>
+                        <li>Up: Rotate piece</li>
+                        <li>Left/Right: Move piece</li>
+                        <li>Down: Drop faster</li>
+                        <li>Center: Hard drop</li>
+                        <li>Key1/2/3: Exit to menu</li>
+                    </ul>
+                    <p><strong>Shitty Doom:</strong></p>
+                    <ul>
+                        <li>Up/Down: Move forward/backward</li>
+                        <li>Left/Right: Turn</li>
+                        <li>Center: Shoot</li>
+                        <li>Key1/2/3: Exit to menu</li>
+                    </ul>
+                    <div class="tutorial-image-placeholder">
+                        <p class="placeholder-text">[Image: Game screenshot]</p>
+                    </div>
+                </div>
+
+                <div class="tutorial-step">
+                    <h3>Themes</h3>
+                    <p>Customize the look of your Timagotchi:</p>
+                    <ol>
+                        <li>Navigate to Settings → Theme</li>
+                        <li>Use joystick to browse available themes</li>
+                        <li>Select a theme to apply it immediately</li>
+                        <li>Your choice is saved automatically</li>
+                    </ol>
+                    <p>Themes change colors for background, text, accents, sidebar, and dividers.</p>
+                    <div class="tutorial-image-placeholder">
+                        <p class="placeholder-text">[Image: Different theme examples]</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="tutorial-section">
+            <h2>Understanding Schedule Features</h2>
+            <div class="tutorial-content">
+                <div class="tutorial-step">
+                    <h3>A/B Day Scheduling</h3>
+                    <p>If your school uses alternating A/B day schedules:</p>
+                    <ul>
+                        <li><strong>Auto Mode:</strong> Device automatically tracks which day type it is</li>
+                        <li><strong>Manual Mode:</strong> Manually set A or B day in Settings → A/B Day</li>
+                        <li><strong>Preset Rotation:</strong> Schedule cycles through configured presets</li>
+                    </ul>
+                    <div class="tutorial-image-placeholder">
+                        <p class="placeholder-text">[Image: A/B day setting]</p>
+                    </div>
+                </div>
+
+                <div class="tutorial-step">
+                    <h3>Progress Bar Modes</h3>
+                    <p>Change how time is visualized:</p>
+                    <ul>
+                        <li><strong>Time in Class:</strong> Shows progress through current period</li>
+                        <li><strong>Time in Day:</strong> Shows progress through entire school day</li>
+                        <li><strong>Lunch Countdown:</strong> Shows time remaining until/during lunch</li>
+                    </ul>
+                    <p>Change mode in Settings → Progress Bar</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+            <div class="tutorial-content">
+                <div class="tutorial-step">
+                    <h3>Battery Life</h3>
+                    <p>To maximize battery life on portable power:</p>
+                    <ul>
+                        <li>The Pi Zero draws minimal power (~100-150mA)</li>
+                        <li>Expected runtime: 8-12 hours on 8kmah battery</li>
+                        <li>Dim screen brightness in Settings for longer life</li>
+                        <li>consider powering from a phone battery if you have no battery bank.</li>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="tutorial-step">
+                    <h3>Common issues</h3>
+                    <ul>
+                        <li><strong>Buttons not responding:</strong> Verify GPIO permissions and connections</li>
+                        <li><strong>Wrong schedule:</strong> Run configure_schedule.py to reconfigure</li>
+                        <li><strong>Canvas not loading:</strong> Check canvas_config.json has valid API token</li>
+                        <li><strong>Time sync issues:</strong> Ensure WiFi connection or manually set time</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="cta">
+            <h2>Anything not working?</h2>
+            <div class="button-group">
+                <a href="https://github.com/Broseph9972/Timagotchi/issues" class="btn btn-secondary">Report an Issue</a>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Timagotchi | Made by Jqseph9972 | <a href="https://blueprint.hackclub.com/projects/1394" target="_blank" rel="noopener">Blueprint Project</a></p>
+    </footer>
+
+        <script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
+        <script>
+            kofiWidgetOverlay.draw('jqseph', {
+                'type': 'floating-chat',
+                'floating-chat.donateButton.text': 'Support me',
+                'floating-chat.donateButton.background-color': '#f45d22',
+                'floating-chat.donateButton.text-color': '#fff'
+            });
+        </script>
+</body>
+</html>

@@ -601,3 +601,116 @@ footer a:hover {
         min-height: 350px;
     }
 }
+
+/* Tutorial Page Styles */
+.tutorial-section {
+    margin: 4rem 0;
+}
+
+.tutorial-section h2 {
+    color: var(--primary-color);
+    font-size: 2rem;
+    margin-bottom: 2rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.tutorial-content {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+}
+
+.tutorial-step {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tutorial-step:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(88, 166, 255, 0.1);
+}
+
+.tutorial-step h3 {
+    color: var(--secondary-color);
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.tutorial-step p {
+    color: var(--text-dark);
+    margin-bottom: 1rem;
+    line-height: 1.8;
+}
+
+.tutorial-step ul,
+.tutorial-step ol {
+    margin-left: 2rem;
+    margin-bottom: 1rem;
+    color: var(--text-dark);
+}
+
+.tutorial-step li {
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+}
+
+.tutorial-step strong {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.tutorial-step code {
+    background-color: var(--code-bg);
+    color: var(--secondary-color);
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--border-radius);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9em;
+}
+
+.tutorial-image-placeholder {
+    margin-top: 1.5rem;
+    padding: 3rem;
+    background-color: var(--code-bg);
+    border: 2px dashed var(--border-color);
+    border-radius: var(--border-radius);
+    text-align: center;
+}
+
+.placeholder-text {
+    color: var(--text-dark);
+    font-style: italic;
+    opacity: 0.6;
+}
+
+/* Responsive Tutorial Styles */
+@media (max-width: 768px) {
+    .tutorial-section {
+        margin: 2rem 0;
+    }
+
+    .tutorial-section h2 {
+        font-size: 1.5rem;
+    }
+
+    .tutorial-step {
+        padding: 1.5rem;
+    }
+
+    .tutorial-step h3 {
+        font-size: 1.2rem;
+    }
+
+    .tutorial-step ul,
+    .tutorial-step ol {
+        margin-left: 1.5rem;
+    }
+
+    .tutorial-image-placeholder {
+        padding: 2rem;
+    }
+}
