@@ -812,7 +812,12 @@ class Menu:
         wifi_connected = self._get_wifi_connected()
         current_char = self.wifi_keyboard_chars[self.wifi_keyboard_index]
         masked_password = "*" * len(self.wifi_password)
-        message = f"Enter password:\n{masked_password}\n\nChar: {current_char}\n\nUp/Dn: Select\nSel: Add\nL: Back"
+        message = (
+            f"Enter password:\n{masked_password}\n\n"
+            f"Char: {current_char}\n\n"
+            "Up/Dn: Select\nSel: Add\n"
+            "Key1: Del  Key2: Try\nKey3: Back"
+        )
         self.display.show_message("WiFi Password", message, (150, 200, 255), self.nav_items, self.nav_selected_index, wifi_connected)
     
     def handle_wifi_password_input(self, action):
@@ -2069,8 +2074,13 @@ class Menu:
             
             if action:
                 # Global key mapping: key1=Main Page, key2=Grades, key3=Settings
-                # Skip global keys on developer and secret_menu screens
-                if action in ('key1', 'key2', 'key3') and self.current_screen not in ('developer', 'secret_menu'):
+                # Skip global keys on screens that need key1/2/3 for input
+                if action in ('key1', 'key2', 'key3') and self.current_screen not in (
+                    'developer',
+                    'secret_menu',
+                    'wifi_password',
+                    'set_time'
+                ):
                     if action == 'key1':
                         self.current_screen = 'main'
                         self.nav_selected_index = self.nav_items.index('Main Page') if 'Main Page' in self.nav_items else 0
