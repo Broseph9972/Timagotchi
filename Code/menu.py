@@ -68,7 +68,7 @@ class Menu:
                 self.settings_menu_items.append("Day Presets")
             else:
                 self.settings_menu_items.append("A/B Day")
-        self.settings_menu_items.extend(["WiFi", "Appearance", "Backlight", "Power Saver", "Progress Bar", "Set Time", "Stopwatch", "Configuration Portal", "Developer", "Update", "Restart"])
+        self.settings_menu_items.extend(["WiFi", "Appearance", "Backlight", "Power Saver", "Progress Bar", "Set Time", "Stopwatch", "Configuration Portal", "Developer", "Version", "Update", "Restart"])
         self.settings_scroll_offset = 0
         self.set_time_menu_items = ["Manual Set", "Sync Now"]
         self.appearance_menu_items = ["Colors", "Fonts"]
@@ -1050,6 +1050,8 @@ class Menu:
                 self.current_screen = 'developer'
                 self._konami_index = 0
                 self.show_developer_menu()
+            elif selected_item == "Version":
+                self.show_version_info()
             elif selected_item == "Update":
                 self._run_update()
             elif selected_item == "Restart":
@@ -1095,6 +1097,44 @@ class Menu:
             self.current_screen = 'settings'
             self.selected_index = self.settings_menu_items.index("Stopwatch") if "Stopwatch" in self.settings_menu_items else 0
             self.show_settings_menu()
+
+    def show_version_info(self):
+        wifi_connected = self._get_wifi_connected()
+        message = self._get_version_message()
+        color = (100, 200, 255) if message else (255, 100, 100)
+        if not message:
+            message = "git not found"
+        self.display.show_message("Version", message, color, self.nav_items, self.nav_selected_index, wifi_connected)
+
+    def _get_version_message(self):
+        repo_dir = "/home/pi/Timagotchi"
+        try:
+            git_check = subprocess.run(['git', '--version'], capture_output=True, text=True, timeout=4)
+            if git_check.returncode != 0:
+                return None
+            branch_proc = subprocess.run(['git', '-C', repo_dir, 'rev-parse', '--abbrev-ref', 'HEAD'], capture_output=True, text=True, timeout=4)
+            branch = (branch_proc.stdout or '').strip() or 'unknown'
+            if branch in ('HEAD', ''):
+                branch = 'detached'
+            commit_proc = subprocess.run(['git', '-C', repo_dir, 'rev-parse', '--short', 'HEAD'], capture_output=True, text=True, timeout=4)
+            commit = (commit_proc.stdout or '').strip() or 'unknown'
+            head_proc = subprocess.run(['git', '-C', repo_dir, 'log', '-1', '--pretty=%s'], capture_output=True, text=True, timeout=4)
+            head_subject = (head_proc.stdout or '').strip() or 'no commits'
+            prev_proc = subprocess.run(['git', '-C', repo_dir, 'log', '--pretty=%s', '-3', '--skip=1'], capture_output=True, text=True, timeout=4)
+            prev_subjects = [line.strip() for line in (prev_proc.stdout or '').splitlines() if line.strip()]
+
+            channel = 'main' if branch == 'main' else 'beta'
+            lines = [
+                f"Channel:{channel}",
+                f"Branch:{branch}",
+                f"Commit:{commit}",
+                f"Now:{head_subject}",
+            ]
+            for idx, subj in enumerate(prev_subjects, start=1):
+                lines.append(f"Prev{idx}:{subj}")
+            return "\n".join(lines)
+        except Exception:
+            return None
     def _run_update(self):
         """Run sudo git pull (ff-only) and show face on completion."""
         try:
@@ -1236,7 +1276,7 @@ class Menu:
         elif self.grades_selected_index >= self.grades_scroll_offset + max_visible:
             self.grades_scroll_offset = self.grades_selected_index - max_visible + 1
         
-        items = [f"{c['name'][:10]} {self._format_percent(c['percent'])}" for c in self._courses_list]
+        items = [self._format_course_item(c, max_len=14) for c in self._courses_list]
         self.display.show_grades_menu(items, self.grades_selected_index, title="Grades", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, start_index=self.grades_scroll_offset, max_visible=max_visible, wifi_connected=self._get_wifi_connected())
     
     def handle_grades_input(self, action):
@@ -1534,7 +1574,8 @@ class Menu:
         elif self.assign_selected_index >= self.assign_scroll_offset + max_visible:
             self.assign_scroll_offset = self.assign_selected_index - max_visible + 1
         
-        items = [self._format_assignment_item(a) for a in self._assign_list]
+        self._assign_list = self._sort_assignments_by_quarter_and_recency(self._assign_list)
+        items = [self._format_assignment_item(a, max_len=14) for a in self._assign_list]
         course = next((c for c in getattr(self, '_courses_list', []) if c['id'] == self.current_course_id), None)
         course_title = (course['name'] if course else 'Assignments')
         title = f"{course_title[:10]} {self._format_percent(course.get('percent') if course else None)}"
@@ -1566,10 +1607,66 @@ class Menu:
         except Exception:
             return str(p)[:6] if p else "--"
 
-    def _format_assignment_item(self, a):
-        name = (a.get('name') or 'Assignment')[:10]
+    def _format_course_item(self, c, max_len=14):
+        name = c.get('name') or 'Course'
+        score = self._format_percent(c.get('percent'))
+        return self._trim_name_with_score(name, score, max_len)
+
+    def _format_assignment_item(self, a, max_len=14):
+        name = a.get('name') or 'Assignment'
         score = self._format_score(a)
-        return f"{name} {score}"
+        return self._trim_name_with_score(name, score, max_len)
+
+    def _trim_name_with_score(self, name, score, max_len):
+        score_text = score or "--"
+        if max_len <= 0:
+            return score_text[:max_len]
+        max_name_len = max_len - (len(score_text) + 1)
+        if max_name_len < 1:
+            return score_text[:max_len]
+        name_trim = str(name)[:max_name_len]
+        return f"{name_trim} {score_text}"
+
+    def _parse_canvas_datetime(self, value):
+        if not value:
+            return None
+        try:
+            text = str(value).replace('Z', '+00:00')
+            return datetime.datetime.fromisoformat(text)
+        except Exception:
+            return None
+
+    def _assignment_recency_ts(self, a):
+        for key in ('graded_at', 'submitted_at', 'due', 'updated_at', 'created_at'):
+            dt = self._parse_canvas_datetime(a.get(key))
+            if dt is not None:
+                return dt.timestamp()
+        return 0
+
+    def _grading_period_number(self, name):
+        if not name:
+            return None
+        text = str(name).upper()
+        for token in ('Q1', 'Q2', 'Q3', 'Q4'):
+            if token in text:
+                return int(token[1])
+        for num in range(1, 5):
+            if f"QUARTER {num}" in text or f"QTR {num}" in text:
+                return num
+        for ch in text:
+            if ch in "1234":
+                return int(ch)
+        return None
+
+    def _sort_assignments_by_quarter_and_recency(self, assigns):
+        def sort_key(a):
+            period_name = a.get('grading_period') or a.get('grading_period_name')
+            period_num = self._grading_period_number(period_name)
+            bucket = 0 if period_num is not None else 1
+            period_order = -period_num if period_num is not None else 0
+            return (bucket, period_order, -self._assignment_recency_ts(a))
+
+        return sorted(assigns, key=sort_key)
 
     def _format_score(self, a):
         score = a.get('score')
@@ -1700,9 +1797,12 @@ class Menu:
         data = self._canvas_request(cfg, f'courses/{course_id}/assignments', params={'include[]':'submission','per_page':50})
         if data is None:
             return None
+        grading_periods = self._canvas_fetch_grading_periods(cfg, course_id)
         assigns = []
         for a in data:
             sub = a.get('submission') or {}
+            period_id = a.get('grading_period_id')
+            period_name = grading_periods.get(period_id) if grading_periods else None
             assigns.append({
                 'id': a.get('id'),
                 'name': a.get('name') or 'Assignment',
@@ -1710,11 +1810,43 @@ class Menu:
                 'score': sub.get('score'),
                 'entered': sub.get('entered_grade'),
                 'status': sub.get('workflow_state'),
-                'due': a.get('due_at')
+                'due': a.get('due_at'),
+                'submitted_at': sub.get('submitted_at'),
+                'graded_at': sub.get('graded_at'),
+                'updated_at': a.get('updated_at'),
+                'created_at': a.get('created_at'),
+                'grading_period_id': period_id,
+                'grading_period': period_name,
             })
         cache[a_key] = {'data': assigns, 'expires': now_ts + 300}
         self._write_cache(cache)
         return assigns
+
+    def _canvas_fetch_grading_periods(self, cfg, course_id):
+        cache = self._read_cache()
+        now_ts = time.time()
+        p_key = f'grading_periods_{course_id}'
+        p_entry = cache.get(p_key)
+        if p_entry and now_ts < p_entry.get('expires', 0):
+            return p_entry.get('data', {})
+        data = self._canvas_request(cfg, f'courses/{course_id}/grading_periods')
+        if data is None:
+            return {}
+        periods_data = []
+        for item in data:
+            if isinstance(item, dict) and item.get('grading_periods'):
+                periods_data.extend(item.get('grading_periods') or [])
+            elif isinstance(item, dict):
+                periods_data.append(item)
+        periods = {}
+        for period in periods_data:
+            pid = period.get('id') if isinstance(period, dict) else None
+            title = period.get('title') if isinstance(period, dict) else None
+            if pid is not None and title:
+                periods[pid] = title
+        cache[p_key] = {'data': periods, 'expires': now_ts + 1800}
+        self._write_cache(cache)
+        return periods
     
     def show_theme_menu(self):
         wifi_connected = self._get_wifi_connected()
