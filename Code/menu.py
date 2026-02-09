@@ -72,6 +72,7 @@ class Menu:
         self.settings_scroll_offset = 0
         self.set_time_menu_items = ["Manual Set", "Sync Now"]
         self.appearance_menu_items = ["Colors", "Fonts"]
+        self.version_menu_items = ["Check Version", "Switch to Main", "Switch to Beta"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
         self.theme_scroll_offset = 0
         self.font_menu_items = self.font_manager.get_font_names()
@@ -1045,6 +1046,8 @@ class Menu:
                 self.current_screen = 'developer'
                 self._konami_index = 0
                 self.show_developer_menu()
+            elif selected_item == "Version":
+                self.show_version_info()
             elif selected_item == "Update":
                 self._run_update()
             elif selected_item == "Restart":
@@ -1098,6 +1101,91 @@ class Menu:
         if not message:
             message = "git not found"
         self.display.show_message("Version", message, color, self.nav_items, self.nav_selected_index, wifi_connected)
+
+    def show_version_menu(self):
+        wifi_connected = self._get_wifi_connected()
+        self.display.show_menu(self.version_menu_items, self.selected_index, "Version", nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, wifi_connected=wifi_connected)
+
+    def handle_version_input(self, action):
+        if action == 'up':
+            self.selected_index = (self.selected_index - 1) % len(self.version_menu_items)
+            self.show_version_menu()
+        elif action == 'down':
+            self.selected_index = (self.selected_index + 1) % len(self.version_menu_items)
+            self.show_version_menu()
+        elif action in ('select', 'right'):
+            selected_item = self.version_menu_items[self.selected_index]
+            if selected_item == "Check Version":
+                self.current_screen = 'version_info'
+                self.show_version_info()
+            elif selected_item == "Switch to Main":
+                self._switch_branch('main')
+            elif selected_item == "Switch to Beta":
+                self._switch_branch('beta')
+        elif action == 'left':
+            self.current_screen = 'settings'
+            self.selected_index = 0
+            self.show_settings_menu()
+
+    def handle_version_info_input(self, action):
+        if action in ('left', 'select', 'right'):
+            self.current_screen = 'version'
+            self.show_version_menu()
+
+    def _switch_branch(self, branch):
+        repo_dir = "/home/pi/Timagotchi"
+        wifi_connected = self._get_wifi_connected()
+        try:
+            git_check = subprocess.run(['git', '--version'], capture_output=True, text=True, timeout=5)
+            if git_check.returncode != 0:
+                self.display.show_message("Version", "git not found", (255, 100, 100), self.nav_items, self.nav_selected_index, wifi_connected)
+                time.sleep(2)
+                self.current_screen = 'version'
+                self.show_version_menu()
+                return
+
+            try:
+                subprocess.run(['git', 'config', '--global', '--add', 'safe.directory', repo_dir], capture_output=True, text=True, timeout=5)
+            except Exception:
+                pass
+
+            current_branch_proc = subprocess.run(['git', '-C', repo_dir, 'rev-parse', '--abbrev-ref', 'HEAD'], capture_output=True, text=True, timeout=5)
+            current_branch = (current_branch_proc.stdout or '').strip()
+            if current_branch == branch:
+                self.display.show_message("Version", f"Already on\n{branch}", (100, 200, 255), self.nav_items, self.nav_selected_index, wifi_connected)
+                time.sleep(1.5)
+                self.current_screen = 'version'
+                self.show_version_menu()
+                return
+
+            self.display.show_message("Version", f"Switching to\n{branch}...", (100, 200, 255), self.nav_items, self.nav_selected_index, wifi_connected)
+            subprocess.run(['sudo', '-n', 'git', '-C', repo_dir, 'fetch', '--all', '--prune'], capture_output=True, text=True, timeout=20)
+            checkout = subprocess.run(['sudo', '-n', 'git', '-C', repo_dir, 'checkout', branch], capture_output=True, text=True, timeout=20)
+            if checkout.returncode != 0:
+                err = (checkout.stderr or checkout.stdout or "checkout failed").strip()[:80]
+                self.display.show_message("Version", err, (255, 100, 100), self.nav_items, self.nav_selected_index, wifi_connected)
+                time.sleep(2)
+                self.current_screen = 'version'
+                self.show_version_menu()
+                return
+
+            pull = subprocess.run(['sudo', '-n', 'git', '-C', repo_dir, 'pull', '--ff-only', 'origin', branch], capture_output=True, text=True, timeout=30)
+            if pull.returncode != 0:
+                err = (pull.stderr or pull.stdout or "pull failed").strip()[:80]
+                self.display.show_message("Version", err, (255, 100, 100), self.nav_items, self.nav_selected_index, wifi_connected)
+                time.sleep(2)
+                self.current_screen = 'version'
+                self.show_version_menu()
+                return
+
+            self.display.show_message("Version", "Restarting...", (100, 255, 100), self.nav_items, self.nav_selected_index, wifi_connected)
+            time.sleep(1)
+            self.restart_program()
+        except Exception as exc:
+            self.display.show_message("Version", f"Error: {str(exc)[:40]}", (255, 100, 100), self.nav_items, self.nav_selected_index, wifi_connected)
+            time.sleep(2)
+            self.current_screen = 'version'
+            self.show_version_menu()
 
     def _get_version_message(self):
         repo_dir = "/home/pi/Timagotchi"
@@ -2159,6 +2247,10 @@ class Menu:
                     self.handle_assignments_input(action)
                 elif self.current_screen == "stopwatch":
                     self.handle_stopwatch_input(action)
+                elif self.current_screen == "version":
+                    self.handle_version_input(action)
+                elif self.current_screen == "version_info":
+                    self.handle_version_info_input(action)
                 elif self.current_screen == "developer":
                     self.handle_developer_input(action)
                 elif self.current_screen == "secret_menu":
