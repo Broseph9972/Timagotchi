@@ -1090,6 +1090,44 @@ class Menu:
             self.current_screen = 'settings'
             self.selected_index = self.settings_menu_items.index("Stopwatch") if "Stopwatch" in self.settings_menu_items else 0
             self.show_settings_menu()
+
+    def show_version_info(self):
+        wifi_connected = self._get_wifi_connected()
+        message = self._get_version_message()
+        color = (100, 200, 255) if message else (255, 100, 100)
+        if not message:
+            message = "git not found"
+        self.display.show_message("Version", message, color, self.nav_items, self.nav_selected_index, wifi_connected)
+
+    def _get_version_message(self):
+        repo_dir = "/home/pi/Timagotchi"
+        try:
+            git_check = subprocess.run(['git', '--version'], capture_output=True, text=True, timeout=4)
+            if git_check.returncode != 0:
+                return None
+            branch_proc = subprocess.run(['git', '-C', repo_dir, 'rev-parse', '--abbrev-ref', 'HEAD'], capture_output=True, text=True, timeout=4)
+            branch = (branch_proc.stdout or '').strip() or 'unknown'
+            if branch in ('HEAD', ''):
+                branch = 'detached'
+            commit_proc = subprocess.run(['git', '-C', repo_dir, 'rev-parse', '--short', 'HEAD'], capture_output=True, text=True, timeout=4)
+            commit = (commit_proc.stdout or '').strip() or 'unknown'
+            head_proc = subprocess.run(['git', '-C', repo_dir, 'log', '-1', '--pretty=%s'], capture_output=True, text=True, timeout=4)
+            head_subject = (head_proc.stdout or '').strip() or 'no commits'
+            prev_proc = subprocess.run(['git', '-C', repo_dir, 'log', '--pretty=%s', '-3', '--skip=1'], capture_output=True, text=True, timeout=4)
+            prev_subjects = [line.strip() for line in (prev_proc.stdout or '').splitlines() if line.strip()]
+
+            channel = 'main' if branch == 'main' else 'beta'
+            lines = [
+                f"Channel:{channel}",
+                f"Branch:{branch}",
+                f"Commit:{commit}",
+                f"Now:{head_subject}",
+            ]
+            for idx, subj in enumerate(prev_subjects, start=1):
+                lines.append(f"Prev{idx}:{subj}")
+            return "\n".join(lines)
+        except Exception:
+            return None
     def _run_update(self):
         """Run sudo git pull (ff-only) and show face on completion."""
         try:
