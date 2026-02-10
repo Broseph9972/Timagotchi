@@ -1781,8 +1781,14 @@ class Menu:
             percent = None
             grade_text = None
             
-            # Try to get score from enrollments first
+            # Try to get score from enrollments first (prefer grading period if present)
             for e in c.get('enrollments', []):
+                if e.get('computed_current_period_score') is not None:
+                    percent = e['computed_current_period_score']
+                    break
+                if e.get('current_period_score') is not None:
+                    percent = e['current_period_score']
+                    break
                 if e.get('computed_current_score') is not None:
                     percent = e['computed_current_score']
                     break
@@ -1797,14 +1803,14 @@ class Menu:
                     break
                 # Fallback to letter grade
                 if grade_text is None:
-                    grade_text = e.get('computed_current_grade') or e.get('current_grade') or e.get('computed_final_grade') or e.get('final_grade')
+                    grade_text = e.get('computed_current_period_grade') or e.get('current_period_grade') or e.get('computed_current_grade') or e.get('current_grade') or e.get('computed_final_grade') or e.get('final_grade')
             
             # If no score in enrollments, try course-level grades
             if percent is None:
                 g = c.get('grades') or {}
-                percent = g.get('current_score') or g.get('final_score')
+                percent = g.get('current_period_score') or g.get('current_score') or g.get('final_score')
                 if grade_text is None:
-                    grade_text = g.get('current_grade') or g.get('final_grade')
+                    grade_text = g.get('current_period_grade') or g.get('current_grade') or g.get('final_grade')
             
             courses.append({'id': c.get('id'), 'name': name, 'percent': percent if percent is not None else grade_text})
         cache['courses'] = {'data': courses, 'expires': now_ts + 600}
