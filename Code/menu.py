@@ -72,6 +72,7 @@ class Menu:
         self.settings_scroll_offset = 0
         self.set_time_menu_items = ["Manual Set", "Sync Now"]
         self.appearance_menu_items = ["Colors", "Fonts"]
+        self.version_menu_items = ["Check Version", "Switch to Main", "Switch to Beta"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
         self.theme_scroll_offset = 0
         self.font_menu_items = self.font_manager.get_font_names()
@@ -1097,44 +1098,6 @@ class Menu:
             self.current_screen = 'settings'
             self.selected_index = self.settings_menu_items.index("Stopwatch") if "Stopwatch" in self.settings_menu_items else 0
             self.show_settings_menu()
-
-    def show_version_info(self):
-        wifi_connected = self._get_wifi_connected()
-        message = self._get_version_message()
-        color = (100, 200, 255) if message else (255, 100, 100)
-        if not message:
-            message = "git not found"
-        self.display.show_message("Version", message, color, self.nav_items, self.nav_selected_index, wifi_connected)
-
-    def _get_version_message(self):
-        repo_dir = "/home/pi/Timagotchi"
-        try:
-            git_check = subprocess.run(['git', '--version'], capture_output=True, text=True, timeout=4)
-            if git_check.returncode != 0:
-                return None
-            branch_proc = subprocess.run(['git', '-C', repo_dir, 'rev-parse', '--abbrev-ref', 'HEAD'], capture_output=True, text=True, timeout=4)
-            branch = (branch_proc.stdout or '').strip() or 'unknown'
-            if branch in ('HEAD', ''):
-                branch = 'detached'
-            commit_proc = subprocess.run(['git', '-C', repo_dir, 'rev-parse', '--short', 'HEAD'], capture_output=True, text=True, timeout=4)
-            commit = (commit_proc.stdout or '').strip() or 'unknown'
-            head_proc = subprocess.run(['git', '-C', repo_dir, 'log', '-1', '--pretty=%s'], capture_output=True, text=True, timeout=4)
-            head_subject = (head_proc.stdout or '').strip() or 'no commits'
-            prev_proc = subprocess.run(['git', '-C', repo_dir, 'log', '--pretty=%s', '-3', '--skip=1'], capture_output=True, text=True, timeout=4)
-            prev_subjects = [line.strip() for line in (prev_proc.stdout or '').splitlines() if line.strip()]
-
-            channel = 'main' if branch == 'main' else 'beta'
-            lines = [
-                f"Channel:{channel}",
-                f"Branch:{branch}",
-                f"Commit:{commit}",
-                f"Now:{head_subject}",
-            ]
-            for idx, subj in enumerate(prev_subjects, start=1):
-                lines.append(f"Prev{idx}:{subj}")
-            return "\n".join(lines)
-        except Exception:
-            return None
     def _run_update(self):
         """Run sudo git pull (ff-only) and show face on completion."""
         try:
@@ -1757,8 +1720,14 @@ class Menu:
             percent = None
             grade_text = None
             
-            # Try to get score from enrollments first
+            # Try to get score from enrollments first (prefer grading period if present)
             for e in c.get('enrollments', []):
+                if e.get('computed_current_period_score') is not None:
+                    percent = e['computed_current_period_score']
+                    break
+                if e.get('current_period_score') is not None:
+                    percent = e['current_period_score']
+                    break
                 if e.get('computed_current_score') is not None:
                     percent = e['computed_current_score']
                     break
@@ -1773,14 +1742,14 @@ class Menu:
                     break
                 # Fallback to letter grade
                 if grade_text is None:
-                    grade_text = e.get('computed_current_grade') or e.get('current_grade') or e.get('computed_final_grade') or e.get('final_grade')
+                    grade_text = e.get('computed_current_period_grade') or e.get('current_period_grade') or e.get('computed_current_grade') or e.get('current_grade') or e.get('computed_final_grade') or e.get('final_grade')
             
             # If no score in enrollments, try course-level grades
             if percent is None:
                 g = c.get('grades') or {}
-                percent = g.get('current_score') or g.get('final_score')
+                percent = g.get('current_period_score') or g.get('current_score') or g.get('final_score')
                 if grade_text is None:
-                    grade_text = g.get('current_grade') or g.get('final_grade')
+                    grade_text = g.get('current_period_grade') or g.get('current_grade') or g.get('final_grade')
             
             courses.append({'id': c.get('id'), 'name': name, 'percent': percent if percent is not None else grade_text})
         cache['courses'] = {'data': courses, 'expires': now_ts + 600}
@@ -2263,6 +2232,10 @@ class Menu:
                     self.handle_assignments_input(action)
                 elif self.current_screen == "stopwatch":
                     self.handle_stopwatch_input(action)
+                elif self.current_screen == "version":
+                    self.handle_version_input(action)
+                elif self.current_screen == "version_info":
+                    self.handle_version_info_input(action)
                 elif self.current_screen == "developer":
                     self.handle_developer_input(action)
                 elif self.current_screen == "secret_menu":
