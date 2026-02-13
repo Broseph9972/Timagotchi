@@ -429,6 +429,49 @@ body {
     text-decoration: underline;
 }
 
+/* Installation Tabs */
+.installation-tabs {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin: 1.5rem 0 2rem;
+}
+
+.tab-button {
+    background-color: var(--code-bg);
+    color: var(--text-light);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 0.6rem 1rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.tab-button:hover {
+    border-color: var(--primary-color);
+}
+
+.tab-button.active {
+    background-color: var(--primary-color);
+    color: var(--dark-bg);
+    border-color: var(--primary-color);
+}
+
+.tab-button:focus-visible {
+    outline: 2px solid var(--secondary-color);
+    outline-offset: 2px;
+}
+
+.installation-panel {
+    display: none;
+}
+
+.installation-panel.active {
+    display: block;
+}
+
 /* Footer */
 footer {
     background-color: var(--dark-bg);

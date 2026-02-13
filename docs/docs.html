@@ -1,168 +1,353 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Timagotchi Docs</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="nav-brand">Timagotchi</div>
-            <ul class="nav-menu">
-                <li><a href="index.html">Home</a></li>
-                <li><a href="docs.html" class="active">Docs</a></li>
-                <li><a href="tutorial.html">How It Works</a></li>
-                <li>
-                    <a href="https://github.com/Broseph9972/Timagotchi" target="_blank" class="github-link">
-                        <svg height="24" viewBox="0 0 16 16" width="24" fill="currentColor">
-                            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-                        </svg>
-                    </a>
-                </li>
-            </ul>
-        </div>
-    </nav>
-
-    <main class="container">
-        <div class="docs-container">
-            <aside class="docs-sidebar">
-                <h3>Documentation</h3>
-                <ul>
-                    <li><a href="#getting-started">Getting Started</a></li>
-                    <li><a href="#hardware">Hardware Setup</a></li>
-                    <li><a href="#installation">Installation</a></li>
-                    <li><a href="#configuration">Configuration</a></li>
-                    <li><a href="#troubleshooting">Troubleshooting</a></li>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Timagotchi Docs</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <nav class="navbar">
+            <div class="nav-container">
+                <div class="nav-brand">Timagotchi</div>
+                <ul class="nav-menu">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="docs.html" class="active">Docs</a></li>
+                    <li><a href="tutorial.html">How It Works</a></li>
+                    <li>
+                        <a href="https://github.com/Broseph9972/Timagotchi" target="_blank" class="github-link">
+                            <svg height="24" viewBox="0 0 16 16" width="24" fill="currentColor">
+                                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                            </svg>
+                        </a>
+                    </li>
                 </ul>
-            </aside>
+            </div>
+        </nav>
 
-            <article class="docs-content">
-                <h1>Timagotchi Docs</h1>
-                
-                <section id="getting-started">
-                    <h2>Setup</h2>
-                    <p>
-                        If anything here is inaccurate, create a gh issue and i will
-                        respond as fast as i can if anything dosent work for you.
-                    
-                    <h3>Materials</h3>
+        <main class="container">
+            <div class="docs-container">
+                <aside class="docs-sidebar">
+                    <h3>Documentation</h3>
                     <ul>
-                        <li>Raspberry Pi Zero WH - $20</li>
-                        <li>Waveshare 1.44" LCD HAT - $15</li>
-                        <li>MicroSD card</li>
-                        <li>Power supply or battery bank (I reccomend a minimum of 10kmah)</li>
+                        <li><a href="#getting-started">Getting Started</a></li>
+                        <li><a href="#hardware">Hardware Setup</a></li>
+                        <li><a href="#installation">Installation</a></li>
+                        <li><a href="#configuration">Configuration</a></li>
+                        <li><a href="#troubleshooting">Troubleshooting</a></li>
                     </ul>
-                </section>
+                </aside>
 
-                <section id="hardware">
-                    <h2>Hardware Setup</h2>
-                    <p>
-                        The Waveshare 1.44" LCD HAT connects directly to the Raspberry Pi Zero's GPIO header.
-                        Simply align the 40-pin header and press down firmly until seated.
-                    </p>
-                </section>
-
-                <section id="installation">
-                    <h2>Installation</h2>
+                <article class="docs-content">
+                    <h1>Timagotchi Docs</h1>
                     
-                    <p>Install PiOS 32bit Trixie using <a href="https://www.raspberrypi.com/software/" target="_blank">Pi Imager</a>. Once you
-                        are in the imager, select device as "Pi Zero", not pi zero 2. Make sure to enable SSH and setup your Wifi. Set your Hostname to "Timagotchi" or whatever, but make sure to remember it.
-                        Once finished, SSH into Pi with a terminal of your choice, (open CMD (windows) or terminal (mac)) and type <code>ssh [Your hostname].local</code> Default should be "Timagotchi.local"</p>
-                         (I reccomend using <a href="https://termius.com/download" target="_blank">Termius</a>, but anything else is fine.) and follow instructions below.</p>
+                    <section id="getting-started">
+                        <h2>Setup</h2>
+                        <p>
+                            If anything here is inaccurate, create a gh issue and i will
+                            respond as fast as i can if anything dosent work for you.
+                        
+                        <h3>Materials</h3>
+                        <ul>
+                            <li>Raspberry Pi Zero WH - $20</li>
+                            <li>Waveshare 1.44" LCD HAT - $15</li>
+                            <li>MicroSD card</li>
+                            <li>Power supply or battery bank (I reccomend a minimum of 10kmah)</li>
+                        </ul>
+                    </section>
 
-                    <h3>Automated Installation</h3>
+                    <section id="hardware">
+                        <h2>Hardware Setup</h2>
+                        <p>
+                            The Waveshare 1.44" LCD HAT connects directly to the Raspberry Pi Zero's GPIO header.
+                            Simply align the 40-pin header and press down firmly until seated.
+                        </p>
+                    </section>
 
-                    <pre><code>sudo raspi-config</code></pre>
+                    <section id="installation">
+                        <h2>Installation</h2>
+                        <p>Select your OS to see the full install flow, including flashing PiOS 32bit Trixie, SSH, and setup.</p>
 
-                    <p>Navigate to: <strong>Interfacing Options → SPI → Yes</strong>, then reboot. this is for the screen to work</p>
+                        <div class="installation-tabs" role="tablist" aria-label="Installation OS">
+                            <button id="install-windows-tab" class="tab-button active" data-target="install-windows" role="tab" aria-controls="install-windows" aria-selected="true">Windows</button>
+                            <button id="install-macos-tab" class="tab-button" data-target="install-macos" role="tab" aria-controls="install-macos" aria-selected="false">macOS</button>
+                            <button id="install-linux-tab" class="tab-button" data-target="install-linux" role="tab" aria-controls="install-linux" aria-selected="false">Linux</button>
+                        </div>
 
-                    <pre><code>git clone https://github.com/broseph9972/Timagotchi && cd Timagotchi/Code</code></pre>
+                        <div class="installation-panels">
+                            <div id="install-windows" class="installation-panel active" role="tabpanel" aria-labelledby="install-windows-tab">
+                                <h3>PiOS 32bit Trixie</h3>
+                                <ol>
+                                    <li>Download and open <a href="https://www.raspberrypi.com/software/" target="_blank">Pi Imager</a>.</li>
+                                    <li>Select device as "Pi Zero" (not Pi Zero 2), then choose PiOS 32bit Trixie.</li>
+                                    <li>Enable SSH, set WiFi, and set a hostname, username, and password you will remember.
+                                        Most likely, you won't need them after installation.</li>
+                                    <li>Flash the card, insert it into the Pi, and power on. then wait around 5 minutes.</li>
+                                    <li>Open CMD or PowerShell and run <code>ssh [Your username]@[Your hostname].local</code>. Recommended is <code>Timagotchi.local</code>.</li>
+                                </ol>
 
-                    <pre><code>chmod +x install.sh start.sh
-./install.sh</code></pre>
+                                <p>I recommend <a href="https://termius.com/download" target="_blank">Termius</a>, but anything else is fine.</p>
 
-                    <p>Reboot with <code>sudo reboot</code></p>
+                                <h3>Automated Installation</h3>
 
-                    <p>To customize your schedule run</p>
-                    <pre><code>python3 Timagotchi/Code/configure_schedule.py</code></pre>
+                                <pre><code>sudo raspi-config</code></pre>
 
-                    <p><strong>If install.sh and start.sh wont run, try <code>dos2unix install.sh start.sh</code> this happens when i sftp it over. If using git ignore this</strong></p>
+                                <p>Navigate to: <strong>Interfacing Options -> SPI -> Yes</strong>, then reboot. This is for the screen to work.</p>
 
-                    <p><strong>Important</strong>: Reboot after install.</p>
+                                <pre><code>git clone https://github.com/broseph9972/Timagotchi && cd Timagotchi/Code</code></pre>
 
-                    <h3>Manual Installation</h3>
+                                <pre><code>chmod +x install.sh start.sh
+    ./install.sh</code></pre>
 
-                    <h4>1. Enable SPI Interface</h4>
+                                <p>Reboot with <code>sudo reboot</code></p>
 
-                    <pre><code>sudo raspi-config</code></pre>
+                                <p>To customize your schedule run</p>
+                                <pre><code>python3 Timagotchi/Code/configure_schedule.py</code></pre>
 
-                    <p>Navigate to: <strong>Interfacing Options → SPI → Yes</strong>, then reboot. this is for the screen to work</p>
+                                <p><strong>If install.sh and start.sh wont run, try <code>dos2unix install.sh start.sh</code> this happens when i sftp it over. If using git ignore this</strong></p>
 
-                    <h4>2. Install Dependencies</h4>
+                                <p><strong>Important</strong>: Reboot after install.</p>
 
-                    <pre><code>sudo apt-get update
-sudo apt-get install python3-pip python3-pil python3-numpy
-pip3 install -r requirements.txt</code></pre>
+                                <h3>Manual Installation</h3>
 
-                    <h4>3. Do gpio stuff</h4>
+                                <h4>1. Enable SPI Interface</h4>
 
-                    <pre><code>sudo usermod -aG gpio [Your username]</code></pre>
+                                <pre><code>sudo raspi-config</code></pre>
 
-                    <h4>4. Configure Your Schedule & Canvas (Optional)</h4>
+                                <p>Navigate to: <strong>Interfacing Options -> SPI -> Yes</strong>, then reboot. This is for the screen to work.</p>
 
-                    <p>Run the interactive configuration script:</p>
+                                <h4>2. Install Dependencies</h4>
 
-                    <pre><code>python3 configure_schedule.py</code></pre>
+                                <pre><code>sudo apt-get update
+    sudo apt-get install python3-pip python3-pil python3-numpy
+    pip3 install -r requirements.txt</code></pre>
 
-                    <p>For Canvas integration, you'll be prompted during <code>install.sh</code> or you can manually create <code>Code/canvas_config.json</code>:</p>
+                                <h4>3. Do gpio stuff</h4>
 
-                    <pre><code>{
-  "base_url": "https://yourschool.instructure.com",
-  "api_token": "your_canvas_api_token_here"
-                </section>
-                <section id="configuration">
-                    <h2>Configuration</h2>
-                    <h3>Schedule Configuration</h3>
-                    <p>Run the interactive configuration tool:</p>
-                    <pre><code>python3 configure_schedule.py</code></pre>
+                                <pre><code>sudo usermod -aG gpio [Your username]</code></pre>
 
-                <section id="troubleshooting">
-                    <h2>Troubleshooting</h2>
-                    <h3>Display Not Working</h3>
-                    <ul>
-                        <li>Check that SPI is enabled: <code>sudo raspi-config</code></li>
-                        <li>If code seems broken, it's my fault most likely. just revert to the latest "Release"</li>
-                        <li>Re-run <code>./install.sh</code> to repair driver installation</li>
-                    </ul>
+                                <h4>4. Configure Your Schedule & Canvas (Optional)</h4>
 
-                    <h3>Getting Started</h3>
-                    <p>Once you've completed installation and configuration, head over to the <a href="tutorial.html">How It Works</a> page to learn how to use Timagotchi.</p>
+                                <p>Run the interactive configuration script:</p>
 
-                    <h3>Need More Help?</h3>
-                    <p>
-                        Check out the <a href="https://github.com/Broseph9972/Timagotchi">GitHub repository</a> 
-                        or open an issue for support.
-                    </p>
-                </section>
-            </article>
-        </div>
-    </main>
+                                <pre><code>python3 configure_schedule.py</code></pre>
 
-    <footer>
-        <p>&copy; 2026 Timagotchi | Made by Jqseph9972</p>
-    </footer>
+                                <p>For Canvas integration, you'll be prompted during <code>install.sh</code> or you can manually create <code>Code/canvas_config.json</code>:</p>
 
-        <script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
+                                <pre><code>{
+    "base_url": "https://yourschool.instructure.com",
+    "api_token": "your_canvas_api_token_here"
+    }</code></pre>
+                            </div>
+
+                            <div id="install-macos" class="installation-panel" role="tabpanel" aria-labelledby="install-macos-tab">
+                                <h3>PiOS 32bit Trixie</h3>
+                                <ol>
+                                    <li>Download and open <a href="https://www.raspberrypi.com/software/" target="_blank">Pi Imager</a>.</li>
+                                    <li>Select device as "Pi Zero" (not Pi Zero 2), then choose PiOS 32bit Trixie.</li>
+                                    <li>Enable SSH, set WiFi, and set a hostname, username, and password you will remember.
+                                                                            Most likely, you won't need them after installation.</li>    <li>Flash the card, insert it into the Pi, and power on. then wait around 5 minutes.</li>
+                                    <li>Open Terminal and run <code>ssh [Your username]@[Your hostname].local</code>. Recommended is <code>Timagotchi.local</code>.</li>
+                                </ol>
+
+                                <p>I recommend <a href="https://termius.com/download" target="_blank">Termius</a>, but anything else is fine.</p>
+
+                                <h3>Automated Installation</h3>
+
+                                <pre><code>sudo raspi-config</code></pre>
+
+                                <p>Navigate to: <strong>Interfacing Options -> SPI -> Yes</strong>, then reboot. This is for the screen to work.</p>
+
+                                <pre><code>git clone https://github.com/broseph9972/Timagotchi && cd Timagotchi/Code</code></pre>
+
+                                <pre><code>chmod +x install.sh start.sh
+    ./install.sh</code></pre>
+
+                                <p>Reboot with <code>sudo reboot</code></p>
+
+                                <p>To customize your schedule run</p>
+                                <pre><code>python3 Timagotchi/Code/configure_schedule.py</code></pre>
+
+                                <p><strong>If install.sh and start.sh wont run, try <code>dos2unix install.sh start.sh</code> this happens when i sftp it over. If using git ignore this</strong></p>
+
+                                <p><strong>Important</strong>: Reboot after install.</p>
+
+                                <h3>Manual Installation</h3>
+
+                                <h4>1. Enable SPI Interface</h4>
+
+                                <pre><code>sudo raspi-config</code></pre>
+
+                                <p>Navigate to: <strong>Interfacing Options -> SPI -> Yes</strong>, then reboot. This is for the screen to work.</p>
+
+                                <h4>2. Install Dependencies</h4>
+
+                                <pre><code>sudo apt-get update
+    sudo apt-get install python3-pip python3-pil python3-numpy
+    pip3 install -r requirements.txt</code></pre>
+
+                                <h4>3. Do gpio stuff</h4>
+
+                                <pre><code>sudo usermod -aG gpio [Your username]</code></pre>
+
+                                <h4>4. Configure Your Schedule & Canvas (Optional)</h4>
+
+                                <p>Run the interactive configuration script:</p>
+
+                                <pre><code>python3 configure_schedule.py</code></pre>
+
+                                <p>For Canvas integration, you'll be prompted during <code>install.sh</code> or you can manually create <code>Code/canvas_config.json</code>:</p>
+
+                                <pre><code>{
+    "base_url": "https://yourschool.instructure.com",
+    "api_token": "your_canvas_api_token_here"
+    }</code></pre>
+                            </div>
+
+                            <div id="install-linux" class="installation-panel" role="tabpanel" aria-labelledby="install-linux-tab">
+                                <h3>PiOS 32bit Trixie</h3>
+                                <ol>
+                                    <li>Install <a href="https://www.raspberrypi.com/software/" target="_blank">Pi Imager</a> using the commands below.</li>
+                                    <li>Debian based:</li>
+                                    <pre><code>sudo apt-get update
+    sudo apt-get install rpi-imager</code></pre>
+                                    <li>Arch:</li>
+                                    <pre><code>sudo pacman -S rpi-imager</code></pre>
+                                    <li>Red Hat or Fedora:</li>
+                                    <pre><code>sudo dnf install rpi-imager</code></pre>
+                                    <li>Select device as "Pi Zero" (not Pi Zero 2), then choose PiOS 32bit Trixie.</li>
+                                    <li>Enable SSH, set WiFi, and set a hostname, username, and password you will remember. 
+                                        Most likely, you won't need them after installation.</li>
+                                    <li>Flash the card, insert it into the Pi, and power on. then wait around  5 minutes.</li>
+                                    <li>Open your terminal and run <code>ssh [Your username]@[Your hostname].local</code>. Recommended is <code>Timagotchi.local</code>.</li>
+                                </ol>
+
+                                <p>I recommend <a href="https://termius.com/download" target="_blank">Termius</a>for easy sshing, but anything else is fine.</p>
+
+                                <h3>Automated Installation</h3>
+
+                                <pre><code>sudo raspi-config</code></pre>
+
+                                <p>Navigate to: <strong>Interfacing Options -> SPI -> Yes</strong>, then reboot. This is for the screen to work.</p>
+
+                                <pre><code>git clone https://github.com/broseph9972/Timagotchi && cd Timagotchi/Code</code></pre>
+
+                                <pre><code>chmod +x install.sh start.sh
+    ./install.sh</code></pre>
+
+                                <p>Reboot with <code>sudo reboot</code></p>
+
+                                <p>To customize your schedule run</p>
+                                <pre><code>python3 Timagotchi/Code/configure_schedule.py</code></pre>
+
+                                <p><strong>If install.sh and start.sh wont run, try <code>dos2unix install.sh start.sh</code> this happens when i sftp it over. If using git ignore this</strong></p>
+
+                                <p><strong>Important</strong>: Reboot after install.</p>
+
+                                <h3>Manual Installation</h3>
+
+                                <h4>1. Enable SPI Interface</h4>
+
+                                <pre><code>sudo raspi-config</code></pre>
+
+                                <p>Navigate to: <strong>Interfacing Options -> SPI -> Yes</strong>, then reboot. This is for the screen to work.</p>
+
+                                <h4>2. Install Dependencies</h4>
+
+                                <p>Debian based:</p>
+                                <pre><code>sudo apt-get update
+    sudo apt-get install python3-pip python3-pil python3-numpy
+    pip3 install -r requirements.txt</code></pre>
+
+                                <p>Arch:</p>
+                                <pre><code>sudo pacman -S python-pip python-pillow python-numpy
+    pip install -r requirements.txt</code></pre>
+
+                                <p>Red Hat or Fedora:</p>
+                                <pre><code>sudo dnf install python3-pip python3-pillow python3-numpy
+    pip3 install -r requirements.txt</code></pre>
+
+                                <h4>3. Do gpio stuff</h4>
+
+                                <pre><code>sudo usermod -aG gpio [Your username]</code></pre>
+
+                                <h4>4. Configure Your Schedule & Canvas (Optional)</h4>
+
+                                <p>Run the interactive configuration script:</p>
+
+                                <pre><code>python3 configure_schedule.py</code></pre>
+
+                                <p>For Canvas integration, you'll be prompted during <code>install.sh</code> or you can manually create <code>Code/canvas_config.json</code>:</p>
+
+                                <pre><code>{
+    "base_url": "https://yourschool.instructure.com",
+    "api_token": "your_canvas_api_token_here"
+    }</code></pre>
+                            </div>
+                        </div>
+                    </section>
+                    <section id="configuration">
+                        <h2>Configuration</h2>
+                        <h3>Schedule Configuration</h3>
+                        <p>Run the interactive configuration tool:</p>
+                        <pre><code>python3 configure_schedule.py</code></pre>
+
+                    <section id="troubleshooting">
+                        <h2>Troubleshooting</h2>
+                        <h3>Display Not Working</h3>
+                        <ul>
+                            <li>Check that SPI is enabled: <code>sudo raspi-config</code></li>
+                            <li>If code seems broken, it's my fault most likely. just revert to the latest "Release"</li>
+                            <li>Re-run <code>./install.sh</code> to repair driver installation</li>
+                        </ul>
+
+                        <h3>Getting Started</h3>
+                        <p>Once you've completed installation and configuration, head over to the <a href="tutorial.html">How It Works</a> page to learn how to use Timagotchi.</p>
+
+                        <h3>Need More Help?</h3>
+                        <p>
+                            Check out the <a href="https://github.com/Broseph9972/Timagotchi">GitHub repository</a> 
+                            or open an issue for support.
+                        </p>
+                    </section>
+                </article>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Timagotchi | Made by Jqseph9972</p>
+        </footer>
+
         <script>
-            kofiWidgetOverlay.draw('jqseph', {
-                'type': 'floating-chat',
-                'floating-chat.donateButton.text': 'Support me',
-                'floating-chat.donateButton.background-color': '#f45d22',
-                'floating-chat.donateButton.text-color': '#fff'
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const panels = document.querySelectorAll('.installation-panel');
+
+            tabButtons.forEach((button) => {
+                button.addEventListener('click', () => {
+                    const targetId = button.getAttribute('data-target');
+
+                    tabButtons.forEach((btn) => {
+                        const isActive = btn === button;
+                        btn.classList.toggle('active', isActive);
+                        btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                    });
+
+                    panels.forEach((panel) => {
+                        panel.classList.toggle('active', panel.id === targetId);
+                    });
+                });
             });
         </script>
-    <script src="copy-button.js"></script>
-</body>
-</html>
+
+            <script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
+            <script>
+                kofiWidgetOverlay.draw('jqseph', {
+                    'type': 'floating-chat',
+                    'floating-chat.donateButton.text': 'Support me',
+                    'floating-chat.donateButton.background-color': '#f45d22',
+                    'floating-chat.donateButton.text-color': '#fff'
+                });
+            </script>
+        <script src="copy-button.js"></script>
+    </body>
+    </html>
