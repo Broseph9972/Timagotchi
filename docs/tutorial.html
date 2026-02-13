@@ -32,6 +32,25 @@
         </section>
 
         <section class="tutorial-section">
+            <h2>Video Overview</h2>
+            <div class="tutorial-content">
+                <div class="tutorial-step">
+                    <div class="tutorial-video">
+                        <iframe
+                            width="560"
+                            height="315"
+                            src="https://www.youtube.com/embed/EPvgLsiB45s"
+                            title="Timagotchi overview"
+                            frameborder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowfullscreen
+                        ></iframe>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="tutorial-section">
             <h2>Getting Started</h2>
             <div class="tutorial-content">
                 <div class="tutorial-step">
@@ -75,6 +94,38 @@
                     <div class="tutorial-image-placeholder">
                         <p class="placeholder-text">[Image: Different theme examples]</p>
                     </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="tutorial-section">
+            <h2>Canvas Grades Setup</h2>
+            <div class="tutorial-content">
+                <div class="tutorial-step">
+                    <h3>Watch the setup video</h3>
+                    <div class="tutorial-video">
+                        <iframe
+                            width="560"
+                            height="315"
+                            src="https://www.youtube.com/embed/EPvgLsiB45s"
+                            title="Timagotchi Canvas API setup"
+                            frameborder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowfullscreen
+                        ></iframe>
+                    </div>
+                </div>
+
+                <div class="tutorial-step">
+                    <h3>Create a Canvas API token</h3>
+                    <ol>
+                        <li>Log into Canvas in a browser.</li>
+                        <li>Open <strong>Account</strong> (left sidebar) then <strong>Settings</strong>.</li>
+                        <li>Scroll to <strong>Approved Integrations</strong> and click <strong>New Access Token</strong>.</li>
+                        <li>Give it a purpose name like "Timagotchi" and optionally set an expiration date.</li>
+                        <li>Click <strong>Generate Token</strong>, then copy the token right away.</li>
+                    </ol>
+                    <p>Save the token in <code>Code/canvas_config.json</code> as <code>api_token</code>. The <code>base_url</code> should match your Canvas domain, like <code>https://yourschool.instructure.com</code> or your school specific Canvas URL.</p>
                 </div>
             </div>
         </section>
