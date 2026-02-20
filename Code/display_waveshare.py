@@ -165,6 +165,7 @@ class WaveshareDisplay:
             self.font_medium = ImageFont.truetype(regular_path, 14)
             self.font_small = ImageFont.truetype(regular_path, 12)
             self.font_tiny = ImageFont.truetype(regular_path, 10)
+            self.font_micro = ImageFont.truetype(regular_path, 8)
         except Exception as e:
             print(f"Error loading custom fonts: {e}")
             # Fall back to default fonts
@@ -173,12 +174,66 @@ class WaveshareDisplay:
                 self.font_medium = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 14)
                 self.font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 12)
                 self.font_tiny = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 10)
+                self.font_micro = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 8)
             except:
                 # Ultimate fallback to PIL default
                 self.font_large = ImageFont.load_default()
                 self.font_medium = ImageFont.load_default()
                 self.font_small = ImageFont.load_default()
                 self.font_tiny = ImageFont.load_default()
+                self.font_micro = ImageFont.load_default()
+
+    def _measure_text_width(self, text, font):
+        try:
+            bbox = self.draw.textbbox((0, 0), text, font=font)
+            return bbox[2] - bbox[0]
+        except Exception:
+            try:
+                return font.getsize(text)[0]
+            except Exception:
+                return len(text) * 6
+
+    def _wrap_text_to_width(self, text, font, max_width):
+        """Wrap one text line to fit within max_width in pixels."""
+        text = (text or "")
+        if text == "":
+            return [""]
+
+        words = text.split()
+        if not words:
+            return [""]
+
+        wrapped = []
+        current = ""
+
+        for word in words:
+            candidate = f"{current} {word}".strip() if current else word
+            if self._measure_text_width(candidate, font) <= max_width:
+                current = candidate
+                continue
+
+            if current:
+                wrapped.append(current)
+
+            # Handle very long single words by chunking
+            if self._measure_text_width(word, font) <= max_width:
+                current = word
+            else:
+                chunk = ""
+                for ch in word:
+                    trial = chunk + ch
+                    if self._measure_text_width(trial, font) <= max_width:
+                        chunk = trial
+                    else:
+                        if chunk:
+                            wrapped.append(chunk)
+                        chunk = ch
+                current = chunk
+
+        if current:
+            wrapped.append(current)
+
+        return wrapped
     
     def reload_fonts(self):
         """Reload fonts after font selection change"""
@@ -360,16 +415,45 @@ class WaveshareDisplay:
     def show_message(self, title, message, color=(255, 255, 255), nav_items=None, nav_selected_index=0, wifi_connected=False):
         self.clear(self._get_bg_color())
         
-        content_width = self.width - self.SIDEBAR_WIDTH - 4
+        content_width = self.width - self.SIDEBAR_WIDTH - 6
+        title_font = self.font_small
 
-        self.draw.text((4, 8), title, font=self.font_medium, fill=color if color else self._get_accent_color())
+        # Keep title visible while preserving room for message body
+        self.draw.text((3, 4), title, font=title_font, fill=color if color else self._get_accent_color())
 
-        y_offset = 28
-        for line in message.split("\n"):
-            # Truncate long lines
-            display_line = line[:18] if len(line) > 18 else line
-            self.draw.text((4, y_offset), display_line, font=self.font_tiny, fill=self._get_text_secondary_color())
-            y_offset += 12
+        # Build wrapped lines once, then choose smallest readable font if needed
+        raw_lines = (message or "").split("\n")
+        candidate_fonts = [self.font_tiny, self.font_micro]
+        top_y = 18
+        bottom_margin = 2
+        available_height = self.height - top_y - bottom_margin
+
+        chosen_font = candidate_fonts[-1]
+        chosen_lines = []
+        chosen_line_height = 10
+
+        for font in candidate_fonts:
+            wrapped_lines = []
+            for raw in raw_lines:
+                wrapped_lines.extend(self._wrap_text_to_width(raw, font, content_width))
+
+            line_height = 11 if font == self.font_tiny else 9
+            max_lines = max(1, available_height // line_height)
+            if len(wrapped_lines) <= max_lines:
+                chosen_font = font
+                chosen_lines = wrapped_lines
+                chosen_line_height = line_height
+                break
+
+            # keep best-effort candidate in case both overflow
+            chosen_font = font
+            chosen_lines = wrapped_lines[:max_lines]
+            chosen_line_height = line_height
+
+        y_offset = top_y
+        for line in chosen_lines:
+            self.draw.text((3, y_offset), line, font=chosen_font, fill=self._get_text_secondary_color())
+            y_offset += chosen_line_height
 
         # Sidebar + WiFi
         self._render_sidebar(nav_items or [], nav_selected_index)
