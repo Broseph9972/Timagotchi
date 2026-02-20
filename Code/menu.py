@@ -525,6 +525,11 @@ class Menu:
         try:
             now = datetime.datetime.now()
 
+            def _minutes_left_label(label, end_dt):
+                seconds_left = max(0, int((end_dt - now).total_seconds()))
+                minutes_left = (seconds_left + 59) // 60
+                return f"{label}: {minutes_left} min left"
+
             # Parse times
             school_start_dt = datetime.datetime.combine(
                 datetime.date.today(), datetime.datetime.strptime(SCHOOL_START, "%H:%M").time()
@@ -558,7 +563,7 @@ class Menu:
                     elapsed = (now - lunch_start_dt).total_seconds()
                     total = (lunch_end_dt - lunch_start_dt).total_seconds()
                     progress = int((elapsed / total) * 100) if total > 0 else 0
-                    return f"Lunch: {progress}%", progress
+                    return _minutes_left_label("Lunch", lunch_end_dt), progress
 
                 # Progress within current class period (only numbered periods)
                 numbered_periods = sorted([p for p in PERIODS.keys() if isinstance(p, int)])
@@ -595,7 +600,7 @@ class Menu:
                         preset_key = list(DAY_PRESETS.keys())[self.current_preset_index % len(DAY_PRESETS)]
                         current_preset = DAY_PRESETS.get(preset_key, {})
                         class_name = current_preset.get(p, f"Period {p}")
-                        return f"{class_name}: {progress}%", progress
+                        return _minutes_left_label(class_name, end_dt), progress
 
                 # Check advisory period explicitly
                 if 'advisory' in PERIODS and advisory.lower() == "true":
@@ -607,7 +612,7 @@ class Menu:
                         elapsed = (now - advisory_start_dt).total_seconds()
                         total = (advisory_end_dt - advisory_start_dt).total_seconds()
                         progress = int((elapsed / total) * 100) if total > 0 else 0
-                        return f"Advisory: {progress}%", progress
+                        return _minutes_left_label("Advisory", advisory_end_dt), progress
 
                 # Not in class: determine if Passing, Before school, or After school
                 if now < school_start_dt:
@@ -652,25 +657,25 @@ class Menu:
                 elapsed = (now - school_start_dt).total_seconds()
                 total = (actual_school_end - school_start_dt).total_seconds()
                 progress = int((elapsed / total) * 100) if total > 0 else 0
-                return f"Day: {progress}%", progress
+                return _minutes_left_label("Day", actual_school_end), progress
 
             if mode == "lunch_day":
                 if now < lunch_start_dt:
                     elapsed = (now - school_start_dt).total_seconds()
                     total = (lunch_start_dt - school_start_dt).total_seconds()
                     progress = int((elapsed / total) * 100) if total > 0 else 0
-                    return f"Until Lunch: {progress}%", progress
+                    return _minutes_left_label("Until Lunch", lunch_start_dt), progress
                 if now < lunch_end_dt:
                     elapsed = (now - lunch_start_dt).total_seconds()
                     total = (lunch_end_dt - lunch_start_dt).total_seconds()
                     progress = int((elapsed / total) * 100) if total > 0 else 0
-                    return f"Lunch: {progress}%", progress
+                    return _minutes_left_label("Lunch", lunch_end_dt), progress
                 if now >= actual_school_end:
                     return "After school", 100
                 elapsed = (now - lunch_end_dt).total_seconds()
                 total = (actual_school_end - lunch_end_dt).total_seconds()
                 progress = int((elapsed / total) * 100) if total > 0 else 0
-                return f"Day Left: {progress}%", progress
+                return _minutes_left_label("Day Left", actual_school_end), progress
 
             return "Unknown", 0
         except Exception:
