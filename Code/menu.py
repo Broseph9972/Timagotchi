@@ -259,16 +259,15 @@ class Menu:
                     time_remaining = advisory_end - current_time
                     return "ADVISORY", time_remaining, False
         
-        # Check for lunch period (if it exists in PERIODS)
-        if 'lunch' in PERIODS:
-            lunch_start = datetime.datetime.strptime(LUNCH_START, "%H:%M").time()
-            lunch_start_dt = datetime.datetime.combine(datetime.date.today(), lunch_start)
-            lunch_end = datetime.datetime.strptime(LUNCH_END, "%H:%M").time()
-            lunch_end_dt = datetime.datetime.combine(datetime.date.today(), lunch_end)
-            
-            if lunch_start_dt <= current_time < lunch_end_dt:
-                time_remaining = lunch_end_dt - current_time
-                return "LUNCH", time_remaining, True
+        # Check for lunch period using explicit lunch config times
+        lunch_start = datetime.datetime.strptime(LUNCH_START, "%H:%M").time()
+        lunch_start_dt = datetime.datetime.combine(datetime.date.today(), lunch_start)
+        lunch_end = datetime.datetime.strptime(LUNCH_END, "%H:%M").time()
+        lunch_end_dt = datetime.datetime.combine(datetime.date.today(), lunch_end)
+
+        if lunch_start_dt <= current_time < lunch_end_dt:
+            time_remaining = lunch_end_dt - current_time
+            return "LUNCH", time_remaining, True
         
         # Get only numbered periods (filter out string keys like 'advisory', 'lunch')
         numbered_periods = sorted([p for p in PERIODS.keys() if isinstance(p, int)])
@@ -556,19 +555,42 @@ class Menu:
             if mode == "time_in_class":
                 # Handle lunch explicitly
                 if lunch_start_dt <= now < lunch_end_dt:
-                    return "Lunch", 100
+                    elapsed = (now - lunch_start_dt).total_seconds()
+                    total = (lunch_end_dt - lunch_start_dt).total_seconds()
+                    progress = int((elapsed / total) * 100) if total > 0 else 0
+                    return f"Lunch: {progress}%", progress
 
                 # Progress within current class period (only numbered periods)
                 numbered_periods = sorted([p for p in PERIODS.keys() if isinstance(p, int)])
-                for p in numbered_periods:
+                for i, p in enumerate(numbered_periods):
                     start_dt = datetime.datetime.combine(
                         datetime.date.today(), datetime.datetime.strptime(PERIODS[p], "%H:%M").time()
                     )
-                    end_dt = start_dt + datetime.timedelta(minutes=PERIOD_LENGTH)
+                    # Use next period start as a hard boundary when available
+                    if i + 1 < len(numbered_periods):
+                        next_start_dt = datetime.datetime.combine(
+                            datetime.date.today(), datetime.datetime.strptime(PERIODS[numbered_periods[i + 1]], "%H:%M").time()
+                        )
+                        end_dt = min(start_dt + datetime.timedelta(minutes=PERIOD_LENGTH), next_start_dt)
+                    else:
+                        end_dt = start_dt + datetime.timedelta(minutes=PERIOD_LENGTH)
+
                     if start_dt <= now < end_dt:
                         elapsed = (now - start_dt).total_seconds()
+                        # If lunch overlaps this period window, remove overlapped lunch time
+                        overlap_start = max(start_dt, lunch_start_dt)
+                        overlap_end = min(now, lunch_end_dt)
+                        if overlap_start < overlap_end:
+                            elapsed -= (overlap_end - overlap_start).total_seconds()
+                            if elapsed < 0:
+                                elapsed = 0
+
                         total = (end_dt - start_dt).total_seconds()
                         progress = int((elapsed / total) * 100) if total > 0 else 0
+                        if progress < 0:
+                            progress = 0
+                        if progress > 100:
+                            progress = 100
                         # Get class name from current preset
                         preset_key = list(DAY_PRESETS.keys())[self.current_preset_index % len(DAY_PRESETS)]
                         current_preset = DAY_PRESETS.get(preset_key, {})
@@ -639,7 +661,10 @@ class Menu:
                     progress = int((elapsed / total) * 100) if total > 0 else 0
                     return f"Until Lunch: {progress}%", progress
                 if now < lunch_end_dt:
-                    return "Lunch", 100
+                    elapsed = (now - lunch_start_dt).total_seconds()
+                    total = (lunch_end_dt - lunch_start_dt).total_seconds()
+                    progress = int((elapsed / total) * 100) if total > 0 else 0
+                    return f"Lunch: {progress}%", progress
                 if now >= actual_school_end:
                     return "After school", 100
                 elapsed = (now - lunch_end_dt).total_seconds()
