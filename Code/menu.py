@@ -72,7 +72,7 @@ class Menu:
         self.settings_scroll_offset = 0
         self.set_time_menu_items = ["Manual Set", "Sync Now"]
         self.appearance_menu_items = ["Colors", "Fonts"]
-        self.version_menu_items = ["Check Version", "Switch to Main", "Switch to Beta"]
+        self.version_menu_items = ["Recent Changes", "Switch to Stable", "Switch to Beta"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
         self.theme_scroll_offset = 0
         self.font_menu_items = self.font_manager.get_font_names()
@@ -1050,7 +1050,9 @@ class Menu:
                 self._konami_index = 0
                 self.show_developer_menu()
             elif selected_item == "Version":
-                self.show_version_info()
+                self.current_screen = "version"
+                self.selected_index = 0
+                self.show_version_menu()
             elif selected_item == "Update":
                 self._run_update()
             elif selected_item == "Restart":
@@ -1096,6 +1098,187 @@ class Menu:
             self.current_screen = 'settings'
             self.selected_index = self.settings_menu_items.index("Stopwatch") if "Stopwatch" in self.settings_menu_items else 0
             self.show_settings_menu()
+
+    def _get_repo_dir(self):
+        code_dir = os.path.dirname(os.path.abspath(__file__))
+        repo_dir = os.path.abspath(os.path.join(code_dir, '..'))
+        if os.path.isdir(os.path.join(repo_dir, '.git')):
+            return repo_dir
+        fallback = '/home/pi/Timagotchi'
+        if os.path.isdir(os.path.join(fallback, '.git')) or os.path.isdir(fallback):
+            return fallback
+        return repo_dir
+
+    def _git_run(self, args, repo_dir=None, timeout=8):
+        repo_dir = repo_dir or self._get_repo_dir()
+        base_args = list(args)
+        commands = [
+            ['git', '-C', repo_dir] + base_args,
+        ]
+        if os.name != 'nt':
+            commands.append(['sudo', '-n', 'git', '-C', repo_dir] + base_args)
+
+        last_result = None
+        for cmd in commands:
+            try:
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+            except Exception as exc:
+                result = subprocess.CompletedProcess(cmd, 1, '', str(exc))
+            if result.returncode == 0:
+                return result
+            last_result = result
+        return last_result
+
+    def _get_current_branch(self):
+        result = self._git_run(['rev-parse', '--abbrev-ref', 'HEAD'])
+        if not result or result.returncode != 0:
+            return None
+        branch = (result.stdout or '').strip()
+        if branch in ('', 'HEAD'):
+            return None
+        return branch
+
+    def _get_recent_commits(self, limit=3):
+        try:
+            limit = max(1, int(limit))
+        except Exception:
+            limit = 3
+        result = self._git_run(['log', f'-{limit}', '--pretty=format:%h %s'])
+        if not result or result.returncode != 0:
+            return []
+        commits = []
+        for line in (result.stdout or '').splitlines():
+            text = line.strip()
+            if text:
+                commits.append(text)
+        return commits
+
+    def _pick_stable_branch(self):
+        for candidate in ('stable', 'main'):
+            local_ref = self._git_run(['show-ref', '--verify', '--quiet', f'refs/heads/{candidate}'])
+            if local_ref and local_ref.returncode == 0:
+                return candidate
+            remote_ref = self._git_run(['show-ref', '--verify', '--quiet', f'refs/remotes/origin/{candidate}'])
+            if remote_ref and remote_ref.returncode == 0:
+                return candidate
+        return 'main'
+
+    def show_version_menu(self):
+        branch = self._get_current_branch()
+        title = f"Version ({branch})" if branch else "Version"
+        wifi_connected = self._get_wifi_connected()
+        self.display.show_menu(
+            self.version_menu_items,
+            self.selected_index,
+            title,
+            nav_items=self.nav_items,
+            nav_selected_index=self.nav_selected_index,
+            start_index=0,
+            max_visible=6,
+            wifi_connected=wifi_connected,
+        )
+
+    def handle_version_input(self, action):
+        if action == 'up':
+            self.selected_index = (self.selected_index - 1) % len(self.version_menu_items)
+            self.show_version_menu()
+        elif action == 'down':
+            self.selected_index = (self.selected_index + 1) % len(self.version_menu_items)
+            self.show_version_menu()
+        elif action in ('select', 'right'):
+            selected_item = self.version_menu_items[self.selected_index]
+            if selected_item == 'Recent Changes':
+                self.current_screen = 'version_info'
+                self.show_version_info()
+            elif selected_item == 'Switch to Stable':
+                target = self._pick_stable_branch()
+                self._switch_to_branch(target)
+            elif selected_item == 'Switch to Beta':
+                self._switch_to_branch('beta')
+        elif action == 'left':
+            self.current_screen = 'settings'
+            self.selected_index = self.settings_menu_items.index("Version") if "Version" in self.settings_menu_items else 0
+            self.show_settings_menu()
+
+    def show_version_info(self):
+        wifi_connected = self._get_wifi_connected()
+        branch = self._get_current_branch() or "Unknown"
+        commits = self._get_recent_commits(limit=3)
+
+        if commits:
+            short_commits = [line[:26] for line in commits]
+            message = f"Branch: {branch}\n" + "\n".join(short_commits)
+        else:
+            message = f"Branch: {branch}\nNo recent changes found."
+
+        self.display.show_message("Recent Changes", message, (180, 220, 255), self.nav_items, self.nav_selected_index, wifi_connected)
+
+    def handle_version_info_input(self, action):
+        if action in ('left', 'select', 'right'):
+            self.current_screen = 'version'
+            self.selected_index = 0
+            self.show_version_menu()
+
+    def _switch_to_branch(self, target):
+        try:
+            target = (target or '').strip()
+            if not target:
+                self.display.show_face_message("Version", "Invalid branch", "broken", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                time.sleep(1.2)
+                self.show_version_menu()
+                return
+
+            repo_dir = self._get_repo_dir()
+            self.display.show_face_message("Version", f"Switching to {target}", "upload", (180, 220, 255), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+
+            fetch_result = self._git_run(['fetch', '--all', '--prune'], repo_dir=repo_dir, timeout=20)
+            if not fetch_result or fetch_result.returncode != 0:
+                err = (fetch_result.stderr.strip() if fetch_result and fetch_result.stderr else 'Fetch failed')[:80]
+                self.display.show_face_message("Version", err, "broken", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                time.sleep(1.5)
+                self.show_version_menu()
+                return
+
+            local_ref = self._git_run(['show-ref', '--verify', '--quiet', f'refs/heads/{target}'], repo_dir=repo_dir)
+            remote_ref = self._git_run(['show-ref', '--verify', '--quiet', f'refs/remotes/origin/{target}'], repo_dir=repo_dir)
+            has_local = local_ref and local_ref.returncode == 0
+            has_remote = remote_ref and remote_ref.returncode == 0
+
+            if not has_local and not has_remote:
+                self.display.show_face_message("Version", f"Branch '{target}' not found", "broken", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                time.sleep(1.5)
+                self.show_version_menu()
+                return
+
+            if has_local:
+                checkout_result = self._git_run(['checkout', target], repo_dir=repo_dir, timeout=15)
+            else:
+                checkout_result = self._git_run(['checkout', '-b', target, '--track', f'origin/{target}'], repo_dir=repo_dir, timeout=15)
+
+            if not checkout_result or checkout_result.returncode != 0:
+                err = (checkout_result.stderr.strip() if checkout_result and checkout_result.stderr else 'Checkout failed')[:80]
+                self.display.show_face_message("Version", err, "broken", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                time.sleep(1.5)
+                self.show_version_menu()
+                return
+
+            pull_result = self._git_run(['pull', '--ff-only', 'origin', target], repo_dir=repo_dir, timeout=30)
+            if not pull_result or pull_result.returncode != 0:
+                err = (pull_result.stderr.strip() if pull_result and pull_result.stderr else 'Pull failed')[:80]
+                self.display.show_face_message("Version", err, "broken", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                time.sleep(1.5)
+                self.show_version_menu()
+                return
+
+            self.display.show_face_message("Version", f"Switched to {target}", "happy", (100, 255, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+            time.sleep(1.0)
+            self.restart_program()
+        except Exception as exc:
+            self.display.show_face_message("Version", (str(exc) or "Switch failed")[:80], "broken", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+            time.sleep(1.5)
+            if self.running:
+                self.show_version_menu()
+
     def _run_update(self):
         """Run sudo git pull (ff-only) and show face on completion."""
         try:
