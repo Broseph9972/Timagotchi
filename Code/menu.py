@@ -5,6 +5,7 @@ import time
 import json
 import os
 import sys
+import threading
 from config_loader import (
     PERIODS, SCHOOL_START, SCHOOL_END, LUNCH_START, LUNCH_END,
     PERIOD_LENGTH, PASSING_TIME, A_DAY_PERIODS, B_DAY_PERIODS,
@@ -1417,6 +1418,88 @@ class Menu:
             return False
         except Exception as e:
             # Silent fail - don't block boot
+            return False
+
+    def start_boot_git_maintenance_background(self):
+        """Start repo integrity check + auto-repair in a daemon thread."""
+        try:
+            worker = threading.Thread(target=self._boot_git_maintenance_worker, daemon=True)
+            worker.start()
+        except Exception as exc:
+            print(f"[Boot Git] Failed to start background maintenance: {exc}")
+
+    def _boot_git_maintenance_worker(self):
+        """Background worker: check for git corruption and auto-repair if needed."""
+        try:
+            repo_dir = self._get_repo_dir()
+
+            git_check = subprocess.run(['git', '--version'], capture_output=True, text=True, timeout=5)
+            if git_check.returncode != 0:
+                print("[Boot Git] git not installed; skipping integrity check.")
+                return
+
+            try:
+                subprocess.run(['git', 'config', '--global', '--add', 'safe.directory', repo_dir], capture_output=True, text=True, timeout=5)
+            except Exception:
+                pass
+
+            fsck_result = self._git_run(['fsck', '--full', '--no-progress'], repo_dir=repo_dir, timeout=45)
+            fsck_output = ((fsck_result.stdout or '') + '\n' + (fsck_result.stderr or '')).lower() if fsck_result else ''
+
+            if self._git_output_indicates_corruption(fsck_output):
+                print("[Boot Git] Repository corruption detected. Running background auto-repair...")
+                repaired = self._repair_repo_in_background(repo_dir)
+                if repaired:
+                    print("[Boot Git] Auto-repair completed successfully.")
+                else:
+                    print("[Boot Git] Auto-repair failed. Manual re-clone may be required.")
+            else:
+                print("[Boot Git] Repository integrity check passed.")
+        except subprocess.TimeoutExpired:
+            print("[Boot Git] Integrity check timed out; skipping this boot.")
+        except Exception as exc:
+            print(f"[Boot Git] Background maintenance error: {exc}")
+
+    def _git_output_indicates_corruption(self, output_text):
+        text = (output_text or '').lower()
+        corruption_signatures = [
+            'object file',
+            'is empty',
+            'bad object',
+            'missing blob',
+            'missing tree',
+            'missing commit',
+            'corrupt',
+            'unable to read',
+            'fatal: loose object',
+            'error: object file',
+        ]
+        return any(sig in text for sig in corruption_signatures)
+
+    def _repair_repo_in_background(self, repo_dir):
+        """Attempt non-interactive repair for common object corruption cases."""
+        try:
+            branch = self._get_current_branch() or 'main'
+
+            fetch_result = self._git_run(['fetch', '--all', '--prune'], repo_dir=repo_dir, timeout=45)
+            if not fetch_result or fetch_result.returncode != 0:
+                return False
+
+            reset_result = self._git_run(['reset', '--hard', f'origin/{branch}'], repo_dir=repo_dir, timeout=45)
+            if not reset_result or reset_result.returncode != 0:
+                return False
+
+            clean_result = self._git_run(['clean', '-fd'], repo_dir=repo_dir, timeout=30)
+            if clean_result and clean_result.returncode != 0:
+                return False
+
+            post_fsck = self._git_run(['fsck', '--full', '--no-progress'], repo_dir=repo_dir, timeout=45)
+            post_output = ((post_fsck.stdout or '') + '\n' + (post_fsck.stderr or '')).lower() if post_fsck else ''
+            if self._git_output_indicates_corruption(post_output):
+                return False
+
+            return True
+        except Exception:
             return False
 
     def show_grades_menu(self, fetch=True):
