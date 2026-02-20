@@ -68,7 +68,7 @@ class Menu:
                 self.settings_menu_items.append("Day Presets")
             else:
                 self.settings_menu_items.append("A/B Day")
-        self.settings_menu_items.extend(["WiFi", "Appearance", "Backlight", "Power Saver", "Progress Bar", "Set Time", "Stopwatch", "Configuration Portal", "Developer", "Version", "Update", "Restart"])
+        self.settings_menu_items.extend(["WiFi", "Appearance", "Backlight", "Power Saver", "Progress Bar", "Set Time", "Stopwatch", "Developer", "Version", "Update", "Restart"])
         self.settings_scroll_offset = 0
         self.set_time_menu_items = ["Manual Set", "Sync Now"]
         self.appearance_menu_items = ["Colors", "Fonts"]
@@ -1045,8 +1045,6 @@ class Menu:
             elif selected_item == "Stopwatch":
                 self.current_screen = 'stopwatch'
                 self.show_stopwatch()
-            elif selected_item == "Configuration Portal":
-                self.run_configuration_portal()
             elif selected_item == "Developer":
                 self.current_screen = 'developer'
                 self._konami_index = 0
@@ -2301,68 +2299,4 @@ class Menu:
             pass
         self.show_main_menu()
     
-    def run_configuration_portal(self):
-        """Launch the configuration portal for pairing with website"""
-        try:
-            from config_portal import run_configuration_portal
-            
-            # Show info message
-            self.display.clear((0, 0, 0))
-            self.display.draw.text((64, 40), "Configuration", 
-                                 font=self.display.font_medium, 
-                                 fill=(100, 150, 255),
-                                 anchor="mm")
-            self.display.draw.text((64, 60), "Portal", 
-                                 font=self.display.font_medium, 
-                                 fill=(100, 150, 255),
-                                 anchor="mm")
-            self.display.draw.text((64, 90), "Starting...", 
-                                 font=self.display.font_small, 
-                                 fill=(200, 200, 200),
-                                 anchor="mm")
-            self.display._render()
-            time.sleep(1)
-            
-            # Run configuration portal
-            success = run_configuration_portal(self.display, self.input_handler)
-            
-            if success:
-                # Configuration successful - restart
-                self.display.clear((0, 0, 0))
-                self.display.draw.text((64, 64), "Restarting...", 
-                                     font=self.display.font_medium, 
-                                     fill=(100, 255, 100),
-                                     anchor="mm")
-                self.display._render()
-                time.sleep(2)
-                self.restart_program()
-            else:
-                # Configuration cancelled or failed - return to settings
-                self.current_screen = 'settings'
-                self.selected_index = self.settings_menu_items.index("Configuration Portal")
-                self.show_settings_menu()
-                
-        except Exception as e:
-            print(f"Error launching configuration portal: {e}")
-            import traceback
-            traceback.print_exc()
-            
-            # Show error and return to settings
-            self.display.clear((0, 0, 0))
-            self.display.draw.text((64, 50), "Error", 
-                                 font=self.display.font_large, 
-                                 fill=(255, 100, 100),
-                                 anchor="mm")
-            self.display.draw.text((64, 80), "Portal failed", 
-                                 font=self.display.font_small, 
-                                 fill=(200, 200, 200),
-                                 anchor="mm")
-            self.display._render()
-            time.sleep(3)
-            
-            self.current_screen = 'settings'
-            self.selected_index = self.settings_menu_items.index("Configuration Portal")
-            self.show_settings_menu()
-        
-
         self.input_handler.cleanup()
