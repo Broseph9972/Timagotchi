@@ -5,6 +5,7 @@ import time
 import json
 import os
 import sys
+import threading
 from config_loader import (
     PERIODS, SCHOOL_START, SCHOOL_END, LUNCH_START, LUNCH_END,
     PERIOD_LENGTH, PASSING_TIME, A_DAY_PERIODS, B_DAY_PERIODS,
@@ -68,11 +69,11 @@ class Menu:
                 self.settings_menu_items.append("Day Presets")
             else:
                 self.settings_menu_items.append("A/B Day")
-        self.settings_menu_items.extend(["WiFi", "Appearance", "Backlight", "Power Saver", "Progress Bar", "Set Time", "Stopwatch", "Configuration Portal", "Developer", "Version", "Update", "Restart"])
+        self.settings_menu_items.extend(["WiFi", "Appearance", "Brightness", "Progress Bar", "Set Time", "Stopwatch", "Developer", "Version", "Update", "Restart"])
         self.settings_scroll_offset = 0
         self.set_time_menu_items = ["Manual Set", "Sync Now"]
         self.appearance_menu_items = ["Colors", "Fonts"]
-        self.version_menu_items = ["Check Version", "Switch to Main", "Switch to Beta"]
+        self.version_menu_items = ["Recent Changes", "Switch to Stable", "Switch to Beta"]
         self.theme_menu_items = self.theme_manager.get_theme_names()
         self.theme_scroll_offset = 0
         self.font_menu_items = self.font_manager.get_font_names()
@@ -259,16 +260,15 @@ class Menu:
                     time_remaining = advisory_end - current_time
                     return "ADVISORY", time_remaining, False
         
-        # Check for lunch period (if it exists in PERIODS)
-        if 'lunch' in PERIODS:
-            lunch_start = datetime.datetime.strptime(LUNCH_START, "%H:%M").time()
-            lunch_start_dt = datetime.datetime.combine(datetime.date.today(), lunch_start)
-            lunch_end = datetime.datetime.strptime(LUNCH_END, "%H:%M").time()
-            lunch_end_dt = datetime.datetime.combine(datetime.date.today(), lunch_end)
-            
-            if lunch_start_dt <= current_time < lunch_end_dt:
-                time_remaining = lunch_end_dt - current_time
-                return "LUNCH", time_remaining, True
+        # Check for lunch period using explicit lunch config times
+        lunch_start = datetime.datetime.strptime(LUNCH_START, "%H:%M").time()
+        lunch_start_dt = datetime.datetime.combine(datetime.date.today(), lunch_start)
+        lunch_end = datetime.datetime.strptime(LUNCH_END, "%H:%M").time()
+        lunch_end_dt = datetime.datetime.combine(datetime.date.today(), lunch_end)
+
+        if lunch_start_dt <= current_time < lunch_end_dt:
+            time_remaining = lunch_end_dt - current_time
+            return "LUNCH", time_remaining, True
         
         # Get only numbered periods (filter out string keys like 'advisory', 'lunch')
         numbered_periods = sorted([p for p in PERIODS.keys() if isinstance(p, int)])
@@ -526,6 +526,11 @@ class Menu:
         try:
             now = datetime.datetime.now()
 
+            def _minutes_left_label(label, end_dt):
+                seconds_left = max(0, int((end_dt - now).total_seconds()))
+                minutes_left = (seconds_left + 59) // 60
+                return f"{label}: {minutes_left} min left"
+
             # Parse times
             school_start_dt = datetime.datetime.combine(
                 datetime.date.today(), datetime.datetime.strptime(SCHOOL_START, "%H:%M").time()
@@ -556,24 +561,47 @@ class Menu:
             if mode == "time_in_class":
                 # Handle lunch explicitly
                 if lunch_start_dt <= now < lunch_end_dt:
-                    return "Lunch", 100
+                    elapsed = (now - lunch_start_dt).total_seconds()
+                    total = (lunch_end_dt - lunch_start_dt).total_seconds()
+                    progress = int((elapsed / total) * 100) if total > 0 else 0
+                    return _minutes_left_label("Lunch", lunch_end_dt), progress
 
                 # Progress within current class period (only numbered periods)
                 numbered_periods = sorted([p for p in PERIODS.keys() if isinstance(p, int)])
-                for p in numbered_periods:
+                for i, p in enumerate(numbered_periods):
                     start_dt = datetime.datetime.combine(
                         datetime.date.today(), datetime.datetime.strptime(PERIODS[p], "%H:%M").time()
                     )
-                    end_dt = start_dt + datetime.timedelta(minutes=PERIOD_LENGTH)
+                    # Use next period start as a hard boundary when available
+                    if i + 1 < len(numbered_periods):
+                        next_start_dt = datetime.datetime.combine(
+                            datetime.date.today(), datetime.datetime.strptime(PERIODS[numbered_periods[i + 1]], "%H:%M").time()
+                        )
+                        end_dt = min(start_dt + datetime.timedelta(minutes=PERIOD_LENGTH), next_start_dt)
+                    else:
+                        end_dt = start_dt + datetime.timedelta(minutes=PERIOD_LENGTH)
+
                     if start_dt <= now < end_dt:
                         elapsed = (now - start_dt).total_seconds()
+                        # If lunch overlaps this period window, remove overlapped lunch time
+                        overlap_start = max(start_dt, lunch_start_dt)
+                        overlap_end = min(now, lunch_end_dt)
+                        if overlap_start < overlap_end:
+                            elapsed -= (overlap_end - overlap_start).total_seconds()
+                            if elapsed < 0:
+                                elapsed = 0
+
                         total = (end_dt - start_dt).total_seconds()
                         progress = int((elapsed / total) * 100) if total > 0 else 0
+                        if progress < 0:
+                            progress = 0
+                        if progress > 100:
+                            progress = 100
                         # Get class name from current preset
                         preset_key = list(DAY_PRESETS.keys())[self.current_preset_index % len(DAY_PRESETS)]
                         current_preset = DAY_PRESETS.get(preset_key, {})
                         class_name = current_preset.get(p, f"Period {p}")
-                        return f"{class_name}: {progress}%", progress
+                        return _minutes_left_label(class_name, end_dt), progress
 
                 # Check advisory period explicitly
                 if 'advisory' in PERIODS and advisory.lower() == "true":
@@ -585,7 +613,7 @@ class Menu:
                         elapsed = (now - advisory_start_dt).total_seconds()
                         total = (advisory_end_dt - advisory_start_dt).total_seconds()
                         progress = int((elapsed / total) * 100) if total > 0 else 0
-                        return f"Advisory: {progress}%", progress
+                        return _minutes_left_label("Advisory", advisory_end_dt), progress
 
                 # Not in class: determine if Passing, Before school, or After school
                 if now < school_start_dt:
@@ -630,22 +658,25 @@ class Menu:
                 elapsed = (now - school_start_dt).total_seconds()
                 total = (actual_school_end - school_start_dt).total_seconds()
                 progress = int((elapsed / total) * 100) if total > 0 else 0
-                return f"Day: {progress}%", progress
+                return _minutes_left_label("Day", actual_school_end), progress
 
             if mode == "lunch_day":
                 if now < lunch_start_dt:
                     elapsed = (now - school_start_dt).total_seconds()
                     total = (lunch_start_dt - school_start_dt).total_seconds()
                     progress = int((elapsed / total) * 100) if total > 0 else 0
-                    return f"Until Lunch: {progress}%", progress
+                    return _minutes_left_label("Until Lunch", lunch_start_dt), progress
                 if now < lunch_end_dt:
-                    return "Lunch", 100
+                    elapsed = (now - lunch_start_dt).total_seconds()
+                    total = (lunch_end_dt - lunch_start_dt).total_seconds()
+                    progress = int((elapsed / total) * 100) if total > 0 else 0
+                    return _minutes_left_label("Lunch", lunch_end_dt), progress
                 if now >= actual_school_end:
                     return "After school", 100
                 elapsed = (now - lunch_end_dt).total_seconds()
                 total = (actual_school_end - lunch_end_dt).total_seconds()
                 progress = int((elapsed / total) * 100) if total > 0 else 0
-                return f"Day Left: {progress}%", progress
+                return _minutes_left_label("Day Left", actual_school_end), progress
 
             return "Unknown", 0
         except Exception:
@@ -1029,12 +1060,9 @@ class Menu:
                 self.theme_scroll_offset = 0
                 self.font_scroll_offset = 0
                 self.show_appearance_menu()
-            elif selected_item == "Backlight":
+            elif selected_item == "Brightness":
                 self.current_screen = "backlight"
                 self.show_backlight_menu()
-            elif selected_item == "Power Saver":
-                self.current_screen = "power_saver"
-                self.show_power_saver_menu()
             elif selected_item == "Progress Bar":
                 self.current_screen = "progress_bar"
                 self.show_progress_bar_menu()
@@ -1045,14 +1073,14 @@ class Menu:
             elif selected_item == "Stopwatch":
                 self.current_screen = 'stopwatch'
                 self.show_stopwatch()
-            elif selected_item == "Configuration Portal":
-                self.run_configuration_portal()
             elif selected_item == "Developer":
                 self.current_screen = 'developer'
                 self._konami_index = 0
                 self.show_developer_menu()
             elif selected_item == "Version":
-                self.show_version_info()
+                self.current_screen = "version"
+                self.selected_index = 0
+                self.show_version_menu()
             elif selected_item == "Update":
                 self._run_update()
             elif selected_item == "Restart":
@@ -1098,6 +1126,187 @@ class Menu:
             self.current_screen = 'settings'
             self.selected_index = self.settings_menu_items.index("Stopwatch") if "Stopwatch" in self.settings_menu_items else 0
             self.show_settings_menu()
+
+    def _get_repo_dir(self):
+        code_dir = os.path.dirname(os.path.abspath(__file__))
+        repo_dir = os.path.abspath(os.path.join(code_dir, '..'))
+        if os.path.isdir(os.path.join(repo_dir, '.git')):
+            return repo_dir
+        fallback = '/home/pi/Timagotchi'
+        if os.path.isdir(os.path.join(fallback, '.git')) or os.path.isdir(fallback):
+            return fallback
+        return repo_dir
+
+    def _git_run(self, args, repo_dir=None, timeout=8):
+        repo_dir = repo_dir or self._get_repo_dir()
+        base_args = list(args)
+        commands = [
+            ['git', '-C', repo_dir] + base_args,
+        ]
+        if os.name != 'nt':
+            commands.append(['sudo', '-n', 'git', '-C', repo_dir] + base_args)
+
+        last_result = None
+        for cmd in commands:
+            try:
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+            except Exception as exc:
+                result = subprocess.CompletedProcess(cmd, 1, '', str(exc))
+            if result.returncode == 0:
+                return result
+            last_result = result
+        return last_result
+
+    def _get_current_branch(self):
+        result = self._git_run(['rev-parse', '--abbrev-ref', 'HEAD'])
+        if not result or result.returncode != 0:
+            return None
+        branch = (result.stdout or '').strip()
+        if branch in ('', 'HEAD'):
+            return None
+        return branch
+
+    def _get_recent_commits(self, limit=3):
+        try:
+            limit = max(1, int(limit))
+        except Exception:
+            limit = 3
+        result = self._git_run(['log', f'-{limit}', '--pretty=format:%h %s'])
+        if not result or result.returncode != 0:
+            return []
+        commits = []
+        for line in (result.stdout or '').splitlines():
+            text = line.strip()
+            if text:
+                commits.append(text)
+        return commits
+
+    def _pick_stable_branch(self):
+        for candidate in ('stable', 'main'):
+            local_ref = self._git_run(['show-ref', '--verify', '--quiet', f'refs/heads/{candidate}'])
+            if local_ref and local_ref.returncode == 0:
+                return candidate
+            remote_ref = self._git_run(['show-ref', '--verify', '--quiet', f'refs/remotes/origin/{candidate}'])
+            if remote_ref and remote_ref.returncode == 0:
+                return candidate
+        return 'main'
+
+    def show_version_menu(self):
+        branch = self._get_current_branch()
+        title = f"Version ({branch})" if branch else "Version"
+        wifi_connected = self._get_wifi_connected()
+        self.display.show_menu(
+            self.version_menu_items,
+            self.selected_index,
+            title,
+            nav_items=self.nav_items,
+            nav_selected_index=self.nav_selected_index,
+            start_index=0,
+            max_visible=6,
+            wifi_connected=wifi_connected,
+        )
+
+    def handle_version_input(self, action):
+        if action == 'up':
+            self.selected_index = (self.selected_index - 1) % len(self.version_menu_items)
+            self.show_version_menu()
+        elif action == 'down':
+            self.selected_index = (self.selected_index + 1) % len(self.version_menu_items)
+            self.show_version_menu()
+        elif action in ('select', 'right'):
+            selected_item = self.version_menu_items[self.selected_index]
+            if selected_item == 'Recent Changes':
+                self.current_screen = 'version_info'
+                self.show_version_info()
+            elif selected_item == 'Switch to Stable':
+                target = self._pick_stable_branch()
+                self._switch_to_branch(target)
+            elif selected_item == 'Switch to Beta':
+                self._switch_to_branch('beta')
+        elif action == 'left':
+            self.current_screen = 'settings'
+            self.selected_index = self.settings_menu_items.index("Version") if "Version" in self.settings_menu_items else 0
+            self.show_settings_menu()
+
+    def show_version_info(self):
+        wifi_connected = self._get_wifi_connected()
+        branch = self._get_current_branch() or "Unknown"
+        commits = self._get_recent_commits(limit=3)
+
+        if commits:
+            short_commits = [line[:26] for line in commits]
+            message = f"Branch: {branch}\n" + "\n".join(short_commits)
+        else:
+            message = f"Branch: {branch}\nNo recent changes found."
+
+        self.display.show_message("Recent Changes", message, (180, 220, 255), self.nav_items, self.nav_selected_index, wifi_connected)
+
+    def handle_version_info_input(self, action):
+        if action in ('left', 'select', 'right'):
+            self.current_screen = 'version'
+            self.selected_index = 0
+            self.show_version_menu()
+
+    def _switch_to_branch(self, target):
+        try:
+            target = (target or '').strip()
+            if not target:
+                self.display.show_face_message("Version", "Invalid branch", "broken", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                time.sleep(1.2)
+                self.show_version_menu()
+                return
+
+            repo_dir = self._get_repo_dir()
+            self.display.show_face_message("Version", f"Switching to {target}", "upload", (180, 220, 255), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+
+            fetch_result = self._git_run(['fetch', '--all', '--prune'], repo_dir=repo_dir, timeout=20)
+            if not fetch_result or fetch_result.returncode != 0:
+                err = (fetch_result.stderr.strip() if fetch_result and fetch_result.stderr else 'Fetch failed')[:80]
+                self.display.show_face_message("Version", err, "broken", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                time.sleep(1.5)
+                self.show_version_menu()
+                return
+
+            local_ref = self._git_run(['show-ref', '--verify', '--quiet', f'refs/heads/{target}'], repo_dir=repo_dir)
+            remote_ref = self._git_run(['show-ref', '--verify', '--quiet', f'refs/remotes/origin/{target}'], repo_dir=repo_dir)
+            has_local = local_ref and local_ref.returncode == 0
+            has_remote = remote_ref and remote_ref.returncode == 0
+
+            if not has_local and not has_remote:
+                self.display.show_face_message("Version", f"Branch '{target}' not found", "broken", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                time.sleep(1.5)
+                self.show_version_menu()
+                return
+
+            if has_local:
+                checkout_result = self._git_run(['checkout', target], repo_dir=repo_dir, timeout=15)
+            else:
+                checkout_result = self._git_run(['checkout', '-b', target, '--track', f'origin/{target}'], repo_dir=repo_dir, timeout=15)
+
+            if not checkout_result or checkout_result.returncode != 0:
+                err = (checkout_result.stderr.strip() if checkout_result and checkout_result.stderr else 'Checkout failed')[:80]
+                self.display.show_face_message("Version", err, "broken", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                time.sleep(1.5)
+                self.show_version_menu()
+                return
+
+            pull_result = self._git_run(['pull', '--ff-only', 'origin', target], repo_dir=repo_dir, timeout=30)
+            if not pull_result or pull_result.returncode != 0:
+                err = (pull_result.stderr.strip() if pull_result and pull_result.stderr else 'Pull failed')[:80]
+                self.display.show_face_message("Version", err, "broken", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+                time.sleep(1.5)
+                self.show_version_menu()
+                return
+
+            self.display.show_face_message("Version", f"Switched to {target}", "happy", (100, 255, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+            time.sleep(1.0)
+            self.restart_program()
+        except Exception as exc:
+            self.display.show_face_message("Version", (str(exc) or "Switch failed")[:80], "broken", (255, 100, 100), self.nav_items, self.nav_selected_index, self._get_wifi_connected())
+            time.sleep(1.5)
+            if self.running:
+                self.show_version_menu()
+
     def _run_update(self):
         """Run sudo git pull (ff-only) and show face on completion."""
         try:
@@ -1209,6 +1418,88 @@ class Menu:
             return False
         except Exception as e:
             # Silent fail - don't block boot
+            return False
+
+    def start_boot_git_maintenance_background(self):
+        """Start repo integrity check + auto-repair in a daemon thread."""
+        try:
+            worker = threading.Thread(target=self._boot_git_maintenance_worker, daemon=True)
+            worker.start()
+        except Exception as exc:
+            print(f"[Boot Git] Failed to start background maintenance: {exc}")
+
+    def _boot_git_maintenance_worker(self):
+        """Background worker: check for git corruption and auto-repair if needed."""
+        try:
+            repo_dir = self._get_repo_dir()
+
+            git_check = subprocess.run(['git', '--version'], capture_output=True, text=True, timeout=5)
+            if git_check.returncode != 0:
+                print("[Boot Git] git not installed; skipping integrity check.")
+                return
+
+            try:
+                subprocess.run(['git', 'config', '--global', '--add', 'safe.directory', repo_dir], capture_output=True, text=True, timeout=5)
+            except Exception:
+                pass
+
+            fsck_result = self._git_run(['fsck', '--full', '--no-progress'], repo_dir=repo_dir, timeout=45)
+            fsck_output = ((fsck_result.stdout or '') + '\n' + (fsck_result.stderr or '')).lower() if fsck_result else ''
+
+            if self._git_output_indicates_corruption(fsck_output):
+                print("[Boot Git] Repository corruption detected. Running background auto-repair...")
+                repaired = self._repair_repo_in_background(repo_dir)
+                if repaired:
+                    print("[Boot Git] Auto-repair completed successfully.")
+                else:
+                    print("[Boot Git] Auto-repair failed. Manual re-clone may be required.")
+            else:
+                print("[Boot Git] Repository integrity check passed.")
+        except subprocess.TimeoutExpired:
+            print("[Boot Git] Integrity check timed out; skipping this boot.")
+        except Exception as exc:
+            print(f"[Boot Git] Background maintenance error: {exc}")
+
+    def _git_output_indicates_corruption(self, output_text):
+        text = (output_text or '').lower()
+        corruption_signatures = [
+            'object file',
+            'is empty',
+            'bad object',
+            'missing blob',
+            'missing tree',
+            'missing commit',
+            'corrupt',
+            'unable to read',
+            'fatal: loose object',
+            'error: object file',
+        ]
+        return any(sig in text for sig in corruption_signatures)
+
+    def _repair_repo_in_background(self, repo_dir):
+        """Attempt non-interactive repair for common object corruption cases."""
+        try:
+            branch = self._get_current_branch() or 'main'
+
+            fetch_result = self._git_run(['fetch', '--all', '--prune'], repo_dir=repo_dir, timeout=45)
+            if not fetch_result or fetch_result.returncode != 0:
+                return False
+
+            reset_result = self._git_run(['reset', '--hard', f'origin/{branch}'], repo_dir=repo_dir, timeout=45)
+            if not reset_result or reset_result.returncode != 0:
+                return False
+
+            clean_result = self._git_run(['clean', '-fd'], repo_dir=repo_dir, timeout=30)
+            if clean_result and clean_result.returncode != 0:
+                return False
+
+            post_fsck = self._git_run(['fsck', '--full', '--no-progress'], repo_dir=repo_dir, timeout=45)
+            post_output = ((post_fsck.stdout or '') + '\n' + (post_fsck.stderr or '')).lower() if post_fsck else ''
+            if self._git_output_indicates_corruption(post_output):
+                return False
+
+            return True
+        except Exception:
             return False
 
     def show_grades_menu(self, fetch=True):
@@ -1969,9 +2260,9 @@ class Menu:
             bl = int(max(5, min(100, getattr(self, 'backlight', 100))))
         except Exception:
             bl = 100
-        msg = f"Backlight: {bl}%\n\nUp/Down: +/-5%\nSelect: Done"
+        msg = f"Brightness: {bl}%\nMay cause flickering\n\nUp/Down: +/-5%\nSelect: Done"
         wifi_connected = self._get_wifi_connected()
-        self.display.show_message("Backlight", msg, (150, 200, 255), self.nav_items, self.nav_selected_index, wifi_connected)
+        self.display.show_message("Brightness", msg, (150, 200, 255), self.nav_items, self.nav_selected_index, wifi_connected)
 
     def handle_backlight_input(self, action):
         changed = False
@@ -1988,9 +2279,9 @@ class Menu:
             except Exception:
                 pass
             self.current_screen = 'settings'
-            # Ensure selection points back to Backlight
+            # Ensure selection points back to Brightness
             try:
-                self.selected_index = self.settings_menu_items.index('Backlight')
+                self.selected_index = self.settings_menu_items.index('Brightness')
             except Exception:
                 self.selected_index = 0
             self.show_settings_menu()
@@ -2004,34 +2295,6 @@ class Menu:
                 pass
             self.show_backlight_menu()
 
-    def show_power_saver_menu(self):
-        """Display Power Saver toggle and hint."""
-        status = "On" if getattr(self, 'power_saver_enabled', False) else "Off"
-        timeout = int(getattr(self, 'power_saver_timeout', 45))
-        msg = f"Power Saver: {status}\nDim at {self.power_saver_dim}%\nIdle: {timeout}s\n\nUp/Down: Toggle\nSelect: Done"
-        wifi_connected = self._get_wifi_connected()
-        self.display.show_message("Power Saver", msg, (150, 200, 255), self.nav_items, self.nav_selected_index, wifi_connected)
-
-    def handle_power_saver_input(self, action):
-        if action in ('up', 'down'):
-            self.power_saver_enabled = not self.power_saver_enabled
-            try:
-                self._save_state()
-            except Exception:
-                pass
-            self.show_power_saver_menu()
-        elif action in ('select', 'right', 'left'):
-            try:
-                self._save_state()
-            except Exception:
-                pass
-            self.current_screen = 'settings'
-            try:
-                self.selected_index = self.settings_menu_items.index('Power Saver')
-            except Exception:
-                self.selected_index = 0
-            self.show_settings_menu()
-    
     def restart_program(self):
         """Restart the Timagotchi program"""
         try:
@@ -2160,18 +2423,8 @@ class Menu:
         while self.running:
             action = self.input_handler.get_input()
             now_ts = time.time()
-            # Idle detection for power saver
             if action:
                 self._last_input_time = now_ts
-                if self._power_saver_active and self.power_saver_enabled:
-                    # Wake up sequence
-                    self._exit_power_saver_with_wakeup()
-                    update_interval = 1.0
-            else:
-                if self.power_saver_enabled and not self._power_saver_active:
-                    if (now_ts - self._last_input_time) >= self.power_saver_timeout:
-                        self._enter_power_saver()
-                        update_interval = 3.0
             
             if action:
                 # Global key mapping: key1=Main Page, key2=Grades, key3=Settings
@@ -2253,116 +2506,6 @@ class Menu:
                     self.show_stopwatch()
                 last_update = current_time
             
-            time.sleep(0.05 if not self._power_saver_active else 0.08)
-
-    def _enter_power_saver(self):
-        """Dim backlight and mark power saver active."""
-        try:
-            self._prev_backlight_before_ps = int(self.backlight)
-        except Exception:
-            self._prev_backlight_before_ps = 100
-        self._power_saver_active = True
-        try:
-            self.display.set_backlight(int(max(5, min(100, self.power_saver_dim))))
-        except Exception:
-            pass
-        # Optionally show a one-time 'sleep' face without heavy redraw loops
-        try:
-            self.display.show_face_message("Sleeping", "Press any key", face_name="sleep", color=(150,150,150), nav_items=self.nav_items, nav_selected_index=self.nav_selected_index, wifi_connected=self._get_wifi_connected())
-        except Exception:
-            pass
-
-    def _exit_power_saver_with_wakeup(self):
-        """Animate wake up and restore brightness within ~3 seconds."""
-        self._power_saver_active = False
-        start_bl = int(max(5, min(100, getattr(self, 'power_saver_dim', 5))))
-        target_bl = int(max(5, min(100, getattr(self, '_prev_backlight_before_ps', self.backlight))))
-        steps = 12
-        step_delay = 3.0 / steps
-        # Faces to cycle: sleep2 -> awake -> happy
-        faces = ["sleep2", "awake", "happy"]
-        for i in range(steps):
-            try:
-                level = start_bl + int((target_bl - start_bl) * (i + 1) / steps)
-                self.display.set_backlight(level)
-                face = faces[min(len(faces)-1, i // max(1, steps // len(faces)))]
-                now = datetime.datetime.now()
-                time_str = now.strftime("%H:%M") if USE_24_HOUR else now.strftime("%I:%M %p")
-                date_str = now.strftime("%a %b %d")
-                self.display.show_main_page("Waking...", int((i+1)/steps*100), time_str, date_str, None, self._get_wifi_connected(), self.nav_items, self.nav_selected_index, face_name=face, speech_lines=["..."])
-            except Exception:
-                pass
-            time.sleep(step_delay)
-        # Restore recorded backlight and redraw main screen
-        try:
-            self.display.set_backlight(target_bl)
-            self.backlight = target_bl
-        except Exception:
-            pass
-        self.show_main_menu()
+            time.sleep(0.05)
     
-    def run_configuration_portal(self):
-        """Launch the configuration portal for pairing with website"""
-        try:
-            from config_portal import run_configuration_portal
-            
-            # Show info message
-            self.display.clear((0, 0, 0))
-            self.display.draw.text((64, 40), "Configuration", 
-                                 font=self.display.font_medium, 
-                                 fill=(100, 150, 255),
-                                 anchor="mm")
-            self.display.draw.text((64, 60), "Portal", 
-                                 font=self.display.font_medium, 
-                                 fill=(100, 150, 255),
-                                 anchor="mm")
-            self.display.draw.text((64, 90), "Starting...", 
-                                 font=self.display.font_small, 
-                                 fill=(200, 200, 200),
-                                 anchor="mm")
-            self.display._render()
-            time.sleep(1)
-            
-            # Run configuration portal
-            success = run_configuration_portal(self.display, self.input_handler)
-            
-            if success:
-                # Configuration successful - restart
-                self.display.clear((0, 0, 0))
-                self.display.draw.text((64, 64), "Restarting...", 
-                                     font=self.display.font_medium, 
-                                     fill=(100, 255, 100),
-                                     anchor="mm")
-                self.display._render()
-                time.sleep(2)
-                self.restart_program()
-            else:
-                # Configuration cancelled or failed - return to settings
-                self.current_screen = 'settings'
-                self.selected_index = self.settings_menu_items.index("Configuration Portal")
-                self.show_settings_menu()
-                
-        except Exception as e:
-            print(f"Error launching configuration portal: {e}")
-            import traceback
-            traceback.print_exc()
-            
-            # Show error and return to settings
-            self.display.clear((0, 0, 0))
-            self.display.draw.text((64, 50), "Error", 
-                                 font=self.display.font_large, 
-                                 fill=(255, 100, 100),
-                                 anchor="mm")
-            self.display.draw.text((64, 80), "Portal failed", 
-                                 font=self.display.font_small, 
-                                 fill=(200, 200, 200),
-                                 anchor="mm")
-            self.display._render()
-            time.sleep(3)
-            
-            self.current_screen = 'settings'
-            self.selected_index = self.settings_menu_items.index("Configuration Portal")
-            self.show_settings_menu()
-        
-
         self.input_handler.cleanup()

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import sys
 import time
-import os
 
 try:
     from display_waveshare import WaveshareDisplay
@@ -10,32 +9,6 @@ try:
     from theme_manager import ThemeManager
     
     print("Starting Pi Schedule Display...")
-    
-    # Check if config.py exists - if not, run configuration portal
-    config_path = os.path.join(os.path.dirname(__file__), 'config.py')
-    if not os.path.exists(config_path):
-        print("No configuration found. Starting Configuration Portal...")
-        
-        # Initialize minimal display for pairing
-        theme_manager = ThemeManager()
-        display = WaveshareDisplay(theme_manager)
-        input_handler = InputHandler()
-        
-        # Run configuration portal
-        from config_portal import run_configuration_portal
-        success = run_configuration_portal(display, input_handler)
-        
-        if not success:
-            print("Configuration cancelled or failed.")
-            print("You can run configure_schedule.py manually to set up.")
-            display.clear()
-            sys.exit(1)
-        
-        # Configuration successful - restart to load new config
-        print("Configuration complete. Restarting...")
-        display.clear()
-        # Replace current process with the same Python executable and args
-        os.execv(sys.executable, [sys.executable] + sys.argv)
     
     # Initialize theme manager first
     theme_manager = ThemeManager()
@@ -50,12 +23,9 @@ try:
     menu = Menu(display, input_handler)
     print("Menu system ready")
     
-    # Check for updates on boot (non-blocking, silent check)
-    print("Checking for updates...")
-    if menu.check_updates_on_boot():
-        print("Updates found and applied. Restarting...")
-        display.clear()
-        os.execv(sys.executable, [sys.executable] + sys.argv)
+    # Start boot-time git integrity check + auto-repair in background
+    print("Starting background git maintenance...")
+    menu.start_boot_git_maintenance_background()
     
     # Signal splash screen that we're ready
     # This allows the animated splash to exit gracefully
