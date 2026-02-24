@@ -1,5 +1,7 @@
 # Timagotchi
-## MESSAGE TO BLUEPRINT - My project has no real wiring because i decided to use a power bank and a premade HAT. one of you asked for that, so im just keeping this here for now.
+
+I rarely update docs, please look at [Site](https://broseph9972.github.io/Timagotchi/) for info
+
 ![Pic of it working](Pics/IMG_0855.jpeg)
 ![Pic of it working 2](Pics/IMG_0856.jpeg)
 ![Case](Pics/Case.jpg)
