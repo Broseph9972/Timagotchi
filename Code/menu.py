@@ -71,7 +71,7 @@ class Menu :
                 self .settings_menu_items .append ("A/B Day")
         self .settings_menu_items .extend (["WiFi","Appearance","Brightness","Progress Bar","Set Time","Developer","Version","Update","Restart"])
         self .settings_scroll_offset =0 
-        self .tools_menu_items =["Grades","Stopwatch"]
+        self .tools_menu_items =["Grades","Stopwatch","Developer"]
         self .tools_scroll_offset =0 
         self .set_time_menu_items =["Manual Set","Sync Now"]
         self .appearance_menu_items =["Colors","Fonts"]
@@ -1057,6 +1057,10 @@ class Menu :
             elif selected_item =="Stopwatch":
                 self .current_screen ='stopwatch'
                 self .show_stopwatch ()
+            elif selected_item =="Developer":
+                self .current_screen ='developer'
+                self ._konami_index =0 
+                self .show_developer_menu ()
         elif action =='left':
             self .current_screen ="main"
             self .selected_index =0 
