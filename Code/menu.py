@@ -45,7 +45,7 @@ class Menu :
         self .font_manager =FontManager ()
 
 
-        self .nav_items =["Main Page","Grades","Settings"]
+        self .nav_items =["Main Page","Tools","Settings"]
         self .nav_selected_index =0 
 
 
@@ -69,8 +69,10 @@ class Menu :
                 self .settings_menu_items .append ("Day Presets")
             else :
                 self .settings_menu_items .append ("A/B Day")
-        self .settings_menu_items .extend (["WiFi","Appearance","Brightness","Progress Bar","Set Time","Stopwatch","Developer","Version","Update","Restart"])
+        self .settings_menu_items .extend (["WiFi","Appearance","Brightness","Progress Bar","Set Time","Developer","Version","Update","Restart"])
         self .settings_scroll_offset =0 
+        self .tools_menu_items =["Grades","Stopwatch"]
+        self .tools_scroll_offset =0 
         self .set_time_menu_items =["Manual Set","Sync Now"]
         self .appearance_menu_items =["Colors","Fonts"]
         self .version_menu_items =["Recent Changes","Switch to Stable","Switch to Beta"]
@@ -692,6 +694,16 @@ class Menu :
             self .settings_scroll_offset =self .selected_index -max_visible +1 
         self .display .show_menu (self .settings_menu_items ,self .selected_index ,"Settings",nav_items =self .nav_items ,nav_selected_index =self .nav_selected_index ,start_index =self .settings_scroll_offset ,max_visible =max_visible ,wifi_connected =wifi_connected )
 
+    def show_tools_menu (self ):
+
+        max_visible =6 
+        wifi_connected =self ._get_wifi_connected ()
+        if self .selected_index <self .tools_scroll_offset :
+            self .tools_scroll_offset =self .selected_index 
+        elif self .selected_index >=self .tools_scroll_offset +max_visible :
+            self .tools_scroll_offset =self .selected_index -max_visible +1 
+        self .display .show_menu (self .tools_menu_items ,self .selected_index ,"Tools",nav_items =self .nav_items ,nav_selected_index =self .nav_selected_index ,start_index =self .tools_scroll_offset ,max_visible =max_visible ,wifi_connected =wifi_connected )
+
     def _show_presets_menu (self ):
         msg =f"Presets: {self .presets_count }\nUp/Down: 1 or 2\nSelect: Save"
         wifi_connected =self ._get_wifi_connected ()
@@ -1019,13 +1031,37 @@ class Menu :
             if selected_item =="Main Page":
                 self .current_screen ="main"
                 self .show_main_menu ()
-            elif selected_item =="Grades":
-                self .current_screen ="grades"
-                self .show_grades_menu ()
+            elif selected_item =="Tools":
+                self .current_screen ="tools"
+                self .selected_index =0 
+                self .tools_scroll_offset =0 
+                self .nav_selected_index =self .nav_items .index ("Tools")if "Tools"in self .nav_items else 1 
+                self .show_tools_menu ()
             elif selected_item =="Settings":
                 self .current_screen ="settings"
                 self .selected_index =0 
                 self .show_settings_menu ()
+
+    def handle_tools_input (self ,action ):
+        if action =='up':
+            self .selected_index =(self .selected_index -1 )%len (self .tools_menu_items )
+            self .show_tools_menu ()
+        elif action =='down':
+            self .selected_index =(self .selected_index +1 )%len (self .tools_menu_items )
+            self .show_tools_menu ()
+        elif action =='select'or action =='right':
+            selected_item =self .tools_menu_items [self .selected_index ]
+            if selected_item =="Grades":
+                self .current_screen ="grades"
+                self .show_grades_menu ()
+            elif selected_item =="Stopwatch":
+                self .current_screen ='stopwatch'
+                self .show_stopwatch ()
+        elif action =='left':
+            self .current_screen ="main"
+            self .selected_index =0 
+            self .nav_selected_index =self .nav_items .index ("Main Page")if "Main Page"in self .nav_items else 0 
+            self .show_main_menu ()
 
     def handle_schedule_input (self ,action ):
         if action =='left':
@@ -1070,9 +1106,6 @@ class Menu :
                 self .current_screen ="set_time_menu"
                 self .selected_index =0 
                 self .show_set_time_menu ()
-            elif selected_item =="Stopwatch":
-                self .current_screen ='stopwatch'
-                self .show_stopwatch ()
             elif selected_item =="Developer":
                 self .current_screen ='developer'
                 self ._konami_index =0 
@@ -1123,9 +1156,10 @@ class Menu :
                 self .stopwatch_running =True 
             self .show_stopwatch ()
         elif action =='left':
-            self .current_screen ='settings'
-            self .selected_index =self .settings_menu_items .index ("Stopwatch")if "Stopwatch"in self .settings_menu_items else 0 
-            self .show_settings_menu ()
+            self .current_screen ='tools'
+            self .selected_index =self .tools_menu_items .index ("Stopwatch")if "Stopwatch"in self .tools_menu_items else 0 
+            self .nav_selected_index =self .nav_items .index ("Tools")if "Tools"in self .nav_items else 1 
+            self .show_tools_menu ()
 
     def _get_repo_dir (self ):
         code_dir =os .path .dirname (os .path .abspath (__file__ ))
@@ -1550,9 +1584,10 @@ class Menu :
             self .assign_selected_index =0 
             self .show_assignments_menu ()
         elif action =='left':
-            self .current_screen ='main'
-            self .nav_selected_index =0 
-            self .show_main_menu ()
+            self .current_screen ='tools'
+            self .selected_index =self .tools_menu_items .index ("Grades")if "Grades"in self .tools_menu_items else 0 
+            self .nav_selected_index =self .nav_items .index ("Tools")if "Tools"in self .nav_items else 1 
+            self .show_tools_menu ()
 
     def show_secret_menu (self ):
         wifi_connected =self ._get_wifi_connected ()
@@ -1576,8 +1611,10 @@ class Menu :
             elif choice =="Run Custom Script":
                 self .launch_custom_script ()
         elif action =='left':
-            self .current_screen ='grades'
-            self .show_grades_menu (fetch =False )
+            self .current_screen ='tools'
+            self .selected_index =0 
+            self .nav_selected_index =self .nav_items .index ("Tools")if "Tools"in self .nav_items else 1 
+            self .show_tools_menu ()
 
     def show_developer_menu (self ):
         wifi_connected =self ._get_wifi_connected ()
@@ -1593,9 +1630,11 @@ class Menu :
                 self .nav_selected_index =self .nav_items .index ('Main Page')if 'Main Page'in self .nav_items else 0 
                 self .show_main_menu ()
             elif action =='key2':
-                self .current_screen ='grades'
-                self .nav_selected_index =self .nav_items .index ('Grades')if 'Grades'in self .nav_items else 1 
-                self .show_grades_menu ()
+                self .current_screen ='tools'
+                self .nav_selected_index =self .nav_items .index ('Tools')if 'Tools'in self .nav_items else 1 
+                self .selected_index =0 
+                self .tools_scroll_offset =0 
+                self .show_tools_menu ()
             elif action =='key3':
                 self .current_screen ='settings'
                 self .nav_selected_index =self .nav_items .index ('Settings')if 'Settings'in self .nav_items else 2 
@@ -1634,9 +1673,11 @@ class Menu :
                 self .nav_selected_index =self .nav_items .index ('Main Page')if 'Main Page'in self .nav_items else 0 
                 self .show_main_menu ()
             elif exit_key =='key2':
-                self .current_screen ='grades'
-                self .nav_selected_index =self .nav_items .index ('Grades')if 'Grades'in self .nav_items else 1 
-                self .show_grades_menu ()
+                self .current_screen ='tools'
+                self .nav_selected_index =self .nav_items .index ('Tools')if 'Tools'in self .nav_items else 1 
+                self .selected_index =0 
+                self .tools_scroll_offset =0 
+                self .show_tools_menu ()
             elif exit_key =='key3':
                 self .current_screen ='settings'
                 self .nav_selected_index =self .nav_items .index ('Settings')if 'Settings'in self .nav_items else 2 
@@ -1729,9 +1770,11 @@ class Menu :
                 self .nav_selected_index =self .nav_items .index ('Main Page')if 'Main Page'in self .nav_items else 0 
                 self .show_main_menu ()
             elif exit_key =='key2':
-                self .current_screen ='grades'
-                self .nav_selected_index =self .nav_items .index ('Grades')if 'Grades'in self .nav_items else 1 
-                self .show_grades_menu ()
+                self .current_screen ='tools'
+                self .nav_selected_index =self .nav_items .index ('Tools')if 'Tools'in self .nav_items else 1 
+                self .selected_index =0 
+                self .tools_scroll_offset =0 
+                self .show_tools_menu ()
             elif exit_key =='key3':
                 self .current_screen ='settings'
                 self .nav_selected_index =self .nav_items .index ('Settings')if 'Settings'in self .nav_items else 2 
@@ -1781,9 +1824,11 @@ class Menu :
                 self .nav_selected_index =self .nav_items .index ('Main Page')if 'Main Page'in self .nav_items else 0 
                 self .show_main_menu ()
             elif exit_key =='key2':
-                self .current_screen ='grades'
-                self .nav_selected_index =self .nav_items .index ('Grades')if 'Grades'in self .nav_items else 1 
-                self .show_grades_menu ()
+                self .current_screen ='tools'
+                self .nav_selected_index =self .nav_items .index ('Tools')if 'Tools'in self .nav_items else 1 
+                self .selected_index =0 
+                self .tools_scroll_offset =0 
+                self .show_tools_menu ()
             elif exit_key =='key3':
                 self .current_screen ='settings'
                 self .nav_selected_index =self .nav_items .index ('Settings')if 'Settings'in self .nav_items else 2 
@@ -2441,9 +2486,11 @@ class Menu :
                         self .show_main_menu ()
                         continue 
                     elif action =='key2':
-                        self .current_screen ='grades'
-                        self .nav_selected_index =self .nav_items .index ('Grades')if 'Grades'in self .nav_items else 1 
-                        self .show_grades_menu ()
+                        self .current_screen ='tools'
+                        self .nav_selected_index =self .nav_items .index ('Tools')if 'Tools'in self .nav_items else 1 
+                        self .selected_index =0 
+                        self .tools_scroll_offset =0 
+                        self .show_tools_menu ()
                         continue 
                     elif action =='key3':
                         self .current_screen ='settings'
@@ -2457,6 +2504,8 @@ class Menu :
                     self .handle_schedule_input (action )
                 elif self .current_screen =="clock":
                     self .handle_clock_input (action )
+                elif self .current_screen =="tools":
+                    self .handle_tools_input (action )
                 elif self .current_screen =="settings":
                     self .handle_settings_input (action )
                 elif self .current_screen =="wifi":

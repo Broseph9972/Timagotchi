@@ -251,6 +251,7 @@ class WaveshareDisplay :
         nav_map ={
         "Main Page":"home",
         "Grades":"grades",
+        "Tools":"tools",
         "Settings":"settings"
         }
         return nav_map .get (nav_item ,None )
@@ -273,7 +274,7 @@ class WaveshareDisplay :
     WIFI_BOX_SIZE =0 
 
     def _render_sidebar (self ,nav_items ,selected_index ):
-        """Draw the right-side vertical navigation with letter labels (M, G, S)."""
+        """Draw the right-side vertical navigation with letter labels from nav items."""
         if not nav_items or len (nav_items )==0 :
             return 
 
@@ -293,7 +294,12 @@ class WaveshareDisplay :
         chunk_height =(self .height -(num_items -1 ))//num_items 
 
 
-        labels =['M','G','S']
+        labels =[]
+        for item in nav_items [:num_items ]:
+            label =(str (item ).strip ()[:1 ]or "").upper ()
+            labels .append (label )
+        while len (labels )<num_items :
+            labels .append ("")
 
         for i in range (num_items ):
             y_start =i *(chunk_height +1 )
