@@ -13,23 +13,23 @@ fi
 
 echo "Installing system packages..."
 sudo apt-get update
-sudo apt install -y python3-pip python3-pil python3-numpy git
+sudo apt install -y python3-pip python3-pil python3-numpy
 sudo apt install -y chocolate-doom xvfb xdotool || echo "Note: Doom packages optional"
 #sudo apt install -y libretro-common || echo "Warning: libretro-common package not available"
 
 echo "Installing Python dependencies..."
 pip3 install --break-system-packages pillow numpy spidev RPi.GPIO requests pygame mss Cython
 
-echo "Downloading Waveshare LCD driver..."
-GIT_TERMINAL_PROMPT=0 git clone --depth 1 https://github.com/waveshare/LCD_1in44.git /tmp/LCD_1in44
-
-echo "Installing Waveshare LCD driver..."
-cd /tmp/LCD_1in44/python
-sudo python3 setup.py install
-
-echo "Cleaning up..."
-cd ~
-rm -rf /tmp/LCD_1in44
+# Waveshare LCD driver download requires git
+# Uncomment and install git if needed:
+# echo "Downloading Waveshare LCD driver..."
+# git clone --depth 1 https://github.com/waveshare/LCD_1in44.git /tmp/LCD_1in44
+# echo "Installing Waveshare LCD driver..."
+# cd /tmp/LCD_1in44/python
+# sudo python3 setup.py install
+# echo "Cleaning up..."
+# cd ~
+# rm -rf /tmp/LCD_1in44
 
 echo "Adding user to gpio group..."
 sudo usermod -aG gpio $USER
@@ -43,16 +43,18 @@ echo "Preparing RetroArch ROM storage..."
 sudo mkdir -p "$HOME/timagotchi/roms"
 sudo chown $USER:$USER "$HOME/timagotchi/roms"
 
-echo "Installing PyDoom (optional Doom engine)..."
-PYDOOM_DIR="$(dirname "$(readlink -f "$0")")/pydoom"
-if [ -d "$PYDOOM_DIR" ]; then
-    echo "PyDoom directory already exists, skipping..."
-else
-    GIT_TERMINAL_PROMPT=0 git clone --depth 1 https://github.com/Pink-Silver/PyDoom.git "$PYDOOM_DIR" || echo "Warning: PyDoom clone failed (optional)"
-    if [ -d "$PYDOOM_DIR" ]; then
-        echo "PyDoom cloned successfully. Place doom1.wad in Code/pydoom/ to use."
-    fi
-fi
+# PyDoom installation requires git (optional)
+# Uncomment and install git if needed:
+# echo "Installing PyDoom (optional Doom engine)..."
+# PYDOOM_DIR="$(dirname "$(readlink -f "$0")")/pydoom"
+# if [ -d "$PYDOOM_DIR" ]; then
+#     echo "PyDoom directory already exists, skipping..."
+# else
+#     git clone --depth 1 https://github.com/Pink-Silver/PyDoom.git "$PYDOOM_DIR" || echo "Warning: PyDoom clone failed (optional)"
+#     if [ -d "$PYDOOM_DIR" ]; then
+#         echo "PyDoom cloned successfully. Place doom1.wad in Code/pydoom/ to use."
+#     fi
+# fi
 
 echo "Time synchronization can be configured in config.py"
 echo "Set TIME_SYNC_MODE to: 'disabled', 'on_boot', or 'periodic'"
