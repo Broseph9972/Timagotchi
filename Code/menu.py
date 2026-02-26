@@ -1395,7 +1395,25 @@ class Menu :
                 self .display .show_message ("Update Error",full_err ,(255 ,100 ,100 ),self .nav_items ,self .nav_selected_index )
                 time .sleep (2.0 )
                 self .display .show_face_message ("Update","Forcing pull...","upload",(180 ,220 ,255 ),self .nav_items ,self .nav_selected_index )
+                
+                config_path =os .path .join (repo_dir ,'Code','config.py')
+                config_backup =None 
+                if os .path .exists (config_path ):
+                    try :
+                        with open (config_path ,'r')as f :
+                            config_backup =f .read ()
+                    except Exception :
+                        config_backup =None 
+                
                 force_result =subprocess .run (['sudo','-n','git','-C',repo_dir ,'pull','-X','ours','origin',current_branch ],capture_output =True ,text =True ,timeout =30 )
+                
+                if config_backup is not None :
+                    try :
+                        with open (config_path ,'w')as f :
+                            f .write (config_backup )
+                    except Exception :
+                        pass 
+                
                 if force_result .returncode ==0 :
                     self .display .show_face_message ("Update","Force pull succeeded","happy",(100 ,255 ,100 ),self .nav_items ,self .nav_selected_index )
                     time .sleep (1.0 )
