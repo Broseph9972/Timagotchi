@@ -2,7 +2,7 @@
 
 [![Coding Time](https://hackatime-badge.hackclub.com/U098EVBAAEN/Timagotchi)](https://www.codestats.net)
 
-I rarely update docs, please look at [Site](https://broseph9972.github.io/Timagotchi/) for info
+I rarely update docs, please look at [Site](https://timagotchi.dev/) for info
 
 ![Pic of it working](Pics/IMG_0855.jpeg)
 ![Pic of it working 2](Pics/IMG_0856.jpeg)
