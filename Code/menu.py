@@ -279,14 +279,14 @@ class Menu :
             period_start_time =datetime .datetime .strptime (PERIODS [period ],"%H:%M").time ()
             period_start =datetime .datetime .combine (datetime .date .today (),period_start_time )
 
-
             if i +1 <len (numbered_periods ):
-
                 next_period =numbered_periods [i +1 ]
                 next_period_time =datetime .datetime .strptime (PERIODS [next_period ],"%H:%M").time ()
-                period_end =datetime .datetime .combine (datetime .date .today (),next_period_time )
+                next_period_start =datetime .datetime .combine (datetime .date .today (),next_period_time )
+                # Cap at class time + passing to avoid spanning across lunch
+                max_end =period_start +datetime .timedelta (minutes =PERIOD_LENGTH +PASSING_TIME )
+                period_end =min (next_period_start ,max_end )
             else :
-
                 period_end =period_start +datetime .timedelta (minutes =PERIOD_LENGTH )
 
 
