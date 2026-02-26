@@ -1391,8 +1391,19 @@ class Menu :
                     self .restart_program ()
                     return 
             else :
-                err =result .stderr .strip ()[:80 ]or "Pull failed"
-                self .display .show_face_message ("Update",err ,"broken",(255 ,100 ,100 ),self .nav_items ,self .nav_selected_index )
+                full_err =result .stderr .strip ()or result .stdout .strip ()or "Pull failed"
+                self .display .show_message ("Update Error",full_err ,(255 ,100 ,100 ),self .nav_items ,self .nav_selected_index )
+                time .sleep (2.0 )
+                self .display .show_face_message ("Update","Forcing pull...","upload",(180 ,220 ,255 ),self .nav_items ,self .nav_selected_index )
+                force_result =subprocess .run (['sudo','-n','git','-C',repo_dir ,'pull','-X','ours','origin',current_branch ],capture_output =True ,text =True ,timeout =30 )
+                if force_result .returncode ==0 :
+                    self .display .show_face_message ("Update","Force pull succeeded","happy",(100 ,255 ,100 ),self .nav_items ,self .nav_selected_index )
+                    time .sleep (1.0 )
+                    self .restart_program ()
+                    return 
+                else :
+                    force_err =force_result .stderr .strip ()or force_result .stdout .strip ()or "Force pull failed"
+                    self .display .show_message ("Force Pull Error",force_err ,(255 ,100 ,100 ),self .nav_items ,self .nav_selected_index )
         except Exception as e :
             self .display .show_face_message ("Update",(str (e )or "error")[:80 ],"broken",(255 ,100 ,100 ),self .nav_items ,self .nav_selected_index )
         finally :
