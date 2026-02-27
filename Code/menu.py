@@ -44,6 +44,9 @@ class Menu :
 
         self .font_manager =FontManager ()
 
+        self .wifi_history_path =os .path .join (os .path .dirname (__file__ ),'wifi_history.json')
+        self .wifi_history =self ._load_wifi_history ()
+
 
         self .nav_items =["Main Page","Tools","Settings"]
         self .nav_selected_index =0 
@@ -405,6 +408,24 @@ class Menu :
         date_str =now .strftime ("%A, %B %d")
         self .display .show_clock (time_str ,date_str ,self .nav_items ,self .nav_selected_index ,wifi_connected )
 
+    def _load_wifi_history (self ):
+        """Load WiFi connection history from JSON file."""
+        try :
+            if os .path .exists (self .wifi_history_path ):
+                with open (self .wifi_history_path ,'r')as f :
+                    return json .load (f )
+        except Exception :
+            pass 
+        return {}
+
+    def _save_wifi_history (self ):
+        """Save WiFi connection history to JSON file."""
+        try :
+            with open (self .wifi_history_path ,'w')as f :
+                json .dump (self .wifi_history ,f ,indent =2 )
+        except Exception :
+            pass 
+
     def _get_wifi_connected (self ):
         """Return cached WiFi state.
 
@@ -750,6 +771,7 @@ class Menu :
 
 
         known_networks ={ssid for ssid ,pwd in WIFI_NETWORKS }
+        connected_before =set (self .wifi_history .keys ())
 
 
         try :
@@ -781,9 +803,10 @@ class Menu :
 
                 is_known =ssid in known_networks 
                 is_open =security ==""
+                was_connected =ssid in connected_before 
 
 
-                if is_known or is_open :
+                if is_known or is_open or was_connected :
                     color ="green"
                 else :
                     color ="red"
@@ -840,7 +863,10 @@ class Menu :
 
     def _connect_to_wifi (self ,ssid ,security =""):
         """Initiate WiFi connection. If secured, prompt for password."""
-        if security and security !="":
+        if ssid in self .wifi_history :
+            saved_password =self .wifi_history [ssid ]
+            self ._attempt_wifi_connect (ssid ,saved_password )
+        elif security and security !="":
 
             self .wifi_password =""
             self .wifi_password_ssid =ssid 
@@ -915,6 +941,9 @@ class Menu :
 
                 self ._wifi_state =True 
                 self ._wifi_checked_at =time .time ()
+                if password :
+                    self .wifi_history [ssid ]=password 
+                    self ._save_wifi_history ()
                 time .sleep (1 )
                 self .display .show_message ("WiFi",f"Connected to\n{ssid }!",(100 ,255 ,100 ),self .nav_items ,self .nav_selected_index ,True )
                 time .sleep (2 )
@@ -1379,7 +1408,17 @@ class Menu :
                 current_branch ='main'
 
 
-            subprocess .run (['sudo','-n','git','-C',repo_dir ,'fetch','--all','--prune'],capture_output =True ,text =True ,timeout =20 )
+            fetch_result =subprocess .run (['sudo','-n','git','-C',repo_dir ,'fetch','--all','--prune'],capture_output =True ,text =True ,timeout =20 )
+            
+            if fetch_result .returncode !=0 :
+                fetch_err =fetch_result .stderr .strip ()or fetch_result .stdout .strip ()
+                error_lower =fetch_err .lower ()
+                if any (keyword in error_lower for keyword in ['could not resolve host','connection','network','timeout','failed to connect','unreachable']):
+                    if 'github'in error_lower or 'github.com'in error_lower :
+                        self .display .show_message ("Update Error","Cannot connect to GitHub.\n\nIf your school wifi blocks GitHub, you cannot update now.",(255 ,100 ,100 ),self .nav_items ,self .nav_selected_index )
+                        time .sleep (3.0 )
+                        return 
+            
             result =subprocess .run (['sudo','-n','git','-C',repo_dir ,'pull','--ff-only','origin',current_branch ],capture_output =True ,text =True ,timeout =30 )
 
             if result .returncode ==0 :
@@ -1392,8 +1431,19 @@ class Menu :
                     return 
             else :
                 full_err =result .stderr .strip ()or result .stdout .strip ()or "Pull failed"
-                self .display .show_message ("Update Error",full_err ,(255 ,100 ,100 ),self .nav_items ,self .nav_selected_index )
-                time .sleep (2.0 )
+                
+                is_github_blocked =False 
+                error_lower =full_err .lower ()
+                if any (keyword in error_lower for keyword in ['could not resolve host','connection','network','timeout','failed to connect','unreachable']):
+                    if 'github'in error_lower :
+                        is_github_blocked =True 
+                
+                if is_github_blocked :
+                    self .display .show_message ("Update Error","Cannot connect to GitHub.\n\nIf your school wifi blocks GitHub, you cannot update now.",(255 ,100 ,100 ),self .nav_items ,self .nav_selected_index )
+                    time .sleep (3.0 )
+                else :
+                    self .display .show_message ("Update Error",full_err ,(255 ,100 ,100 ),self .nav_items ,self .nav_selected_index )
+                    time .sleep (2.0 )
                 self .display .show_face_message ("Update","Forcing pull...","upload",(180 ,220 ,255 ),self .nav_items ,self .nav_selected_index )
                 
                 config_path =os .path .join (repo_dir ,'Code','config.py')
