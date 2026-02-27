@@ -170,18 +170,21 @@ class WaveshareDisplay :
             print (f"Error loading custom fonts: {e }")
 
             try :
-                self .font_large =ImageFont .truetype ("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",16 )
-                self .font_medium =ImageFont .truetype ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",14 )
+                bold_ttf =ImageFont .truetype ("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",16 )
+                regular_ttf =ImageFont .truetype ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",14 )
+                self .font_large =bold_ttf 
+                self .font_medium =regular_ttf 
                 self .font_small =ImageFont .truetype ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",12 )
                 self .font_tiny =ImageFont .truetype ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",10 )
                 self .font_micro =ImageFont .truetype ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",8 )
             except :
 
-                self .font_large =ImageFont .load_default ()
-                self .font_medium =ImageFont .load_default ()
-                self .font_small =ImageFont .load_default ()
-                self .font_tiny =ImageFont .load_default ()
-                self .font_micro =ImageFont .load_default ()
+                default_font =ImageFont .load_default ()
+                self .font_large =default_font 
+                self .font_medium =default_font 
+                self .font_small =default_font 
+                self .font_tiny =default_font 
+                self .font_micro =default_font
 
     def _measure_text_width (self ,text ,font ):
         try :
