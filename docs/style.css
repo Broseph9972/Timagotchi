@@ -715,6 +715,15 @@ footer a:hover {
     font-size: 0.9em;
 }
 
+.tutorial-image {
+    margin-top: 1.5rem;
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--border-radius);
+    display: block;
+    border: 1px solid var(--border-color);
+}
+
 .tutorial-image-placeholder {
     margin-top: 1.5rem;
     padding: 3rem;
