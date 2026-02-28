@@ -74,7 +74,7 @@ class Menu :
                 self .settings_menu_items .append ("A/B Day")
         self .settings_menu_items .extend (["WiFi","Appearance","Brightness","Progress Bar","Set Time","Developer","Version","Update","Restart"])
         self .settings_scroll_offset =0 
-        self .tools_menu_items =["Grades","Stopwatch","Developer"]
+        self .tools_menu_items =["Grades","Stopwatch","Judges","Developer"]
         self .tools_scroll_offset =0 
         self .set_time_menu_items =["Manual Set","Sync Now"]
         self .appearance_menu_items =["Colors","Fonts"]
@@ -1086,6 +1086,10 @@ class Menu :
             elif selected_item =="Stopwatch":
                 self .current_screen ='stopwatch'
                 self .show_stopwatch ()
+            elif selected_item =="Judges":
+                self .current_screen ='judges'
+                self .judges_color_index =0 
+                self .show_judges_screen ()
             elif selected_item =="Developer":
                 self .current_screen ='developer'
                 self ._konami_index =0 
@@ -2541,6 +2545,38 @@ class Menu :
         finally :
             self ._wifi_checked_at =time .time ()
 
+    def show_judges_screen (self ):
+        """Display judges thank you screen with animated rainbow colors."""
+        wifi_connected =self ._get_wifi_connected ()
+        
+        # Rainbow color cycle
+        rainbow_colors =[
+            (255 ,0 ,0 ),      # Red
+            (255 ,127 ,0 ),    # Orange
+            (255 ,255 ,0 ),    # Yellow
+            (0 ,255 ,0 ),      # Green
+            (0 ,0 ,255 ),      # Blue
+            (75 ,0 ,130 ),     # Indigo
+            (148 ,0 ,211 ),    # Violet
+        ]
+        
+        if not hasattr (self ,'judges_color_index'):
+            self .judges_color_index =0 
+        
+        current_color =rainbow_colors [self .judges_color_index %len (rainbow_colors )]
+        self .judges_color_index +=1 
+        
+        message ="Thank you\njudges!"
+        self .display .show_face_message ("Judges","Thank you judges!","grateful",current_color ,self .nav_items ,self .nav_selected_index ,wifi_connected )
+
+    def handle_judges_input (self ,action ):
+        """Handle input for judges screen."""
+        if action =='left':
+            self .current_screen ='tools'
+            self .selected_index =self .tools_menu_items .index ("Judges")if "Judges"in self .tools_menu_items else 1 
+            self .nav_selected_index =self .nav_items .index ("Tools")if "Tools"in self .nav_items else 1 
+            self .show_tools_menu ()
+
     def run (self ):
         import time 
         self .show_main_menu ()
@@ -2617,6 +2653,8 @@ class Menu :
                     self .handle_assignments_input (action )
                 elif self .current_screen =="stopwatch":
                     self .handle_stopwatch_input (action )
+                elif self .current_screen =="judges":
+                    self .handle_judges_input (action )
                 elif self .current_screen =="version":
                     self .handle_version_input (action )
                 elif self .current_screen =="version_info":
@@ -2636,6 +2674,8 @@ class Menu :
                     self .show_main_menu ()
                 elif self .current_screen =="stopwatch":
                     self .show_stopwatch ()
+                elif self .current_screen =="judges":
+                    self .show_judges_screen ()
                 last_update =current_time 
 
             time .sleep (0.05 )
