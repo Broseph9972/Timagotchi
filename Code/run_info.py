@@ -1,5 +1,4 @@
 
-
 print ("="*60 )
 print ("Pi Schedule Display - Deployment Information")
 print ("="*60 )

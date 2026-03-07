@@ -1,8 +1,4 @@
 
-"""
-Quick schedule display
-Starts directly in the schedule/time-left view (no menu). Press Ctrl+C to exit.
-"""
 import sys 
 import time 
 
@@ -25,14 +21,12 @@ class DummyInput :
     def cleanup (self ):
         pass 
 
-
 def main ():
     try :
         display =WaveshareDisplay ()
     except Exception as e :
         print ("Display initialization failed:",e )
         sys .exit (1 )
-
 
     if InputHandler is not None :
         try :
@@ -62,7 +56,6 @@ def main ():
             input_handler .cleanup ()
         except Exception :
             pass 
-
 
 if __name__ =="__main__":
     main ()

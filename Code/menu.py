@@ -22,7 +22,6 @@ import requests
 from urllib .parse import urljoin 
 from games_config import get_game_command 
 
-
 try :
     from config_loader import DAY_PRESETS ,NUM_DAY_PRESETS 
 except ImportError :
@@ -38,20 +37,15 @@ class Menu :
         self .selected_index =0 
         self .running =True 
 
-
         self .theme_manager =ThemeManager ()
-
 
         self .font_manager =FontManager ()
 
         self .wifi_history_path =os .path .join (os .path .dirname (__file__ ),'wifi_history.json')
         self .wifi_history =self ._load_wifi_history ()
 
-
         self .nav_items =["Main Page","Tools","Settings"]
         self .nav_selected_index =0 
-
-
 
         self ._wifi_state =False 
         self ._wifi_checked_at =0.0 
@@ -91,7 +85,6 @@ class Menu :
         self .progress_bar_modes =["time_in_class","time_in_day","lunch_day"]
         self .progress_bar_mode =PROGRESS_BAR_MODE 
         self .progress_bar_mode_index =self .progress_bar_modes .index (self .progress_bar_mode )if self .progress_bar_mode in self .progress_bar_modes else 0 
-
 
         self .state_path =os .path .join (os .path .dirname (__file__ ),'schedule_state.json')
         self .presets_count =NUM_DAY_PRESETS 
@@ -135,12 +128,10 @@ class Menu :
         self .stopwatch_start_ts =0.0 
         self .stopwatch_elapsed =0.0 
 
-
         self .wifi_password =""
         self .wifi_password_ssid =""
         self .wifi_keyboard_chars ="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()"
         self .wifi_keyboard_index =0 
-
 
         self .phrases =self ._load_phrases ()
 
@@ -149,7 +140,6 @@ class Menu :
         self .secret_menu_items =["Start Tetris","Doom","Shitty Doom","Run Custom Script"]
 
     def _load_phrases (self ):
-        """Load phrases from Phrases.json file."""
         default_phrases ={
         "passing":[],
         "advisory":[],
@@ -178,7 +168,6 @@ class Menu :
         return today [0 ]in freetimedaus .lower ().split (',')
 
     def get_current_ab_day (self ):
-        """Return 'a' or 'b' based on preset index when presets_count==2; otherwise 'a'."""
         if self .presets_count ==2 :
             return 'a'if self .current_preset_index ==0 else 'b'
         return 'a'
@@ -222,7 +211,6 @@ class Menu :
             pass 
 
     def _advance_preset_if_new_day (self ):
-        """Auto-advance preset once per calendar day when presets_count==2."""
         try :
             today_str =datetime .date .today ().isoformat ()
             if self .presets_count ==2 :
@@ -240,14 +228,6 @@ class Menu :
             pass 
 
     def get_current_period (self ,current_time ):
-        """
-        Determine current period. Now handles PERIODS dict with special string keys:
-        - 'advisory': Advisory/homeroom period
-        - 'lunch': Lunch period  
-        - 1, 2, 3, etc.: Regular numbered class periods
-        
-        Returns: (period_identifier, time_remaining, is_lunch)
-        """
 
         if 'advisory'in PERIODS and advisory .lower ()=="true":
 
@@ -265,7 +245,6 @@ class Menu :
                     time_remaining =advisory_end -current_time 
                     return "ADVISORY",time_remaining ,False 
 
-
         lunch_start =datetime .datetime .strptime (LUNCH_START ,"%H:%M").time ()
         lunch_start_dt =datetime .datetime .combine (datetime .date .today (),lunch_start )
         lunch_end =datetime .datetime .strptime (LUNCH_END ,"%H:%M").time ()
@@ -274,7 +253,6 @@ class Menu :
         if lunch_start_dt <=current_time <lunch_end_dt :
             time_remaining =lunch_end_dt -current_time 
             return "LUNCH",time_remaining ,True 
-
 
         numbered_periods =sorted ([p for p in PERIODS .keys ()if isinstance (p ,int )])
 
@@ -291,7 +269,6 @@ class Menu :
                 period_end =min (next_period_start ,max_end )
             else :
                 period_end =period_start +datetime .timedelta (minutes =PERIOD_LENGTH )
-
 
             if period_start <=current_time <period_end :
                 time_remaining =period_end -current_time 
@@ -318,7 +295,6 @@ class Menu :
             return f"{minutes }m"
 
     def get_next_period (self ,current_time ):
-        """Get the next period after current time. Returns (period_num, period_name, time_until) or (None, None, None)"""
 
         numbered_periods =sorted ([p for p in PERIODS .keys ()if isinstance (p ,int )])
 
@@ -329,7 +305,6 @@ class Menu :
             if period_start >current_time :
 
                 time_until =period_start -current_time 
-
 
                 if abday .lower ()=="true":
                     preset_key =list (DAY_PRESETS .keys ())[self .current_preset_index %len (DAY_PRESETS )]
@@ -391,7 +366,6 @@ class Menu :
 
         time_remaining_str =self .format_timedelta (time_remaining )if time_remaining else None 
 
-
         minutes_remaining =0 
         if time_remaining :
             minutes_remaining =int (time_remaining .total_seconds ()//60 )
@@ -409,7 +383,6 @@ class Menu :
         self .display .show_clock (time_str ,date_str ,self .nav_items ,self .nav_selected_index ,wifi_connected )
 
     def _load_wifi_history (self ):
-        """Load WiFi connection history from JSON file."""
         try :
             if os .path .exists (self .wifi_history_path ):
                 with open (self .wifi_history_path ,'r')as f :
@@ -419,7 +392,6 @@ class Menu :
         return {}
 
     def _save_wifi_history (self ):
-        """Save WiFi connection history to JSON file."""
         try :
             with open (self .wifi_history_path ,'w')as f :
                 json .dump (self .wifi_history ,f ,indent =2 )
@@ -427,12 +399,6 @@ class Menu :
             pass 
 
     def _get_wifi_connected (self ):
-        """Return cached WiFi state.
-
-        This only queries nmcli at most once every 10 seconds to avoid
-        blocking the input loop. The cached state is also updated on boot
-        (initial check) and immediately after a successful connection.
-        """
         now =time .time ()
 
         if now -self ._wifi_checked_at <10 :
@@ -521,7 +487,6 @@ class Menu :
         elif not schedule_summary :
             face_name ="bored"
 
-
         period ,time_remaining ,is_lunch =self .get_current_period (now )
         phrase_key =None 
 
@@ -534,7 +499,6 @@ class Menu :
         elif isinstance (period ,int ):
             phrase_key =f"period{period }"
 
-
         if phrase_key :
             period_phrases =self .phrases .get (phrase_key ,[])
             if period_phrases :
@@ -545,7 +509,6 @@ class Menu :
         self .display .show_main_page (label ,progress ,time_str ,date_str ,None ,wifi_connected ,self .nav_items ,self .nav_selected_index ,face_name ,speech_lines )
 
     def get_progress_bar (self ):
-        """Calculate progress bar based on current mode."""
         try :
             now =datetime .datetime .now ()
 
@@ -553,7 +516,6 @@ class Menu :
                 seconds_left =max (0 ,int ((end_dt -now ).total_seconds ()))
                 minutes_left =(seconds_left +59 )//60 
                 return f"{label }: {minutes_left } min left"
-
 
             school_start_dt =datetime .datetime .combine (
             datetime .date .today (),datetime .datetime .strptime (SCHOOL_START ,"%H:%M").time ()
@@ -567,7 +529,6 @@ class Menu :
             lunch_end_dt =datetime .datetime .combine (
             datetime .date .today (),datetime .datetime .strptime (LUNCH_END ,"%H:%M").time ()
             )
-
 
             actual_school_end =school_end_dt 
             if PERIODS :
@@ -588,7 +549,6 @@ class Menu :
                     total =(lunch_end_dt -lunch_start_dt ).total_seconds ()
                     progress =int ((elapsed /total )*100 )if total >0 else 0 
                     return _minutes_left_label ("Lunch",lunch_end_dt ),progress 
-
 
                 numbered_periods =sorted ([p for p in PERIODS .keys ()if isinstance (p ,int )])
                 for i ,p in enumerate (numbered_periods ):
@@ -626,7 +586,6 @@ class Menu :
                         class_name =current_preset .get (p ,f"Period {p }")
                         return _minutes_left_label (class_name ,end_dt ),progress 
 
-
                 if 'advisory'in PERIODS and advisory .lower ()=="true":
                     advisory_start_dt =datetime .datetime .combine (
                     datetime .date .today (),datetime .datetime .strptime (PERIODS ['advisory'],"%H:%M").time ()
@@ -638,10 +597,8 @@ class Menu :
                         progress =int ((elapsed /total )*100 )if total >0 else 0 
                         return _minutes_left_label ("Advisory",advisory_end_dt ),progress 
 
-
                 if now <school_start_dt :
                     return "Before school",0 
-
 
                 if numbered_periods :
                     last_start_dt =datetime .datetime .combine (
@@ -653,7 +610,6 @@ class Menu :
 
                 if now >=actual_class_end :
                     return "After school",100 
-
 
                 for i in range (len (numbered_periods )-1 ):
                     p_curr =numbered_periods [i ]
@@ -669,7 +625,6 @@ class Menu :
                     passing_end =min (next_start ,curr_end +datetime .timedelta (minutes =PASSING_TIME ))
                     if curr_end <=now <passing_end :
                         return "Passing",0 
-
 
                 return "Passing",0 
 
@@ -764,15 +719,12 @@ class Menu :
             self .show_settings_menu ()
 
     def show_wifi_menu (self ):
-        """Show WiFi networks available with color-coding for known/open vs unknown/secured."""
         wifi_connected =self ._get_wifi_connected ()
         message ="Scanning WiFi...\nPlease wait."
         self .display .show_message ("WiFi",message ,(100 ,200 ,255 ),self .nav_items ,self .nav_selected_index ,wifi_connected )
 
-
         known_networks ={ssid for ssid ,pwd in WIFI_NETWORKS }
         connected_before =set (self .wifi_history .keys ())
-
 
         try :
             result =subprocess .run (
@@ -785,7 +737,6 @@ class Menu :
 
             self .wifi_networks =[]
             for line in lines :
-
 
                 parts =line .rsplit (':',2 )
                 if len (parts )==3 :
@@ -800,11 +751,9 @@ class Menu :
                 ssid =ssid if ssid else "<hidden>"
                 security =security if security else ""
 
-
                 is_known =ssid in known_networks 
                 is_open =security ==""
                 was_connected =ssid in connected_before 
-
 
                 if is_known or is_open or was_connected :
                     color ="green"
@@ -823,12 +772,10 @@ class Menu :
             self .display .show_message ("WiFi",f"Error: {str (e )[:50 ]}\nMake sure nmcli\nis installed",(200 ,100 ,100 ),self .nav_items ,self .nav_selected_index ,wifi_connected )
 
     def _draw_wifi_list (self ):
-        """Draw the WiFi network list with color-coded security."""
         wifi_connected =self ._get_wifi_connected ()
         if not hasattr (self ,'wifi_networks')or not self .wifi_networks :
             self .display .show_message ("WiFi","No networks",(200 ,100 ,100 ),self .nav_items ,self .nav_selected_index ,wifi_connected )
             return 
-
 
         if self .wifi_selected <len (self .wifi_networks ):
             ssid ,signal ,security ,color =self .wifi_networks [self .wifi_selected ]
@@ -842,7 +789,6 @@ class Menu :
             self .display .show_message ("WiFi",message ,(100 ,200 ,255 ),self .nav_items ,self .nav_selected_index ,wifi_connected )
 
     def handle_wifi_input (self ,action ):
-        """Handle WiFi menu navigation and connection."""
         if not hasattr (self ,'wifi_networks'):
             self .wifi_networks =[]
 
@@ -862,7 +808,6 @@ class Menu :
             self .show_settings_menu ()
 
     def _connect_to_wifi (self ,ssid ,security =""):
-        """Initiate WiFi connection. If secured, prompt for password."""
         if ssid in self .wifi_history :
             saved_password =self .wifi_history [ssid ]
             self ._attempt_wifi_connect (ssid ,saved_password )
@@ -878,7 +823,6 @@ class Menu :
             self ._attempt_wifi_connect (ssid ,"")
 
     def show_wifi_keyboard (self ):
-        """Display WiFi password keyboard."""
         wifi_connected =self ._get_wifi_connected ()
         current_char =self .wifi_keyboard_chars [self .wifi_keyboard_index ]
         masked_password ="*"*len (self .wifi_password )
@@ -891,7 +835,6 @@ class Menu :
         self .display .show_message ("WiFi Password",message ,(150 ,200 ,255 ),self .nav_items ,self .nav_selected_index ,wifi_connected )
 
     def handle_wifi_password_input (self ,action ):
-        """Handle WiFi password keyboard input."""
         if action =='up':
             self .wifi_keyboard_index =(self .wifi_keyboard_index -1 )%len (self .wifi_keyboard_chars )
             self .show_wifi_keyboard ()
@@ -916,7 +859,6 @@ class Menu :
             self .show_wifi_menu ()
 
     def _attempt_wifi_connect (self ,ssid ,password ):
-        """Attempt actual connection to WiFi network."""
         self .display .show_message ("WiFi",f"Connecting to\n{ssid }...",(100 ,200 ,255 ),self .nav_items ,self .nav_selected_index ,self ._get_wifi_connected ())
 
         try :
@@ -954,7 +896,6 @@ class Menu :
         except Exception as e :
             self .display .show_message ("WiFi",f"Error: {str (e )[:40 ]}",(255 ,100 ,100 ),self .nav_items ,self .nav_selected_index ,self ._get_wifi_connected ())
             time .sleep (2 )
-
 
         self .current_screen ="wifi"
         self .show_wifi_menu ()
@@ -1379,22 +1320,18 @@ class Menu :
                 self .show_version_menu ()
 
     def _run_update (self ):
-        """Run sudo git pull (ff-only) and show face on completion."""
         try :
             repo_dir ="/home/pi/Timagotchi"
-
 
             git_check =subprocess .run (['git','--version'],capture_output =True ,text =True ,timeout =5 )
             if git_check .returncode !=0 :
                 self .display .show_face_message ("Update","git not installed","broken",(255 ,100 ,100 ),self .nav_items ,self .nav_selected_index )
                 return 
 
-
             try :
                 subprocess .run (['git','config','--global','--add','safe.directory',repo_dir ],capture_output =True ,text =True ,timeout =5 )
             except Exception :
                 pass 
-
 
             remote =subprocess .run (['git','-C',repo_dir ,'config','--get','remote.origin.url'],capture_output =True ,text =True ,timeout =5 )
             if remote .returncode !=0 or not remote .stdout .strip ():
@@ -1405,12 +1342,10 @@ class Menu :
                     self .display .show_face_message ("Update",err ,"broken",(255 ,100 ,100 ),self .nav_items ,self .nav_selected_index )
                     return 
 
-
             branch =subprocess .run (['git','-C',repo_dir ,'rev-parse','--abbrev-ref','HEAD'],capture_output =True ,text =True ,timeout =5 )
             current_branch =branch .stdout .strip ()or 'main'
             if current_branch in ('HEAD',''):
                 current_branch ='main'
-
 
             fetch_result =subprocess .run (['sudo','-n','git','-C',repo_dir ,'fetch','--all','--prune'],capture_output =True ,text =True ,timeout =20 )
             
@@ -1487,22 +1422,18 @@ class Menu :
                 self .show_settings_menu ()
 
     def check_updates_on_boot (self ):
-        """Check for updates on boot (silent, non-blocking). Returns True if update was applied and restart is needed."""
         try :
             repo_dir ="/home/pi/Timagotchi"
-
 
             git_check =subprocess .run (['git','--version'],capture_output =True ,text =True ,timeout =5 )
             if git_check .returncode !=0 :
                 return False 
-
 
             try :
                 subprocess .run (['git','config','--global','--add','safe.directory',repo_dir ],
                 capture_output =True ,text =True ,timeout =5 )
             except Exception :
                 pass 
-
 
             remote =subprocess .run (['git','-C',repo_dir ,'config','--get','remote.origin.url'],
             capture_output =True ,text =True ,timeout =5 )
@@ -1511,17 +1442,14 @@ class Menu :
                 subprocess .run (['git','-C',repo_dir ,'remote','add','origin',origin_url ],
                 capture_output =True ,text =True ,timeout =10 )
 
-
             branch =subprocess .run (['git','-C',repo_dir ,'rev-parse','--abbrev-ref','HEAD'],
             capture_output =True ,text =True ,timeout =5 )
             current_branch =branch .stdout .strip ()or 'main'
             if current_branch in ('HEAD',''):
                 current_branch ='main'
 
-
             subprocess .run (['sudo','-n','git','-C',repo_dir ,'fetch','--all','--prune'],
             capture_output =True ,text =True ,timeout =10 )
-
 
             result =subprocess .run (['sudo','-n','git','-C',repo_dir ,'pull','--ff-only','origin',current_branch ],
             capture_output =True ,text =True ,timeout =15 )
@@ -1542,7 +1470,6 @@ class Menu :
             return False 
 
     def start_boot_git_maintenance_background (self ):
-        """Start repo integrity check + auto-repair in a daemon thread."""
         try :
             worker =threading .Thread (target =self ._boot_git_maintenance_worker ,daemon =True )
             worker .start ()
@@ -1550,7 +1477,6 @@ class Menu :
             print (f"[Boot Git] Failed to start background maintenance: {exc }")
 
     def _boot_git_maintenance_worker (self ):
-        """Background worker: check for git corruption and auto-repair if needed."""
         try :
             repo_dir =self ._get_repo_dir ()
 
@@ -1598,7 +1524,6 @@ class Menu :
         return any (sig in text for sig in corruption_signatures )
 
     def _repair_repo_in_background (self ,repo_dir ):
-        """Attempt non-interactive repair for common object corruption cases."""
         try :
             branch =self ._get_current_branch ()or 'main'
 
@@ -1624,7 +1549,6 @@ class Menu :
             return False 
 
     def show_grades_menu (self ,fetch =True ):
-        """Display grades menu. fetch=True to fetch from API, False to redraw cached list."""
         if fetch :
             cfg =self ._canvas_load_config ()
             if not cfg :
@@ -1639,7 +1563,6 @@ class Menu :
                 self .display .show_message ("Canvas","No courses",(200 ,200 ,200 ),self .nav_items ,self .nav_selected_index ,self ._get_wifi_connected ())
                 return 
             self ._courses_list =courses 
-
 
         if not hasattr (self ,'_courses_list')or not self ._courses_list :
             self .display .show_message ("Canvas","No courses",(200 ,200 ,200 ),self .nav_items ,self .nav_selected_index ,self ._get_wifi_connected ())
@@ -1729,7 +1652,6 @@ class Menu :
                 self .show_settings_menu ()
             return 
 
-
         if action :
             expected =self ._konami_code [self ._konami_index ]if self ._konami_index <len (self ._konami_code )else None 
             if action ==expected :
@@ -1744,16 +1666,13 @@ class Menu :
                 self ._konami_index =1 if action ==self ._konami_code [0 ]else 0 
 
     def launch_tetris_pygame (self ):
-        """Launch Tetris directly on the Waveshare display."""
         self .display .show_message ("Tetris","Starting...",(100 ,200 ,255 ),self .nav_items ,self .nav_selected_index ,self ._get_wifi_connected ())
         time .sleep (0.3 )
 
         try :
             from tetris_waveshare import run_tetris 
 
-
             exit_key =run_tetris (self .display ,self .input_handler )
-
 
             if exit_key =='key1':
                 self .current_screen ='main'
@@ -1782,7 +1701,6 @@ class Menu :
             self .show_main_menu ()
 
     def launch_doom_pydoom (self ):
-        """Launch Doom via PyDoom if available; otherwise show guidance."""
         self .display .show_message ("Doom","Starting...",(255 ,100 ,100 ),self .nav_items ,self .nav_selected_index ,self ._get_wifi_connected ())
         time .sleep (0.3 )
 
@@ -1791,7 +1709,6 @@ class Menu :
             pydoom_dir =os .path .join (os .path .dirname (__file__ ),'pydoom')
             if os .path .isdir (pydoom_dir )and pydoom_dir not in sys .path :
                 sys .path .insert (0 ,pydoom_dir )
-
 
             try :
                 import pydoom 
@@ -1806,7 +1723,6 @@ class Menu :
                 self .current_screen ='secret_menu'
                 self .show_secret_menu ()
                 return 
-
 
             wad_candidates =[
             os .path .join (os .path .dirname (__file__ ),'doom1.wad'),
@@ -1823,7 +1739,6 @@ class Menu :
                 self .current_screen ='secret_menu'
                 self .show_secret_menu ()
                 return 
-
 
             try :
                 env =os .environ .copy ()
@@ -1845,7 +1760,6 @@ class Menu :
             self .show_secret_menu ()
 
     def launch_shitty_doom (self ):
-        """Run the built-in raycaster (fast, works on LCD)."""
         self .display .show_message ("Shitty Doom","Starting...",(255 ,150 ,100 ),self .nav_items ,self .nav_selected_index ,self ._get_wifi_connected ())
         time .sleep (0.2 )
         try :
@@ -1877,11 +1791,6 @@ class Menu :
             self .show_secret_menu ()
 
     def launch_custom_script (self ):
-        """
-        Run custom_script.py directly with access to display and input.
-        The script should have a run(display, input_handler) function.
-        It should return 'key1', 'key2', or 'key3' to navigate on exit.
-        """
         path =os .path .join (os .path .dirname (__file__ ),'custom_script.py')
         if not os .path .exists (path ):
             self .display .show_message ("Custom Script","Place custom_script.py in Code/",(255 ,150 ,100 ),self .nav_items ,self .nav_selected_index ,self ._get_wifi_connected ())
@@ -1897,14 +1806,12 @@ class Menu :
             custom_module =importlib .util .module_from_spec (spec )
             spec .loader .exec_module (custom_module )
 
-
             if hasattr (custom_module ,'run'):
                 exit_key =custom_module .run (self .display ,self .input_handler )
             else :
                 self .display .show_message ("Custom Script","No run() function found",(255 ,150 ,100 ),self .nav_items ,self .nav_selected_index ,self ._get_wifi_connected ())
                 time .sleep (2 )
                 exit_key =None 
-
 
             if exit_key =='key1':
                 self .current_screen ='main'
@@ -1933,7 +1840,6 @@ class Menu :
             self .show_main_menu ()
 
     def show_assignments_menu (self ,fetch =True ):
-        """Display assignments menu. fetch=True to fetch from API, False to redraw cached list."""
         if fetch :
             cfg =self ._canvas_load_config ()
             if not cfg or self .current_course_id is None :
@@ -1948,7 +1854,6 @@ class Menu :
                 self .display .show_message ("Canvas","No assignments",(200 ,200 ,200 ),self .nav_items ,self .nav_selected_index ,self ._get_wifi_connected ())
                 return 
             self ._assign_list =assigns 
-
 
         if not hasattr (self ,'_assign_list')or not self ._assign_list :
             self .display .show_message ("Canvas","No assignments",(200 ,200 ,200 ),self .nav_items ,self .nav_selected_index ,self ._get_wifi_connected ())
@@ -2143,7 +2048,6 @@ class Menu :
             percent =None 
             grade_text =None 
 
-
             for e in c .get ('enrollments',[]):
                 if e .get ('computed_current_period_score')is not None :
                     percent =e ['computed_current_period_score']
@@ -2166,7 +2070,6 @@ class Menu :
 
                 if grade_text is None :
                     grade_text =e .get ('computed_current_period_grade')or e .get ('current_period_grade')or e .get ('computed_current_grade')or e .get ('current_grade')or e .get ('computed_final_grade')or e .get ('final_grade')
-
 
             if percent is None :
                 g =c .get ('grades')or {}
@@ -2279,14 +2182,12 @@ class Menu :
             self .show_appearance_menu ()
 
     def show_appearance_menu (self ):
-        """Display appearance submenu with Colors and Fonts options"""
         wifi_connected =self ._get_wifi_connected ()
         self .display .show_menu (self .appearance_menu_items ,self .selected_index ,"Appearance",
         nav_items =self .nav_items ,nav_selected_index =self .nav_selected_index ,
         wifi_connected =wifi_connected )
 
     def handle_appearance_input (self ,action ):
-        """Handle input for appearance submenu"""
         if action =='up':
             self .selected_index =(self .selected_index -1 )%len (self .appearance_menu_items )
             self .show_appearance_menu ()
@@ -2311,7 +2212,6 @@ class Menu :
             self .show_settings_menu ()
 
     def show_font_menu (self ):
-        """Display font selection menu"""
         wifi_connected =self ._get_wifi_connected ()
 
         self .font_menu_items =self .font_manager .get_font_names ()
@@ -2326,7 +2226,6 @@ class Menu :
         wifi_connected =wifi_connected )
 
     def handle_font_input (self ,action ):
-        """Handle input for font selection menu"""
         if action =='up':
             self .selected_index =(self .selected_index -1 )%len (self .font_menu_items )
             self .show_font_menu ()
@@ -2355,7 +2254,6 @@ class Menu :
             self .show_appearance_menu ()
 
     def show_progress_bar_menu (self ):
-        """Display progress bar mode selection"""
         current_mode =self .progress_bar_modes [self .progress_bar_mode_index ]
         if current_mode =="time_in_class":
             mode_display ="In Class"
@@ -2387,7 +2285,6 @@ class Menu :
             self .show_settings_menu ()
 
     def show_backlight_menu (self ):
-        """Display and adjust backlight brightness percentage."""
         try :
             bl =int (max (5 ,min (100 ,getattr (self ,'backlight',100 ))))
         except Exception :
@@ -2428,7 +2325,6 @@ class Menu :
             self .show_backlight_menu ()
 
     def restart_program (self ):
-        """Restart the Timagotchi program"""
         try :
             self .display .show_message ("Restarting","Program restarting...",(100 ,200 ,255 ),self .nav_items ,self .nav_selected_index )
             time .sleep (1 )
@@ -2444,7 +2340,6 @@ class Menu :
             self .show_settings_menu ()
 
     def apply_manual_time (self ):
-        """Apply the manually set time"""
         try :
 
             ntp_check =subprocess .run (['timedatectl','show','-p','NTP'],
@@ -2456,7 +2351,6 @@ class Menu :
                 subprocess .run (['sudo','timedatectl','set-ntp','off'],
                 capture_output =True ,text =True ,timeout =5 ,check =False )
                 time .sleep (1 )
-
 
             time_str =f"{self .adjust_hour :02d}:{self .adjust_minute :02d}:00"
 
@@ -2484,7 +2378,6 @@ class Menu :
                     display_time =f"{display_hour :02d}:{self .adjust_minute :02d} {am_pm }"
                 self .display .show_message ("Time Set",f"Set to {display_time }",(100 ,255 ,100 ),self .nav_items ,self .nav_selected_index )
 
-
             time .sleep (2 )
 
             current_time =time .time ()
@@ -2508,7 +2401,6 @@ class Menu :
                 self .input_handler .last_press [pin ]=current_time 
 
     def sync_time_now (self ):
-        """Enable NTP sync now and report status."""
         try :
 
             result =subprocess .run (['sudo','timedatectl','set-ntp','true'],capture_output =True ,text =True ,timeout =10 )
@@ -2532,10 +2424,6 @@ class Menu :
             time .sleep (2 )
 
     def _update_wifi_state (self ):
-        """Force an immediate wifi state refresh (used on boot).
-
-        This does a single quick nmcli query and updates the cached state and timestamp.
-        """
         try :
             result =subprocess .run (['nmcli','-t','-f','STATE','g'],capture_output =True ,text =True ,timeout =1 )
             state =result .stdout .strip ().lower ()
@@ -2546,18 +2434,16 @@ class Menu :
             self ._wifi_checked_at =time .time ()
 
     def show_judges_screen (self ):
-        """Display judges thank you screen with animated rainbow colors."""
         wifi_connected =self ._get_wifi_connected ()
         
-        # Rainbow color cycle
         rainbow_colors =[
-            (255 ,0 ,0 ),      # Red
-            (255 ,127 ,0 ),    # Orange
-            (255 ,255 ,0 ),    # Yellow
-            (0 ,255 ,0 ),      # Green
-            (0 ,0 ,255 ),      # Blue
-            (75 ,0 ,130 ),     # Indigo
-            (148 ,0 ,211 ),    # Violet
+            (255 ,0 ,0 ),
+            (255 ,127 ,0 ),
+            (255 ,255 ,0 ),
+            (0 ,255 ,0 ),
+            (0 ,0 ,255 ),
+            (75 ,0 ,130 ),
+            (148 ,0 ,211 ),
         ]
         
         if not hasattr (self ,'judges_color_index'):
@@ -2570,7 +2456,6 @@ class Menu :
         self .display .show_face_message ("Judges","Thank you judges!","grateful",current_color ,self .nav_items ,self .nav_selected_index ,wifi_connected )
 
     def handle_judges_input (self ,action ):
-        """Handle input for judges screen."""
         if action =='left':
             self .current_screen ='tools'
             self .selected_index =self .tools_menu_items .index ("Judges")if "Judges"in self .tools_menu_items else 1 
@@ -2591,7 +2476,6 @@ class Menu :
                 self ._last_input_time =now_ts 
 
             if action :
-
 
                 if action in ('key1','key2','key3')and self .current_screen not in (
                 'developer',

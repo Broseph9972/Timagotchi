@@ -1,35 +1,9 @@
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import spidev 
 import time 
 import logging 
 import numpy as np 
 from gpiozero import *
-
 
 KEY_UP_PIN =6 
 KEY_DOWN_PIN =19 
@@ -55,11 +29,6 @@ class RaspberryPi :
         self .GPIO_BL_PIN =self .gpio_pwm (bl )
         self .bl_DutyCycle (0 )
 
-
-
-
-
-
         self .GPIO_KEY_UP_PIN =None 
         self .GPIO_KEY_DOWN_PIN =None 
         self .GPIO_KEY_LEFT_PIN =None 
@@ -69,8 +38,6 @@ class RaspberryPi :
         self .GPIO_KEY1_PIN =None 
         self .GPIO_KEY2_PIN =None 
         self .GPIO_KEY3_PIN =None 
-
-
 
         self .SPI =spi 
         if self .SPI !=None :
@@ -124,4 +91,3 @@ class RaspberryPi :
         self .digital_write (self .GPIO_DC_PIN ,0 )
         self .GPIO_BL_PIN .close ()
         time .sleep (0.001 )
-

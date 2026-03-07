@@ -1,12 +1,6 @@
-"""
-Tetris for Waveshare 128x128 LCD with GPIO buttons.
-Renders directly to the display using PIL.
-Press KEY1, KEY2, or KEY3 to exit and return to menu.
-"""
 
 import random 
 import time 
-
 
 COLORS =[
 (0 ,0 ,0 ),
@@ -19,7 +13,6 @@ COLORS =[
 (80 ,80 ,200 ),
 ]
 
-
 FIGURES =[
 [[1 ,5 ,9 ,13 ],[4 ,5 ,6 ,7 ]],
 [[4 ,5 ,9 ,10 ],[2 ,6 ,5 ,9 ]],
@@ -29,7 +22,6 @@ FIGURES =[
 [[1 ,4 ,5 ,6 ],[1 ,4 ,5 ,9 ],[4 ,5 ,6 ,9 ],[1 ,5 ,6 ,9 ]],
 [[1 ,2 ,5 ,6 ]],
 ]
-
 
 class Figure :
     def __init__ (self ,x ,y ):
@@ -44,7 +36,6 @@ class Figure :
 
     def rotate (self ):
         self .rotation =(self .rotation +1 )%len (FIGURES [self .type ])
-
 
 class TetrisGame :
     def __init__ (self ,height =20 ,width =10 ):
@@ -120,18 +111,12 @@ class TetrisGame :
         self .figure .y -=1 
         self .freeze ()
 
-
 class TetrisWaveshare :
-    """Tetris game that renders to Waveshare 128x128 display."""
 
     def __init__ (self ,display ,input_handler ):
         self .display =display 
         self .input_handler =input_handler 
         self .running =False 
-
-
-
-
 
         self .cell_size =5 
         self .board_x =2 
@@ -144,11 +129,9 @@ class TetrisWaveshare :
         self .drop_interval =0.5 
 
     def start (self ):
-        """Start the Tetris game loop."""
         self .game =TetrisGame (self .board_height ,self .board_width )
         self .running =True 
         self .last_drop_time =time .time ()
-
 
         self .render ()
 
@@ -156,11 +139,9 @@ class TetrisWaveshare :
 
             action =self .input_handler .get_input ()
 
-
             if action in ('key1','key2','key3'):
                 self .running =False 
                 return action 
-
 
             if self .game .state =="playing":
                 if action =='left':
@@ -178,7 +159,6 @@ class TetrisWaveshare :
                 elif action =='select':
                     self .game .drop ()
                     self .render ()
-
 
                 current_time =time .time ()
                 drop_speed =max (0.1 ,self .drop_interval -(self .game .level -1 )*0.05 )
@@ -198,19 +178,15 @@ class TetrisWaveshare :
         return None 
 
     def render (self ):
-        """Render the game to the Waveshare display."""
 
         self .display .clear ((20 ,20 ,30 ))
         draw =self .display .draw 
 
-
         score_text =f"Score: {self .game .score }"
         draw .text ((2 ,0 ),score_text ,font =self .display .font_tiny ,fill =(255 ,255 ,255 ))
 
-
         level_text =f"L{self .game .level }"
         draw .text ((100 ,0 ),level_text ,font =self .display .font_tiny ,fill =(200 ,200 ,100 ))
-
 
         border_x =self .board_x -1 
         border_y =self .board_y -1 
@@ -221,13 +197,11 @@ class TetrisWaveshare :
         outline =(100 ,100 ,100 )
         )
 
-
         for row in range (self .board_height ):
             for col in range (self .board_width ):
                 cell_val =self .game .field [row ][col ]
                 if cell_val >0 :
                     self ._draw_cell (col ,row ,COLORS [cell_val ])
-
 
         if self .game .figure and self .game .state =="playing":
             for i in range (4 ):
@@ -238,14 +212,11 @@ class TetrisWaveshare :
                         if 0 <=fy <self .board_height and 0 <=fx <self .board_width :
                             self ._draw_cell (fx ,fy ,COLORS [self .game .figure .color ])
 
-
         if self .game .figure :
             self ._draw_next_preview ()
 
-
         hint ="^Rot <> vDn [O]Drop"
         draw .text ((2 ,118 ),hint ,font =self .display .font_tiny ,fill =(100 ,100 ,100 ))
-
 
         if self .game .state =="gameover":
 
@@ -254,11 +225,9 @@ class TetrisWaveshare :
             draw .text ((18 ,68 ),f"Score: {self .game .score }",font =self .display .font_small ,fill =(255 ,255 ,255 ))
             draw .text ((22 ,80 ),"[O] Restart",font =self .display .font_tiny ,fill =(150 ,255 ,150 ))
 
-
         self .display ._render ()
 
     def _draw_cell (self ,col ,row ,color ):
-        """Draw a single cell on the game board."""
         x =self .board_x +col *self .cell_size 
         y =self .board_y +row *self .cell_size 
 
@@ -269,26 +238,17 @@ class TetrisWaveshare :
         )
 
     def _draw_next_preview (self ):
-        """Draw next piece indicator on the right side."""
         preview_x =70 
         preview_y =20 
         preview_size =3 
 
         self .display .draw .text ((preview_x ,10 ),"Next:",font =self .display .font_tiny ,fill =(150 ,150 ,150 ))
 
-
-
-
         self .display .draw .rectangle (
         (preview_x ,preview_y ,preview_x +20 ,preview_y +20 ),
         outline =(60 ,60 ,60 )
         )
 
-
 def run_tetris (display ,input_handler ):
-    """
-    Run Tetris game on the Waveshare display.
-    Returns the exit key pressed ('key1', 'key2', 'key3') or None.
-    """
     game =TetrisWaveshare (display ,input_handler )
     return game .start ()

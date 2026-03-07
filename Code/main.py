@@ -10,9 +10,7 @@ try :
 
     print ("Starting Pi Schedule Display...")
 
-
     theme_manager =ThemeManager ()
-
 
     display =WaveshareDisplay (theme_manager )
     print ("Display initialized")
@@ -23,11 +21,8 @@ try :
     menu =Menu (display ,input_handler )
     print ("Menu system ready")
 
-
     print ("Starting background git maintenance...")
     menu .start_boot_git_maintenance_background ()
-
-
 
     try :
         ready_file ='/tmp/timagotchi_ready'

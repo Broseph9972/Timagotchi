@@ -12,7 +12,6 @@ class FontManager :
         self .load_fonts ()
 
     def load_fonts (self ):
-        """Load font configuration from JSON file and scan fonts directory"""
         try :
             if os .path .exists (self .fonts_file ):
                 with open (self .fonts_file ,'r')as f :
@@ -25,9 +24,7 @@ class FontManager :
                 self .current_font_name ='DejaVu Sans'
                 self .save_fonts ()
 
-
             self ._scan_fonts_directory ()
-
 
             if self .current_font_name in self .fonts :
                 self .current_font =self .fonts [self .current_font_name ]
@@ -41,7 +38,6 @@ class FontManager :
             self .current_font_name ='DejaVu Sans'
 
     def _scan_fonts_directory (self ):
-        """Scan fonts directory for .ttf files and add them to available fonts"""
         try :
             fonts_path =os .path .join (os .path .dirname (__file__ ),self .fonts_dir )
             if os .path .exists (fonts_path ):
@@ -55,7 +51,6 @@ class FontManager :
 
                     font_name =os .path .splitext (font_filename )[0 ].replace ('-',' ').replace ('_',' ')
 
-
                     if font_name not in self .fonts :
                         self .fonts [font_name ]={
                         'name':font_name ,
@@ -67,7 +62,6 @@ class FontManager :
             print (f"Error scanning fonts directory: {e }")
 
     def save_fonts (self ):
-        """Save current font selection to JSON file"""
         try :
             data ={
             'fonts':self .fonts ,
@@ -79,7 +73,6 @@ class FontManager :
             print (f"Error saving fonts: {e }")
 
     def set_font (self ,font_name ):
-        """Set the current font"""
         if font_name in self .fonts :
             self .current_font_name =font_name 
             self .current_font =self .fonts [font_name ]
@@ -88,25 +81,15 @@ class FontManager :
         return False 
 
     def get_font_names (self ):
-        """Get list of available font names"""
         return list (self .fonts .keys ())
 
     def get_font_path (self ,style ='regular'):
-        """
-        Get the path to the current font file
-        Args:
-            style: 'regular' or 'bold'
-        Returns:
-            Full path to font file, with fallback to system fonts
-        """
         font_key ='bold'if style =='bold'else 'regular'
         font_filename =self .current_font .get (font_key ,self .current_font .get ('path','DejaVuSans.ttf'))
-
 
         bundled_path =os .path .join (os .path .dirname (__file__ ),self .fonts_dir ,font_filename )
         if os .path .exists (bundled_path ):
             return bundled_path 
-
 
         system_paths =[
         f"/usr/share/fonts/truetype/dejavu/{font_filename }",
@@ -118,11 +101,9 @@ class FontManager :
             if os .path .exists (path ):
                 return path 
 
-
         return bundled_path 
 
     def _get_default_fonts (self ):
-        """Get default font configurations"""
         return {
         "DejaVu Sans":{
         "name":"DejaVu Sans",
@@ -139,5 +120,4 @@ class FontManager :
         }
 
     def get_current_font_name (self ):
-        """Get the name of the currently selected font"""
         return self .current_font_name 

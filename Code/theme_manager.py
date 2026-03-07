@@ -10,7 +10,6 @@ class ThemeManager :
         self .load_themes ()
 
     def load_themes (self ):
-        """Load themes from JSON file"""
         try :
             if os .path .exists (self .themes_file ):
                 with open (self .themes_file ,'r')as f :
@@ -22,7 +21,6 @@ class ThemeManager :
                 self .themes =self ._get_default_themes ()
                 self .current_theme_name ='dark'
                 self .save_themes ()
-
 
             if self .current_theme_name in self .themes :
                 self .current_theme =self .themes [self .current_theme_name ]
@@ -36,7 +34,6 @@ class ThemeManager :
             self .current_theme_name ='dark'
 
     def save_themes (self ):
-        """Save current theme selection to JSON file"""
         try :
             data ={
             'themes':self .themes ,
@@ -48,7 +45,6 @@ class ThemeManager :
             print (f"Error saving themes: {e }")
 
     def set_theme (self ,theme_name ):
-        """Set the current theme"""
         if theme_name in self .themes :
             self .current_theme_name =theme_name 
             self .current_theme =self .themes [theme_name ]
@@ -57,11 +53,9 @@ class ThemeManager :
         return False 
 
     def get_theme_names (self ):
-        """Get list of available theme names"""
         return list (self .themes .keys ())
 
     def get_color (self ,color_key ,default =(255 ,255 ,255 )):
-        """Get a color from current theme"""
         return tuple (self .current_theme .get (color_key ,default ))
 
     def get_background (self ):
@@ -78,7 +72,6 @@ class ThemeManager :
 
     def get_menu_highlight (self ):
         return self .get_color ('menu_highlight',(100 ,100 ,100 ))
-
 
     def get_sidebar_box (self ):
 
@@ -111,7 +104,6 @@ class ThemeManager :
         return self .get_color ('sidebar_indicator',(255 ,255 ,0 ))
 
     def _get_default_themes (self ):
-        """Return default themes"""
         return {
         "light":{
         "name":"Light",
