@@ -1,30 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import config 
 import time 
 import numpy as np 
@@ -45,7 +19,6 @@ if LCD_1IN8 ==1 :
 LCD_X_MAXPIXEL =132 
 LCD_Y_MAXPIXEL =162 
 
-
 L2R_U2D =1 
 L2R_D2U =2 
 R2L_U2D =3 
@@ -55,7 +28,6 @@ U2D_R2L =6
 D2U_L2R =7 
 D2U_R2L =8 
 SCAN_DIR_DFT =U2D_R2L 
-
 
 class LCD (config .RaspberryPi ):
 
@@ -110,10 +82,8 @@ class LCD (config .RaspberryPi ):
 		self .LCD_WriteData_8bit (0x2C )
 		self .LCD_WriteData_8bit (0x2D )
 
-
 		self .LCD_WriteReg (0xB4 )
 		self .LCD_WriteData_8bit (0x07 )
-
 
 		self .LCD_WriteReg (0xC0 )
 		self .LCD_WriteData_8bit (0xA2 )
@@ -135,7 +105,6 @@ class LCD (config .RaspberryPi ):
 
 		self .LCD_WriteReg (0xC5 )
 		self .LCD_WriteData_8bit (0x0E )
-
 
 		self .LCD_WriteReg (0xe0 )
 		self .LCD_WriteData_8bit (0x0f )
@@ -173,28 +142,18 @@ class LCD (config .RaspberryPi ):
 		self .LCD_WriteData_8bit (0x03 )
 		self .LCD_WriteData_8bit (0x10 )
 
-
 		self .LCD_WriteReg (0xF0 )
 		self .LCD_WriteData_8bit (0x01 )
-
 
 		self .LCD_WriteReg (0xF6 )
 		self .LCD_WriteData_8bit (0x00 )
 
-
 		self .LCD_WriteReg (0x3A )
 		self .LCD_WriteData_8bit (0x05 )
-
-
-
-
-
-
 
 	def LCD_SetGramScanWay (self ,Scan_dir ):
 
 		self .LCD_Scan_Dir =Scan_dir 
-
 
 		if (Scan_dir ==L2R_U2D )or (Scan_dir ==L2R_D2U )or (Scan_dir ==R2L_U2D )or (Scan_dir ==R2L_D2U ):
 			self .width =LCD_HEIGHT 
@@ -219,7 +178,6 @@ class LCD (config .RaspberryPi ):
 			else :
 				MemoryAccessReg_Data =0x40 |0x80 |0x20 
 
-
 		if (MemoryAccessReg_Data &0x10 )!=1 :
 			self .LCD_X_Adjust =LCD_Y 
 			self .LCD_Y_Adjust =LCD_X 
@@ -227,48 +185,29 @@ class LCD (config .RaspberryPi ):
 			self .LCD_X_Adjust =LCD_X 
 			self .LCD_Y_Adjust =LCD_Y 
 
-
 		self .LCD_WriteReg (0x36 )
 		if LCD_1IN44 ==1 :
 			self .LCD_WriteData_8bit (MemoryAccessReg_Data |0x08 )
 		else :
 			self .LCD_WriteData_8bit (MemoryAccessReg_Data &0xf7 )
 
-
-
-
-
 	def LCD_Init (self ,Lcd_ScanDir ):
 		if (self .module_init ()!=0 ):
 			return -1 
 
-
 		self .bl_DutyCycle (100 )
-
 
 		self .LCD_Reset ()
 
-
 		self .LCD_InitReg ()
-
 
 		self .LCD_SetGramScanWay (Lcd_ScanDir )
 		self .delay_ms (200 )
 
-
 		self .LCD_WriteReg (0x11 )
 		self .delay_ms (120 )
 
-
 		self .LCD_WriteReg (0x29 )
-
-
-
-
-
-
-
-
 
 	def LCD_SetWindows (self ,Xstart ,Ystart ,Xend ,Yend ):
 
@@ -277,7 +216,6 @@ class LCD (config .RaspberryPi ):
 		self .LCD_WriteData_8bit ((Xstart &0xff )+self .LCD_X_Adjust )
 		self .LCD_WriteData_8bit (0x00 )
 		self .LCD_WriteData_8bit (((Xend -1 )&0xff )+self .LCD_X_Adjust )
-
 
 		self .LCD_WriteReg (0x2B )
 		self .LCD_WriteData_8bit (0x00 )

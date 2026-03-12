@@ -1,17 +1,10 @@
-"""
-Doom-style raycaster for Waveshare 128x128 LCD.
-A proper Wolfenstein 3D / Doom-style first-person shooter experience.
-Press KEY1, KEY2, or KEY3 to exit and return to menu.
-"""
 
 import math 
 import time 
 import random 
 
-
 COLOR_CEILING =(30 ,30 ,50 )
 COLOR_FLOOR =(50 ,50 ,40 )
-
 
 WALL_COLORS ={
 1 :((180 ,60 ,60 ),(140 ,40 ,40 )),
@@ -20,7 +13,6 @@ WALL_COLORS ={
 4 :((180 ,180 ,60 ),(140 ,140 ,40 )),
 5 :((180 ,60 ,180 ),(140 ,40 ,140 )),
 }
-
 
 GAME_MAP =[
 [1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ],
@@ -48,7 +40,6 @@ GAME_MAP =[
 MAP_WIDTH =len (GAME_MAP [0 ])
 MAP_HEIGHT =len (GAME_MAP )
 
-
 DEMON_SPRITE =[
 "  RRRR  ",
 " RRRRRR ",
@@ -67,14 +58,12 @@ SPRITE_COLORS ={
 ' ':None ,
 }
 
-
 class Enemy :
     def __init__ (self ,x ,y ):
         self .x =x 
         self .y =y 
         self .alive =True 
         self .size =0.5 
-
 
 class DoomGame :
     def __init__ (self ):
@@ -83,15 +72,12 @@ class DoomGame :
         self .player_y =2.0 
         self .player_angle =0.0 
 
-
         self .move_speed =0.12 
         self .rot_speed =0.1 
-
 
         self .fov =math .pi /3 
         self .render_width =128 
         self .render_height =100 
-
 
         self .enemies =[
         Enemy (10.5 ,10.5 ),
@@ -99,7 +85,6 @@ class DoomGame :
         Enemy (15.5 ,5.5 ),
         Enemy (8.5 ,15.5 ),
         ]
-
 
         self .shooting =False 
         self .shoot_frame =0 
@@ -135,7 +120,6 @@ class DoomGame :
             self .shoot_frame =5 
             self .ammo -=1 
 
-
             for enemy in self .enemies :
                 if enemy .alive :
 
@@ -144,9 +128,7 @@ class DoomGame :
                     dist =math .sqrt (dx *dx +dy *dy )
                     angle_to_enemy =math .atan2 (dy ,dx )
 
-
                     angle_diff =(angle_to_enemy -self .player_angle +math .pi )%(2 *math .pi )-math .pi 
-
 
                     if abs (angle_diff )<0.2 and dist <10 :
                         enemy .alive =False 
@@ -159,7 +141,6 @@ class DoomGame :
                 self .shooting =False 
 
     def cast_ray (self ,angle ):
-        """Cast a ray and return (distance, wall_type, side)."""
         ray_dir_x =math .cos (angle )
         ray_dir_y =math .sin (angle )
 
@@ -213,9 +194,7 @@ class DoomGame :
 
         return abs (perp_dist ),wall_type ,side 
 
-
 class DoomRenderer :
-    """Renders the Doom game to the Waveshare display."""
 
     def __init__ (self ,display ,input_handler ):
         self .display =display 
@@ -226,7 +205,6 @@ class DoomRenderer :
         self .z_buffer =[0 ]*128 
 
     def start (self ):
-        """Main game loop."""
         self .running =True 
         last_time =time .time ()
 
@@ -249,12 +227,9 @@ class DoomRenderer :
             elif action =='select':
                 self .game .shoot ()
 
-
             self .game .update ()
 
-
             self .render ()
-
 
             current_time =time .time ()
             frame_time =current_time -last_time 
@@ -265,21 +240,17 @@ class DoomRenderer :
         return None 
 
     def render (self ):
-        """Render the game to display."""
         self .display .clear ((0 ,0 ,0 ))
         draw =self .display .draw 
 
-
         draw .rectangle ((0 ,0 ,128 ,50 ),fill =COLOR_CEILING )
         draw .rectangle ((0 ,50 ,128 ,100 ),fill =COLOR_FLOOR )
-
 
         for x in range (128 ):
             ray_angle =self .game .player_angle -self .game .fov /2 +(x /128 )*self .game .fov 
             dist ,wall_type ,side =self .game .cast_ray (ray_angle )
 
             self .z_buffer [x ]=dist 
-
 
             if dist >0.1 :
                 wall_height =min (int (100 /dist ),100 )
@@ -289,10 +260,8 @@ class DoomRenderer :
             wall_top =50 -wall_height //2 
             wall_bottom =50 +wall_height //2 
 
-
             colors =WALL_COLORS .get (wall_type ,WALL_COLORS [1 ])
             base_color =colors [side ]
-
 
             shade =max (0.2 ,1.0 -dist /15 )
             color =(
@@ -301,25 +270,18 @@ class DoomRenderer :
             int (base_color [2 ]*shade )
             )
 
-
             draw .line ((x ,wall_top ,x ,wall_bottom ),fill =color )
-
 
         self ._render_sprites ()
 
-
         self ._draw_weapon ()
 
-
         self ._draw_hud ()
-
 
         self .display ._render ()
 
     def _render_sprites (self ):
-        """Render enemy sprites."""
         draw =self .display .draw 
-
 
         enemies_with_dist =[]
         for enemy in self .game .enemies :
@@ -336,29 +298,23 @@ class DoomRenderer :
             dx =enemy .x -self .game .player_x 
             dy =enemy .y -self .game .player_y 
 
-
             angle =math .atan2 (dy ,dx )-self .game .player_angle 
-
 
             while angle >math .pi :
                 angle -=2 *math .pi 
             while angle <-math .pi :
                 angle +=2 *math .pi 
 
-
             if abs (angle )>self .game .fov /2 +0.2 :
                 continue 
 
-
             screen_x =int (64 +angle *128 /self .game .fov )
-
 
             sprite_height =int (60 /dist )if dist >0.5 else 60 
             sprite_width =sprite_height 
 
             if sprite_height <4 :
                 continue 
-
 
             half_w =sprite_width //2 
             half_h =sprite_height //2 
@@ -368,14 +324,12 @@ class DoomRenderer :
             y0 =50 -half_h 
             y1 =50 +half_h 
 
-
             for sx in range (max (0 ,x0 ),min (128 ,x1 )):
                 if dist <self .z_buffer [sx ]:
 
                     shade =max (0.3 ,1.0 -dist /12 )
                     color =(int (200 *shade ),int (50 *shade ),int (50 *shade ))
                     draw .line ((sx ,max (0 ,y0 ),sx ,min (100 ,y1 )),fill =color )
-
 
             if sprite_width >10 and 0 <=screen_x <128 :
                 eye_y =50 -sprite_height //4 
@@ -393,17 +347,13 @@ class DoomRenderer :
                     fill =(255 ,255 ,0 ))
 
     def _draw_weapon (self ):
-        """Draw weapon/gun sprite."""
         draw =self .display .draw 
-
 
         gun_x =50 
         gun_y =85 if not self .game .shooting else 80 
 
-
         draw .rectangle ((gun_x ,gun_y ,gun_x +28 ,gun_y +20 ),fill =(80 ,80 ,80 ))
         draw .rectangle ((gun_x +8 ,gun_y -15 ,gun_x +20 ,gun_y ),fill =(60 ,60 ,60 ))
-
 
         if self .game .shooting and self .game .shoot_frame >3 :
             draw .ellipse ((gun_x +5 ,gun_y -25 ,gun_x +23 ,gun_y -10 ),
@@ -411,29 +361,22 @@ class DoomRenderer :
             draw .ellipse ((gun_x +8 ,gun_y -22 ,gun_x +20 ,gun_y -13 ),
             fill =(255 ,200 ,50 ))
 
-
         draw .line ((62 ,48 ,66 ,48 ),fill =(0 ,255 ,0 ))
         draw .line ((64 ,46 ,64 ,50 ),fill =(0 ,255 ,0 ))
 
     def _draw_hud (self ):
-        """Draw heads-up display."""
         draw =self .display .draw 
-
 
         draw .rectangle ((0 ,100 ,128 ,128 ),fill =(50 ,50 ,50 ))
         draw .line ((0 ,100 ,128 ,100 ),fill =(100 ,100 ,100 ))
 
-
         health_color =(0 ,255 ,0 )if self .game .health >50 else (255 ,255 ,0 )if self .game .health >25 else (255 ,0 ,0 )
         draw .text ((4 ,104 ),f"HP:{self .game .health }",font =self .display .font_tiny ,fill =health_color )
 
-
         draw .text ((4 ,116 ),f"AM:{self .game .ammo }",font =self .display .font_tiny ,fill =(200 ,200 ,100 ))
-
 
         draw .text ((80 ,104 ),f"KILLS",font =self .display .font_tiny ,fill =(200 ,200 ,200 ))
         draw .text ((90 ,116 ),f"{self .game .kills }",font =self .display .font_tiny ,fill =(255 ,100 ,100 ))
-
 
         face_x =54 
         face_y =108 
@@ -450,16 +393,9 @@ class DoomRenderer :
         else :
             draw .line ((face_x +5 ,face_y +13 ,face_x +13 ,face_y +13 ),fill =(100 ,50 ,50 ))
 
-
 def run_raycaster (display ,input_handler ):
-    """
-    Run Doom-style raycaster on the Waveshare display.
-    Returns the exit key pressed ('key1', 'key2', 'key3') or None.
-    """
     renderer =DoomRenderer (display ,input_handler )
     return renderer .start ()
-
-
 
 def run_doom (display ,input_handler ):
     return run_raycaster (display ,input_handler )
