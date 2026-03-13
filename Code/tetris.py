@@ -11,7 +11,6 @@ colors =[
 (180 ,34 ,122 ),
 ]
 
-
 class Figure :
     x =0 
     y =0 
@@ -38,7 +37,6 @@ class Figure :
 
     def rotate (self ):
         self .rotation =(self .rotation +1 )%len (self .figures [self .type ])
-
 
 class Tetris :
     def __init__ (self ,height ,width ):
@@ -124,11 +122,9 @@ class Tetris :
         if self .intersects ():
             self .figure .rotation =old_rotation 
 
-
 def main ():
 
     pygame .init ()
-
 
     BLACK =(0 ,0 ,0 )
     WHITE =(255 ,255 ,255 )
@@ -138,7 +134,6 @@ def main ():
     screen =pygame .display .set_mode (size )
 
     pygame .display .set_caption ("Tetris")
-
 
     done =False 
     clock =pygame .time .Clock ()
@@ -214,7 +209,6 @@ def main ():
         clock .tick (fps )
 
     pygame .quit ()
-
 
 if __name__ =="__main__":
     main ()

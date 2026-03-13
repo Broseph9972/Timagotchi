@@ -6,7 +6,6 @@ from PIL import Image ,ImageDraw ,ImageFont
 import time 
 from font_manager import FontManager 
 
-
 def _load_lcd_driver ():
     base_dir =os .path .dirname (__file__ )
     legacy_dir =os .path .join (base_dir ,"old code")
@@ -61,7 +60,6 @@ def _load_lcd_driver ():
     f"Details: {error_detail }"
     )
 
-
 LCD_1in44 =_load_lcd_driver ()
 
 class WaveshareDisplay :
@@ -75,9 +73,7 @@ class WaveshareDisplay :
         self .width =self .disp .width 
         self .height =self .disp .height 
 
-
         self .theme_manager =theme_manager 
-
 
         try :
             self ._backlight_level =100 
@@ -89,16 +85,12 @@ class WaveshareDisplay :
         self .image =Image .new ('RGB',(self .width ,self .height ),color =(0 ,0 ,0 ))
         self .draw =ImageDraw .Draw (self .image )
 
-
         self .font_manager =FontManager ()
-
 
         self ._load_fonts ()
 
-
         self .icon_cache ={}
         self ._load_icons ()
-
 
         self .faces ={
         "look_r":"( ⚆_⚆)",
@@ -129,7 +121,6 @@ class WaveshareDisplay :
         }
 
     def _load_icons (self ):
-        """Load icons from the Icons folder and cache them."""
         icons_dir =os .path .join (os .path .dirname (__file__ ),'Icons')
         icon_files ={
         'home':'home.png',
@@ -154,12 +145,10 @@ class WaveshareDisplay :
                 pass 
 
     def _load_fonts (self ):
-        """Load fonts using font manager with fallback to defaults"""
         try :
 
             regular_path =self .font_manager .get_font_path ('regular')
             bold_path =self .font_manager .get_font_path ('bold')
-
 
             self .font_large =ImageFont .truetype (bold_path ,16 )
             self .font_medium =ImageFont .truetype (regular_path ,14 )
@@ -197,7 +186,6 @@ class WaveshareDisplay :
                 return len (text )*6 
 
     def _wrap_text_to_width (self ,text ,font ,max_width ):
-        """Wrap one text line to fit within max_width in pixels."""
         text =(text or "")
         if text =="":
             return [""]
@@ -217,7 +205,6 @@ class WaveshareDisplay :
 
             if current :
                 wrapped .append (current )
-
 
             if self ._measure_text_width (word ,font )<=max_width :
                 current =word 
@@ -239,18 +226,15 @@ class WaveshareDisplay :
         return wrapped 
 
     def reload_fonts (self ):
-        """Reload fonts after font selection change"""
 
         self .font_manager .load_fonts ()
 
         self ._load_fonts ()
 
     def _get_icon (self ,icon_name ):
-        """Get a cached icon by name."""
         return self .icon_cache .get (icon_name )
 
     def _get_nav_item_icon_name (self ,nav_item ):
-        """Map nav item name to icon name."""
         nav_map ={
         "Main Page":"home",
         "Grades":"grades",
@@ -265,19 +249,16 @@ class WaveshareDisplay :
         return self .faces .get (name ,self .faces .get ("awake","(◕‿‿◕)"))
 
     def _render (self ):
-        """Push the PIL image to the LCD."""
         self .disp .LCD_ShowImage (self .image ,0 ,0 )
 
     def clear (self ,color =(0 ,0 ,0 )):
         self .draw .rectangle ((0 ,0 ,self .width ,self .height ),fill =color )
-
 
     SIDEBAR_WIDTH =10 
     PROGRESS_BAR_HEIGHT =8 
     WIFI_BOX_SIZE =0 
 
     def _render_sidebar (self ,nav_items ,selected_index ):
-        """Draw the right-side vertical navigation with letter labels from nav items."""
         if not nav_items or len (nav_items )==0 :
             return 
 
@@ -286,16 +267,12 @@ class WaveshareDisplay :
         box_fill_sel =self .theme_manager .get_sidebar_box_selected ()if self .theme_manager else (60 ,60 ,40 )
         indicator_color =self .theme_manager .get_sidebar_indicator ()if self .theme_manager else (255 ,255 ,0 )
 
-
         sidebar_x =self .width -self .SIDEBAR_WIDTH 
-
 
         self .draw .rectangle ((sidebar_x ,0 ,self .width ,self .height ),fill =bg )
 
-
         num_items =min (len (nav_items ),3 )
         chunk_height =(self .height -(num_items -1 ))//num_items 
-
 
         labels =[]
         for item in nav_items [:num_items ]:
@@ -308,16 +285,12 @@ class WaveshareDisplay :
             y_start =i *(chunk_height +1 )
             y_end =y_start +chunk_height 
 
-
             fill =box_fill_sel if i ==selected_index else box_fill 
-
 
             self .draw .rectangle ((sidebar_x ,y_start ,self .width -1 ,y_end -1 ),fill =fill )
 
-
             label =labels [i ]if i <len (labels )else ""
             text_color =self ._get_text_primary_color ()
-
 
             text_bbox =self .draw .textbbox ((0 ,0 ),label ,font =self .font_small )
             text_width =text_bbox [2 ]-text_bbox [0 ]
@@ -328,13 +301,11 @@ class WaveshareDisplay :
 
             self .draw .text ((text_x ,text_y ),label ,font =self .font_small ,fill =text_color )
 
-
             if i ==selected_index :
                 bar_x =sidebar_x -2 
                 self .draw .line ((bar_x ,y_start ,bar_x ,y_end -1 ),fill =indicator_color ,width =2 )
 
     def _render_wifi_indicator (self ,wifi_connected ):
-        """Wifi indicator removed - no longer displayed."""
         pass 
 
     def show_schedule (self ,period ,period_name ,time_remaining ,lunch_time ,end_time ,current_time_str ,nav_items =None ,selected_index =0 ,wifi_connected =False ,minutes_remaining =0 ):
@@ -378,7 +349,6 @@ class WaveshareDisplay :
         if end_time :
             self .draw .text ((2 ,y_offset ),f"Ends: {end_time }",font =self .font_small ,fill =(255 ,100 ,100 ))
 
-
         self ._render_sidebar (nav_items or [],selected_index )
         self ._render_wifi_indicator (wifi_connected )
         self ._render ()
@@ -386,11 +356,9 @@ class WaveshareDisplay :
     def show_menu (self ,menu_items ,selected_index ,title ="Menu",progress_label ="",progress_value =0 ,nav_items =None ,nav_selected_index =0 ,start_index =0 ,max_visible =5 ,wifi_connected =False ):
         self .clear (self ._get_bg_color ())
 
-
         title_color =self ._get_accent_color ()
         selected_color =(255 ,255 ,0 )
         unselected_color =self ._get_text_secondary_color ()
-
 
         content_width =self .width -self .SIDEBAR_WIDTH -4 
 
@@ -410,12 +378,10 @@ class WaveshareDisplay :
                 self .draw .text ((6 ,y_offset ),f" {display_item }",font =self .font_small ,fill =unselected_color )
             y_offset +=16 
 
-
         if start_index >0 :
             self .draw .text ((content_width -10 ,18 ),"^",font =self .font_tiny ,fill =unselected_color )
         if start_index +max_visible <len (menu_items ):
             self .draw .text ((content_width -10 ,y_offset -4 ),"v",font =self .font_tiny ,fill =unselected_color )
-
 
         self ._render_sidebar (nav_items or [],nav_selected_index )
         self ._render_wifi_indicator (wifi_connected )
@@ -427,9 +393,7 @@ class WaveshareDisplay :
         content_width =self .width -self .SIDEBAR_WIDTH -6 
         title_font =self .font_small 
 
-
         self .draw .text ((3 ,4 ),title ,font =title_font ,fill =color if color else self ._get_accent_color ())
-
 
         raw_lines =(message or "").split ("\n")
         candidate_fonts =[self .font_tiny ,self .font_micro ]
@@ -454,7 +418,6 @@ class WaveshareDisplay :
                 chosen_line_height =line_height 
                 break 
 
-
             chosen_font =font 
             chosen_lines =wrapped_lines [:max_lines ]
             chosen_line_height =line_height 
@@ -463,7 +426,6 @@ class WaveshareDisplay :
         for line in chosen_lines :
             self .draw .text ((3 ,y_offset ),line ,font =chosen_font ,fill =self ._get_text_secondary_color ())
             y_offset +=chosen_line_height 
-
 
         self ._render_sidebar (nav_items or [],nav_selected_index )
         self ._render_wifi_indicator (wifi_connected )
@@ -474,22 +436,17 @@ class WaveshareDisplay :
 
         content_width =self .width -self .SIDEBAR_WIDTH -4 
 
-
         self .draw .text ((10 ,40 ),time_str ,font =self .font_large ,fill =self ._get_accent_color ())
         self .draw .text ((10 ,65 ),date_str ,font =self .font_small ,fill =self ._get_text_secondary_color ())
-
 
         self ._render_sidebar (nav_items or [],nav_selected_index )
         self ._render_wifi_indicator (wifi_connected )
         self ._render ()
 
     def show_face_message (self ,title ,message ,face_name ="awake",color =(255 ,255 ,255 ),nav_items =None ,nav_selected_index =0 ,wifi_connected =False ):
-        """Display a message with a large ASCII face centered."""
         self .clear (self ._get_bg_color ())
 
-
         self .draw .text ((4 ,6 ),title ,font =self .font_medium ,fill =color if color else self ._get_accent_color ())
-
 
         face_text =self ._get_face (face_name )
         face_font =self .font_large 
@@ -505,19 +462,16 @@ class WaveshareDisplay :
         face_y =28 
         self .draw .text ((face_x ,face_y ),face_text ,font =face_font ,fill =color if color else self ._get_text_primary_color ())
 
-
         y_offset =face_y +face_h +6 
         for line in (message or "").split ("\n"):
             self .draw .text ((4 ,y_offset ),line [:18 ],font =self .font_tiny ,fill =self ._get_text_secondary_color ())
             y_offset +=12 
-
 
         self ._render_sidebar (nav_items or [],nav_selected_index )
         self ._render_wifi_indicator (wifi_connected )
         self ._render ()
 
     def show_main_page (self ,progress_label ,progress_value ,time_str ,date_str ,schedule_summary ,wifi_connected ,nav_items ,selected_index ,face_name ="awake",speech_lines =None ):
-        """Render the main page with an ASCII face, optional speech lines, progress bar, clock, sidebar, wifi."""
         self .clear (self ._get_bg_color ())
 
         accent =self ._get_accent_color ()
@@ -525,7 +479,6 @@ class WaveshareDisplay :
         primary =self ._get_text_primary_color ()
 
         content_width =self .width -self .SIDEBAR_WIDTH 
-
 
         bar_x =0 
         bar_y =0 
@@ -541,8 +494,6 @@ class WaveshareDisplay :
 
         self .draw .text ((4 ,bar_h +2 ),progress_label ,font =self .font_tiny ,fill =secondary )
 
-
-
         clock_bottom_y =self .height -(self .WIFI_BOX_SIZE +26 )
         face_text =self ._get_face (face_name )
         face_font =self .font_large 
@@ -557,11 +508,9 @@ class WaveshareDisplay :
         face_y =max (bar_h +12 ,clock_bottom_y -face_h -12 )
         self .draw .text ((face_x ,face_y ),face_text ,font =face_font ,fill =primary )
 
-
         speech_lines =speech_lines or []
         if speech_lines :
             line =speech_lines [0 ]
-
 
             display_lines =[]
             if len (line )>22 :
@@ -576,7 +525,6 @@ class WaveshareDisplay :
                     display_lines .append (line [22 :])
             else :
                 display_lines .append (line )
-
 
             total_msg_h =0 
             msg_widths =[]
@@ -593,7 +541,6 @@ class WaveshareDisplay :
             text_y =max (bar_h +8 ,face_y -total_msg_h -12 )
             content_w =self .width -self .SIDEBAR_WIDTH 
 
-
             for idx ,text_line in enumerate (display_lines ):
                 text_x =max (0 ,(content_w -msg_widths [idx ])//2 )
                 self .draw .text ((text_x ,text_y ),text_line ,font =self .font_tiny ,fill =primary )
@@ -603,7 +550,6 @@ class WaveshareDisplay :
                 except Exception :
                     line_h =self .font_tiny .getsize (text_line )[1 ]
                 text_y +=line_h +2 
-
 
             arrow ="<┛"
             try :
@@ -615,29 +561,22 @@ class WaveshareDisplay :
             arrow_y =face_y +max (0 ,(face_h -arrow_h )//2 )
             self .draw .text ((arrow_x ,arrow_y ),arrow ,font =self .font_tiny ,fill =primary )
 
-
-
         bottom_y =self .height -(self .WIFI_BOX_SIZE +26 )
         self .draw .text ((4 ,bottom_y -2 ),time_str ,font =self .font_small ,fill =accent )
         self .draw .text ((4 ,bottom_y +10 ),date_str ,font =self .font_tiny ,fill =secondary )
 
-
         self ._render_sidebar (nav_items or [],selected_index )
-
 
         self ._render_wifi_indicator (wifi_connected )
 
         self ._render ()
 
     def show_grades_menu (self ,menu_items ,selected_index ,title ="Grades",nav_items =None ,nav_selected_index =0 ,start_index =0 ,max_visible =5 ,wifi_connected =False ):
-        """Display grades menu with menu items."""
         self .clear (self ._get_bg_color ())
-
 
         title_color =self ._get_accent_color ()
         selected_color =(255 ,255 ,0 )
         unselected_color =self ._get_text_secondary_color ()
-
 
         content_width =self .width -self .SIDEBAR_WIDTH -4 
 
@@ -657,45 +596,36 @@ class WaveshareDisplay :
                 self .draw .text ((6 ,y_offset ),f" {display_item }",font =self .font_small ,fill =unselected_color )
             y_offset +=16 
 
-
         if start_index >0 :
             self .draw .text ((content_width -10 ,18 ),"^",font =self .font_tiny ,fill =unselected_color )
         if start_index +max_visible <len (menu_items ):
             self .draw .text ((content_width -10 ,y_offset -4 ),"v",font =self .font_tiny ,fill =unselected_color )
 
-
         self ._render_sidebar (nav_items or [],nav_selected_index )
         self ._render_wifi_indicator (wifi_connected )
         self ._render ()
 
-
     def _get_bg_color (self ):
-        """Get background color from theme"""
         if self .theme_manager :
             return self .theme_manager .get_background ()
         return (0 ,0 ,0 )
 
     def _get_text_primary_color (self ):
-        """Get primary text color from theme"""
         if self .theme_manager :
             return self .theme_manager .get_text_primary ()
         return (255 ,255 ,255 )
 
     def _get_text_secondary_color (self ):
-        """Get secondary text color from theme"""
         if self .theme_manager :
             return self .theme_manager .get_text_secondary ()
         return (200 ,200 ,200 )
 
     def _get_accent_color (self ):
-        """Get accent color from theme"""
         if self .theme_manager :
             return self .theme_manager .get_text_accent ()
         return (100 ,200 ,255 )
 
-
     def set_backlight (self ,level :int ):
-        """Set backlight brightness percentage (0-100)."""
         try :
             level =max (0 ,min (100 ,int (level )))
             self .disp .bl_DutyCycle (level )
@@ -704,11 +634,9 @@ class WaveshareDisplay :
             pass 
 
     def get_backlight (self ):
-        """Return last set backlight percentage or None if unknown."""
         return self ._backlight_level 
 
     def restore_backlight (self ,fallback :int =100 ):
-        """Restore backlight to previous level or fallback."""
         if self ._backlight_level is None :
             self .set_backlight (fallback )
         else :

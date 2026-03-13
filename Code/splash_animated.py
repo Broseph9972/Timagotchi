@@ -1,9 +1,4 @@
 
-
-"""
-Animated splash screen for Timagotchi boot
-Displays loading GIF until main application is ready
-"""
 import os 
 import sys 
 import importlib .util 
@@ -11,7 +6,6 @@ from PIL import Image
 import time 
 
 def _load_lcd_driver ():
-    """Load the Waveshare LCD driver (copied from display_waveshare.py)"""
     base_dir =os .path .dirname (__file__ )
     legacy_dir =os .path .join (base_dir ,"old code")
 
@@ -61,7 +55,6 @@ def _load_lcd_driver ():
     raise FileNotFoundError ("Could not load Waveshare LCD driver (LCD_1in44)")
 
 def load_gif_frames (gif_path ):
-    """Load all frames from animated GIF"""
     try :
         gif =Image .open (gif_path )
         frames =[]
@@ -72,7 +65,6 @@ def load_gif_frames (gif_path ):
 
                 duration =gif .info .get ('duration',100 )
                 durations .append (duration /1000.0 )
-
 
                 frame =gif .convert ('RGB')
                 frames .append (frame )
@@ -87,31 +79,23 @@ def load_gif_frames (gif_path ):
         return [],[]
 
 def create_centered_frame (gif_frame ,canvas_size =(128 ,128 ),bg_color =(255 ,255 ,255 )):
-    """
-    Create a canvas with white background and center the GIF frame
-    """
     canvas =Image .new ('RGB',canvas_size ,bg_color )
-
 
     x =(canvas_size [0 ]-gif_frame .width )//2 
     y =(canvas_size [1 ]-gif_frame .height )//2 
-
 
     canvas .paste (gif_frame ,(x ,y ))
 
     return canvas 
 
 def run_splash ():
-    """Main splash screen loop"""
     try :
         LCD_1in44 =_load_lcd_driver ()
-
 
         disp =LCD_1in44 .LCD ()
         scan_dir =LCD_1in44 .SCAN_DIR_DFT 
         disp .LCD_Init (scan_dir )
         disp .LCD_Clear ()
-
 
         base_dir =os .path .dirname (os .path .dirname (__file__ ))
         gif_path =os .path .join (base_dir ,'Pics','pwnagotchi.gif')
@@ -129,9 +113,7 @@ def run_splash ():
 
         print (f"Loaded {len (frames )} frames")
 
-
         ready_file ='/tmp/timagotchi_ready'
-
 
         start_time =time .time ()
         frame_index =0 
@@ -144,25 +126,19 @@ def run_splash ():
                 disp .LCD_Clear ()
                 break 
 
-
             if time .time ()-start_time >15 :
                 print ("Splash timeout, exiting")
                 disp .LCD_Clear ()
                 break 
 
-
             frame =frames [frame_index ]
             duration =durations [frame_index ]
 
-
             display_frame =create_centered_frame (frame ,(128 ,128 ),(255 ,255 ,255 ))
-
 
             disp .LCD_ShowImage (display_frame ,0 ,0 )
 
-
             time .sleep (max (duration ,0.08 ))
-
 
             frame_index =(frame_index +1 )%len (frames )
             if frame_index ==0 :

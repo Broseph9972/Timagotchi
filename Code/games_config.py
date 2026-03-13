@@ -21,12 +21,10 @@ GAMES :Dict [str ,Dict [str ,List [str ]|str ]]={
 },
 }
 
-
 def _resolve_path (candidate :str ,base_dir :str )->str :
     if os .path .isabs (candidate ):
         return candidate 
     return os .path .join (base_dir ,candidate )
-
 
 def get_game_command (game_name :str )->List [str ]:
     if game_name not in GAMES :

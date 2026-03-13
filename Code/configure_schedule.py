@@ -10,7 +10,6 @@ def get_time_input (prompt ,use_24h =False ):
                 time_str =time_str .replace ("am","").replace ("pm","").replace ("AM","").replace ("PM","").strip ()
                 hour ,minute =map (int ,time_str .split (":"))
 
-
                 if 7 <=hour <=11 :
                     time_str +=" AM"
                 elif 1 <=hour <=5 :
@@ -29,14 +28,6 @@ def get_time_input (prompt ,use_24h =False ):
             print ("Invalid time format. Please try again.")
 
 def get_period_names (day_label ,num_periods =6 ,previous_periods =None ):
-    """
-    Get period names for a day preset.
-    
-    Args:
-        day_label: Label for the day (e.g., "A day", "B day", "C day")
-        num_periods: Number of periods
-        previous_periods: Dict of period names from previous day to optionally copy from
-    """
     periods ={}
     print (f"\nEnter {day_label } period names:")
     print ("(Press Enter to skip, or 'c' to copy from previous day preset)"if previous_periods else "(Press Enter to skip):")
@@ -66,10 +57,8 @@ def main ():
 
     from datetime import datetime ,timedelta 
 
-
     passing_time =input ("\nPassing time between periods (minutes): ")
     period_length =input ("Regular period length (minutes): ")
-
 
     has_advisory =input ("\nDoes your school have advisory/homeroom? (y/n): ").lower ()=='y'
     if has_advisory :
@@ -86,9 +75,7 @@ def main ():
         advisory_length ="0"
         advisory_days =""
 
-
     num_periods =int (input ("\nHow many regular class periods are there (not including lunch/advisory)? "))
-
 
     has_lunch =input ("\nDoes your schedule include lunch? (y/n): ").lower ()=='y'
     if has_lunch :
@@ -109,16 +96,12 @@ def main ():
     print ("\nCalculating period start times...")
     periods ={}
 
-
     school_start_time =datetime .strptime (school_start ,"%H:%M")
     school_end_time =datetime .strptime (school_end ,"%H:%M")
-
-
 
     current_time =school_start_time 
     period_len =int (period_length )
     pass_min =int (passing_time )
-
 
     if has_advisory :
         periods ['advisory']=advisory_start 
@@ -126,16 +109,12 @@ def main ():
         advisory_end =datetime .strptime (advisory_start ,"%H:%M")+timedelta (minutes =int (advisory_length ))
         current_time =advisory_end +timedelta (minutes =pass_min )
 
-
     for i in range (1 ,num_periods +1 ):
         periods [i ]=current_time .strftime ("%H:%M")
 
-
         class_end =current_time +timedelta (minutes =period_len )
 
-
         next_start =class_end +timedelta (minutes =pass_min )
-
 
         if has_lunch and i ==lunch_after_period :
 
@@ -165,7 +144,6 @@ def main ():
         except ValueError :
             num_presets =2 
 
-
         preset_labels =[]
         if num_presets ==2 :
             preset_labels =["A day","B day"]
@@ -175,12 +153,10 @@ def main ():
             for i in range (num_presets ):
                 preset_labels .append (chr (65 +i )+" day")
 
-
         previous_periods =None 
         for idx ,label in enumerate (preset_labels ):
             day_presets [idx ]=get_period_names (label ,num_periods ,previous_periods )
             previous_periods =day_presets [idx ]
-
 
         print ("\n"+"="*50 )
         print ("Day Preset Mode Configuration")
@@ -205,7 +181,6 @@ def main ():
         else :
             manual_ab_day ="0"
 
-
     print ("\n"+"="*50 )
     print ("WiFi Network Configuration")
     print ("="*50 )
@@ -223,7 +198,6 @@ def main ():
         wifi_networks_str +=f'    ("{ssid }", "{password }"),\n'
     wifi_networks_str +="]"
 
-
     print ("\n=== Time Sync Settings ===")
     print ("How should the system handle time synchronization?")
     print ("  1) Disabled (manual only, no automatic sync)")
@@ -231,7 +205,6 @@ def main ():
     print ("  3) Periodic (sync every N hours)")
 
     sync_choice =input ("\nSelect time sync mode (1-3, default 1): ").strip ()
-
 
     print ("\nEnter your timezone (e.g., America/New_York, America/Chicago, America/Los_Angeles)")
     print ("See full list at: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones")
@@ -252,7 +225,6 @@ def main ():
     else :
         time_sync_mode ="disabled"
         time_sync_interval =6 
-
 
     config_lines =[
     "# School Schedule Configuration\n",
@@ -279,7 +251,6 @@ def main ():
     "PERIODS = {",
     ]
 
-
     period_items =[]
     for k ,v in sorted (periods .items (),key =lambda x :(isinstance (x [0 ],str ),x [0 ])):
         if isinstance (k ,str ):
@@ -297,7 +268,6 @@ def main ():
     "DAY_PRESETS = {",
     ])
 
-
     if has_ab :
         for idx ,label in enumerate (preset_labels ):
             preset_key =chr (65 +idx )
@@ -309,7 +279,6 @@ def main ():
     "# Legacy support (for backward compatibility)",
     "# A_DAY_PERIODS and B_DAY_PERIODS are deprecated; use DAY_PRESETS instead",
     ])
-
 
     if has_ab and len (day_presets )>=1 :
         config_lines .append (f"A_DAY_PERIODS = {day_presets [0 ]}")
@@ -364,7 +333,6 @@ def main ():
         f .write (config_content )
 
     print ("\nConfiguration has been saved to config.py!")
-
 
     print ("\n"+"="*50 )
     print ("Canvas LMS Integration (Optional)")
