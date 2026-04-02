@@ -124,6 +124,25 @@ body {
     margin-right: 0.5rem;
 }
 
+.showcase-row {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 2rem;
+    margin: 2rem auto 3rem;
+    flex-wrap: wrap;
+}
+
+.showcase-row .carousel-wrapper {
+    margin: 0;
+    flex: 0 1 auto;
+}
+
+.showcase-row .approval-card {
+    margin: 0;
+    flex: 0 1 360px;
+}
+
 /* Hero Section */
 .hero {
     text-align: center;
@@ -655,6 +674,10 @@ footer a:hover {
 
     .approval-card {
         padding: 1.25rem;
+    }
+
+    .showcase-row {
+        gap: 1.25rem;
     }
 
     .docs-container {
