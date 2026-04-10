@@ -1,0 +1,331 @@
+# Ergogen v4 config for the Redox keyboard
+# Based on: https://github.com/mattdibi/redox-keyboard
+# Layout: 7x5 columnar stagger, 70 keys total (35 per half)
+# Switches: Cherry MX (u = 19.05mm)
+# Keycaps per half: 27x 1u (main matrix), 5x 1.25u (mod row), 3x 1.5u (thumb cluster)
+#
+# Left half column layout (viewed from above):
+#   outer  pinky  ring  middle  index  inner  far
+# Row num (4):   7 keys  (  `  1  2  3  4  5  [  )
+# Row top (3):   7 keys  ( TAB  Q  W  E  R  T  [  )
+# Row home (2):  6 keys  ( CAP  A  S  D  F  G     )  <- far column absent
+# Row bot (1):   7 keys  ( SFT  Z  X  C  V  B HYP  )
+# Row mod (0):   5 keys  ( CTL GUI ALT <-  ->       )  <- inner + far absent
+# Thumb cluster: 3x 1.5u vertical keys below the index/inner bottom
+
+meta:
+  engine: 4.1.0
+  version: 1.0
+  author: redox_ergogen
+
+units:
+  # MX key spacing: u = 19.05mm
+  kx: u
+  ky: u
+
+  # Outline padding around each key position
+  px: kx + 2
+  py: ky + 2
+
+  # Thumb cluster: 1.5u keys spaced 1.5u apart center-to-center
+  th_spread: 1.5ky
+
+  # Stagger values (mm, cumulative — each relative to the previous column)
+  # Result when accumulated from outer col:
+  #   outer: 0   pinky: +4   ring: +11   middle: +9   index: +4   inner: +1   far: +1
+  st_pinky:  4    # pinky is 4mm above outer
+  st_ring:   7    # ring is 7mm above pinky (highest column)
+  st_middle: -2   # middle drops 2mm from ring
+  st_index:  -5   # index drops 5mm from middle
+  st_inner:  -3   # inner drops 3mm from index
+  st_far:    0    # far stays level with inner
+
+points:
+  zones:
+    # ── Main matrix ───────────────────────────────────────────────────────────
+    matrix:
+      anchor:
+        shift: [100, -100]   # place origin on KiCad sheet
+      key:
+        padding: ky           # vertical key-to-key spacing (center-to-center)
+        spread: kx            # horizontal key-to-key spacing
+      columns:
+        outer:
+          key:
+            column_net: col_outer
+            # All 5 rows present in the outer column
+
+        pinky:
+          key:
+            stagger: st_pinky
+            column_net: col_pinky
+
+        ring:
+          key:
+            stagger: st_ring
+            column_net: col_ring
+
+        middle:
+          key:
+            stagger: st_middle
+            column_net: col_middle
+
+        index:
+          key:
+            stagger: st_index
+            column_net: col_index
+
+        inner:
+          key:
+            stagger: st_inner
+            column_net: col_inner
+          rows:
+            mod:
+              skip: true      # inner column has no key in the mod row
+
+        far:
+          key:
+            stagger: st_far
+            column_net: col_far
+          rows:
+            home:
+              skip: true      # far column skips home row (CAPS/A row)
+            mod:
+              skip: true      # far column skips mod row
+
+      rows:
+        num:                  # top/number row  (`, 1-5, [)
+          row_net: row_num
+        top:                  # QWERTY row      (TAB, Q-T, [)
+          row_net: row_top
+        home:                 # ASDF row        (CAPS, A-G)
+          row_net: row_home
+        bot:                  # ZXCV row        (SHIFT, Z-B, HYPR)
+          row_net: row_bot
+        mod:                  # mod/arrow row   (CTRL, GUI, ALT, <-, ->)
+          row_net: row_mod
+
+    # ── Thumb cluster ─────────────────────────────────────────────────────────
+    # Three 1.5u keys placed vertically, anchored below the index mod-row key.
+    # The keys are taller than wide (portrait orientation, rotated 90 degrees
+    # from default), reflecting the physical 1.5u rotated keycaps on the Redox.
+    thumb:
+      anchor:
+        ref: matrix_index_mod
+        shift: [1.5kx, -0.25ky]  # shift right and slightly down from index-mod
+      key:
+        spread: th_spread         # each thumb key center is 1.5u from the next
+        padding: kx               # depth of each thumb key = 1u
+        width: kx                 # switch footprint width = 1u
+        height: 1.5ky             # switch footprint height = 1.5u (rotated key)
+        column_net: col_thumb
+      columns:
+        near:                     # closest to main matrix (e.g. DEL)
+          key:
+            name: thumb_near
+            column_net: col_thumb_near
+        mid:                      # middle thumb key (e.g. SPC / BKSP)
+          key:
+            name: thumb_mid
+            column_net: col_thumb_mid
+        far:                      # outermost thumb key (e.g. ENT)
+          key:
+            name: thumb_far
+            column_net: col_thumb_far
+      rows:
+        thumb:
+          row_net: row_thumb
+
+    # ── Mirror (right half) ───────────────────────────────────────────────────
+    # The right half is the left half mirrored around the midpoint between
+    # the two innermost far-column num-row keys, separated by ~3 key widths.
+  mirror: &mirror
+    ref: matrix_far_num
+    distance: 3kx               # gap between the two inner edges
+
+outlines:
+  # ── Individual key rectangles (for preview / DRC) ──────────────────────────
+  _keys:
+    - what: rectangle
+      where: true
+      size: [kx - 0.5, ky - 0.5]
+
+  # ── Left half board polygon ────────────────────────────────────────────────
+  # Walk clockwise from the top-left corner of the outer-num key.
+  _left_half:
+    - what: polygon
+      operation: stack
+      points:
+        # Top edge — left to right across the number row
+        - ref: matrix_outer_num
+          shift: [-0.5px, 0.5py]
+        - ref: matrix_pinky_num
+          shift: [-0.5px, 0.5py]
+        - ref: matrix_ring_num
+          shift: [-0.5px, 0.5py]
+        - ref: matrix_ring_num
+          shift: [0.5px, 0.5py]
+        - ref: matrix_middle_num
+          shift: [0.5px, 0.5py]
+        - ref: matrix_inner_num
+          shift: [0.5px, 0.5py]
+        - ref: matrix_far_num
+          shift: [0.5px, 0.5py]
+
+        # Right edge — down far column (only num and top rows)
+        - ref: matrix_far_top
+          shift: [0.5px, -0.5py]
+
+        # Step left at the gap where far column ends (no home row key)
+        - ref: matrix_inner_bot
+          shift: [0.5px, 0.5py]
+        - ref: matrix_inner_bot
+          shift: [0.5px, -0.5py]
+
+        # Transition from inner-bot to thumb cluster
+        - ref: thumb_near
+          shift: [-0.5px, 0.5py]
+
+        # Around the thumb cluster (top edge then right edge then bottom)
+        - ref: thumb_near
+          shift: [-0.5px, 0.5py]
+        - ref: thumb_far
+          shift: [0.5px, 0.5py]
+        - ref: thumb_far
+          shift: [0.5px, -0.5py]
+        - ref: thumb_far
+          shift: [-0.5px, -0.5py]
+        - ref: thumb_near
+          shift: [-0.5px, -0.5py]
+
+        # Step up from thumb to mod row
+        - ref: matrix_index_mod
+          shift: [0.5px, -0.5py]
+        - ref: matrix_outer_mod
+          shift: [0.5px, -0.5py]
+
+        # Left edge — up the outer column back to start
+        - ref: matrix_outer_mod
+          shift: [-0.5px, -0.5py]
+      fillet: 3
+
+  # ── Right half board polygon ───────────────────────────────────────────────
+  # Mirror of the left half; uses the mirror_ prefixed point names.
+  _right_half:
+    - what: polygon
+      operation: stack
+      points:
+        - ref: mirror_matrix_outer_num
+          shift: [0.5px, 0.5py]
+        - ref: mirror_matrix_pinky_num
+          shift: [0.5px, 0.5py]
+        - ref: mirror_matrix_ring_num
+          shift: [0.5px, 0.5py]
+        - ref: mirror_matrix_ring_num
+          shift: [-0.5px, 0.5py]
+        - ref: mirror_matrix_middle_num
+          shift: [-0.5px, 0.5py]
+        - ref: mirror_matrix_inner_num
+          shift: [-0.5px, 0.5py]
+        - ref: mirror_matrix_far_num
+          shift: [-0.5px, 0.5py]
+
+        - ref: mirror_matrix_far_top
+          shift: [-0.5px, -0.5py]
+
+        - ref: mirror_matrix_inner_bot
+          shift: [-0.5px, 0.5py]
+        - ref: mirror_matrix_inner_bot
+          shift: [-0.5px, -0.5py]
+
+        - ref: mirror_thumb_near
+          shift: [0.5px, 0.5py]
+        - ref: mirror_thumb_far
+          shift: [-0.5px, 0.5py]
+        - ref: mirror_thumb_far
+          shift: [-0.5px, -0.5py]
+        - ref: mirror_thumb_far
+          shift: [0.5px, -0.5py]
+        - ref: mirror_thumb_near
+          shift: [0.5px, -0.5py]
+
+        - ref: mirror_matrix_index_mod
+          shift: [-0.5px, -0.5py]
+        - ref: mirror_matrix_outer_mod
+          shift: [-0.5px, -0.5py]
+        - ref: mirror_matrix_outer_mod
+          shift: [0.5px, -0.5py]
+      fillet: 3
+
+  # ── Combined board (both halves, for preview) ──────────────────────────────
+  board:
+    - name: _left_half
+    - name: _right_half
+      operation: add
+
+  # ── Preview: board shape with key outlines subtracted ──────────────────────
+  preview:
+    - name: board
+    - name: _keys
+      operation: subtract
+
+  # ── Switch plate cutouts (14x14mm MX switch opening) ──────────────────────
+  _switch_cutouts:
+    - what: rectangle
+      where: true
+      size: [14, 14]
+
+  switch_plate:
+    - name: board
+    - name: _switch_cutouts
+      operation: subtract
+
+# ── PCB definition (minimal — add your MCU, diodes, TRRS footprints here) ────
+pcbs:
+  redox_left:
+    template: kicad8
+    outlines:
+      main:
+        outline: _left_half
+    footprints:
+      # MX hotswap switch sockets — left half
+      switch_mx:
+        what: ceoloide/switch_mx
+        where: /^(matrix|thumb)/
+        params:
+          from: "{{colrow}}"
+          to: "{{column_net}}"
+
+      # Per-key diodes — left half
+      diode:
+        what: ceoloide/diode_tht_sod123
+        where: /^(matrix|thumb)/
+        params:
+          from: "{{colrow}}"
+          to: "{{row_net}}"
+          include_tht: false
+        adjust:
+          shift: [0, -5]
+
+  redox_right:
+    template: kicad8
+    outlines:
+      main:
+        outline: _right_half
+    footprints:
+      switch_mx:
+        what: ceoloide/switch_mx
+        where: /^mirror_(matrix|thumb)/
+        params:
+          from: "{{colrow}}"
+          to: "{{column_net}}"
+
+      diode:
+        what: ceoloide/diode_tht_sod123
+        where: /^mirror_(matrix|thumb)/
+        params:
+          from: "{{colrow}}"
+          to: "{{row_net}}"
+          include_tht: false
+        adjust:
+          shift: [0, -5]
