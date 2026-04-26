@@ -1,4 +1,4 @@
-# Timagotchi
+# Timagotchi - ⚠ - No longer updated. i am reducing price by making my own PCB and making it more professional and satisfying to use. ![New link](https://github.com/Broseph9972/Timagotchi-Pro)
 
 [![Coding Time](https://hackatime-badge.hackclub.com/U098EVBAAEN/Timagotchi)](https://www.codestats.net)
 
